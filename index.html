@@ -72,6 +72,130 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .page{display:none;padding:20px;padding-bottom:24px}
 .page.active{display:block}
 
+/* ── DESKTOP LAYOUT ── */
+@media (min-width: 768px) {
+  body { overflow: auto; }
+
+  #auth-screen { padding: 40px; }
+  .auth-form { max-width: 400px; }
+  .auth-tabs { max-width: 400px !important; }
+
+  #app {
+    max-width: 100%;
+    height: 100dvh;
+    flex-direction: row;
+    overflow: hidden;
+  }
+
+  /* Sidebar esquerda */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0 24px;
+    height: 100%;
+  }
+  .sidebar-logo {
+    font-family: 'Sora', sans-serif;
+    font-size: 22px; font-weight: 700;
+    padding: 0 24px 32px;
+    letter-spacing: -.5px;
+  }
+  .sidebar-logo span { color: var(--accent); }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; padding: 0 12px; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600; font-family: 'Sora', sans-serif;
+    color: var(--text3); cursor: pointer; transition: all .2s;
+  }
+  .sidebar-item:hover { background: var(--surface2); color: var(--text); }
+  .sidebar-item.active { background: var(--accent-soft); color: var(--accent); }
+  .sidebar-item .s-icon { font-size: 18px; width: 24px; text-align: center; }
+  .sidebar-footer { padding: 0 12px; }
+  .sidebar-user {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: background .2s;
+  }
+  .sidebar-user:hover { background: var(--surface2); }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-email { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Área principal */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* Header desktop */
+  .header {
+    padding: 24px 32px 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+  .header-logo { display: none; }
+
+  /* Conteúdo */
+  .content { padding: 0; }
+  .page { padding: 32px; max-width: 900px; }
+
+  /* Grid de 2 colunas na home */
+  .desktop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .desktop-col { display: flex; flex-direction: column; gap: 0; }
+
+  /* Bottom nav vira sidebar — oculta no desktop */
+  .bottom-nav { display: none; }
+  .fab { display: none; }
+
+  /* Botão novo lançamento na sidebar */
+  .sidebar-new-btn {
+    margin: 0 12px 20px;
+    padding: 13px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-family: 'Sora', sans-serif;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: all .2s;
+    box-shadow: 0 4px 16px rgba(108,99,255,.35);
+  }
+  .sidebar-new-btn:hover { opacity: .9; transform: translateY(-1px); }
+
+  /* Modal centralizado no desktop */
+  .modal-overlay { align-items: center; justify-content: center; }
+  .modal-sheet {
+    border-radius: var(--radius) !important;
+    max-width: 480px !important;
+    max-height: 90vh !important;
+    width: 100% !important;
+    animation: fadeScale .25s ease !important;
+  }
+  @keyframes fadeScale { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+  .modal-handle { display: none; }
+
+  /* Cards maiores */
+  .balance-card { padding: 28px; }
+  .balance-value { font-size: 42px; }
+  .cat-grid { grid-template-columns: repeat(4,1fr); }
+  .report-card { margin-bottom: 16px; }
+}
+
 /* HOME */
 .balance-card{background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e3a5f 100%);border-radius:var(--radius);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
 .balance-card::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:rgba(108,99,255,.2);border-radius:50%}
@@ -262,6 +386,23 @@ select.field-input option{background:#1A1D27}
 .tx-note{font-size:11px;color:var(--text3);font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .report-row.clickable{cursor:pointer;transition:background .15s}
 .report-row.clickable:active{background:var(--surface2)}
+
+/* DETALHES LANÇAMENTO */
+.detail-amount{font-family:'Sora',sans-serif;font-size:36px;font-weight:700;text-align:center;margin:16px 20px 4px}
+.detail-amount.out{color:var(--red)}
+.detail-amount.in{color:var(--green)}
+.detail-rows{padding:0 20px;display:flex;flex-direction:column;margin-bottom:20px}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.detail-row:last-child{border-bottom:none}
+.detail-key{font-size:13px;color:var(--text2)}
+.detail-val{font-size:14px;font-weight:600;text-align:right;max-width:65%}
+.detail-note-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin:0 20px 20px;font-size:13px;color:var(--text2);font-style:italic}
+.detail-actions{display:flex;flex-direction:column;gap:8px;padding:0 20px 8px}
+.edit-btn{width:100%;padding:15px;border-radius:var(--radius);border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-family:'Sora',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+.delete-btn{width:100%;padding:14px;border-radius:var(--radius);border:1.5px solid var(--red);background:transparent;color:var(--red);font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+.confirm-delete-btn{display:none;background:var(--red);color:#fff;width:100%;padding:14px;border-radius:var(--radius);border:none;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.edit-form{padding:0 20px;display:none;flex-direction:column;gap:12px;margin-bottom:20px}
+.edit-form.open{display:flex}
 </style>
 </head>
 <body>
@@ -298,6 +439,34 @@ select.field-input option{background:#1A1D27}
 
 <!-- APP -->
 <div id="app">
+  <!-- SIDEBAR (desktop) -->
+  <div class="sidebar">
+    <div class="sidebar-logo">Fin<span>Track</span></div>
+    <button class="sidebar-new-btn" onclick="openModal()">＋ Novo lançamento</button>
+    <div class="sidebar-nav">
+      <div class="sidebar-item active" id="snav-home" onclick="showPage('home')">
+        <span class="s-icon">🏠</span> Início
+      </div>
+      <div class="sidebar-item" id="snav-report" onclick="showPage('report')">
+        <span class="s-icon">📊</span> Relatórios
+      </div>
+      <div class="sidebar-item" id="snav-config" onclick="showPage('config')">
+        <span class="s-icon">⚙️</span> Configurações
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="openProfile()">
+        <div class="user-avatar" id="user-avatar-sidebar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+          <div class="sidebar-user-email" id="sidebar-user-email">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
   <div class="header">
     <div class="header-logo">Fin<span>Track</span></div>
     <div class="header-actions">
@@ -395,6 +564,8 @@ select.field-input option{background:#1A1D27}
     <div class="nav-item" id="nav-report" onclick="showPage('report')"><div class="nav-icon">📊</div><div>Relatórios</div></div>
     <div class="nav-item" id="nav-config" onclick="showPage('config')"><div class="nav-icon">⚙️</div><div>Config.</div></div>
   </div>
+
+  </div><!-- /main-area -->
 
   <button class="fab" onclick="openModal()">＋</button>
   <div class="toast" id="toast"></div>
@@ -577,6 +748,37 @@ select.field-input option{background:#1A1D27}
   </div>
 </div>
 
+<!-- MODAL DETALHES LANÇAMENTO -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Detalhes</div>
+      <button class="modal-close" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div class="detail-amount" id="detail-amount"></div>
+    <div style="text-align:center;margin-bottom:16px" id="detail-badges"></div>
+    <div class="detail-rows" id="detail-rows"></div>
+    <div class="detail-note-box" id="detail-note-box" style="display:none"></div>
+
+    <!-- FORM DE EDIÇÃO (oculto por padrão) -->
+    <div class="edit-form" id="edit-form">
+      <div class="field-group" style="margin-bottom:0"><label class="field-label">Título</label><input class="field-input" id="edit-title" type="text"></div>
+      <div class="field-group" style="margin-bottom:0"><label class="field-label">Nota</label><input class="field-input" id="edit-note" type="text" placeholder="Opcional"></div>
+      <div class="field-group" style="margin-bottom:0"><label class="field-label">Categoria</label><select class="field-input" id="edit-cat"></select></div>
+      <div class="field-group" style="margin-bottom:0"><label class="field-label">Titular</label><select class="field-input" id="edit-person"></select></div>
+      <button class="cta-btn success" onclick="saveEdit()">✓ Salvar alterações</button>
+      <button class="back-btn" onclick="cancelEdit()">Cancelar</button>
+    </div>
+
+    <div class="detail-actions" id="detail-actions">
+      <button class="edit-btn" onclick="openEdit()">✏️ Editar lançamento</button>
+      <button class="delete-btn" id="delete-btn" onclick="confirmDelete()">🗑 Excluir lançamento</button>
+      <button class="confirm-delete-btn" id="confirm-delete-btn" onclick="doDelete()">⚠️ Confirmar exclusão</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -733,6 +935,12 @@ function updateAvatar() {
   const name = currentUser.displayName || currentUser.email || '?';
   const initial = name[0].toUpperCase();
   document.getElementById('user-avatar').textContent = initial;
+  const sidebarAvatar = document.getElementById('user-avatar-sidebar');
+  if (sidebarAvatar) sidebarAvatar.textContent = initial;
+  const sidebarName = document.getElementById('sidebar-user-name');
+  if (sidebarName) sidebarName.textContent = currentUser.displayName || 'Usuário';
+  const sidebarEmail = document.getElementById('sidebar-user-email');
+  if (sidebarEmail) sidebarEmail.textContent = currentUser.email;
   document.getElementById('profile-avatar-big').textContent = initial;
   document.getElementById('profile-name-display').textContent = currentUser.displayName || 'Usuário';
   document.getElementById('profile-email-display').textContent = currentUser.email;
@@ -744,8 +952,11 @@ window.closeProfile = function() { document.getElementById('modal-profile').clas
 window.showPage = function(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav-'+p).classList.add('active');
+  const snav = document.getElementById('snav-'+p);
+  if (snav) snav.classList.add('active');
   if (p === 'home') renderHome();
   if (p === 'report') renderReport();
   if (p === 'config') renderConfig();
@@ -799,7 +1010,7 @@ function renderHome() {
     const inst = t.installmentOf ? ` (${t.installmentNum}/${t.installmentOf}x)` : '';
     const person = t.person && t.person !== 'Eu' ? ` · ${t.person}` : '';
     const noteStr = t.note ? `<div class="tx-note">${t.note}</div>` : '';
-    return `<div class="transaction-item">
+    return `<div class="transaction-item" onclick="openDetailModal('${t.id}')">
       <div class="tx-icon" style="background:${isOut?'var(--red-soft)':'var(--green-soft)'}">${CAT_ICONS[t.category]||'📦'}</div>
       <div class="tx-info">
         <div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
@@ -1293,8 +1504,110 @@ window.copyToClipboard = function() {
   }
 };
 
+// ── DETALHES / EDIÇÃO / EXCLUSÃO ──
+let detailTx = null;
+
+window.openDetailModal = function(id) {
+  const t = transactions.find(x => x.id === id);
+  if (!t) return;
+  detailTx = t;
+
+  // Reset estado
+  document.getElementById('edit-form').classList.remove('open');
+  document.getElementById('detail-actions').style.display = 'flex';
+  document.getElementById('confirm-delete-btn').style.display = 'none';
+  document.getElementById('delete-btn').style.display = 'block';
+
+  const isOut = t.type !== 'transfer_in';
+  const amt = t.myAmount ?? t.amount;
+  const typeLabel = {credit:'💳 Crédito',debit:'💸 Débito',pix:'⚡ Pix',transfer_in:'⬆ Entrada'};
+  const typeTag = {credit:'tag-credit',debit:'tag-debit',pix:'tag-pix',transfer_in:'tag-debit'};
+
+  document.getElementById('detail-amount').className = 'detail-amount '+(isOut?'out':'in');
+  document.getElementById('detail-amount').textContent = (isOut?'- ':'+  ')+fmt(amt);
+
+  document.getElementById('detail-badges').innerHTML =
+    `<span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span>` +
+    (t.installmentOf ? ` <span class="tag tag-credit">Parcela ${t.installmentNum}/${t.installmentOf}</span>` : '');
+
+  const rows = [
+    ['Data', fmtDate(t.date)],
+    t.type==='credit' ? ['Competência', t.competenceDate ? formatCompetence(t.competenceDate) : '—'] : null,
+    t.card ? ['Cartão', t.card] : null,
+    t.bank ? ['Banco', t.bank] : null,
+    ['Categoria', `${CAT_ICONS[t.category]||'📦'} ${t.category||'—'}`],
+    ['Titular', t.person||'—'],
+    t.splitWith&&t.splitWith.length ? ['Divide com', t.splitWith.join(', ')] : null,
+    t.amount !== t.myAmount ? ['Valor total', fmt(t.amount)] : null,
+    t.amount !== t.myAmount ? ['Meu valor', fmt(t.myAmount)] : null,
+  ].filter(Boolean);
+
+  document.getElementById('detail-rows').innerHTML = rows.map(([k,v]) =>
+    `<div class="detail-row"><div class="detail-key">${k}</div><div class="detail-val">${v}</div></div>`).join('');
+
+  const noteBox = document.getElementById('detail-note-box');
+  if (t.note) { noteBox.style.display='block'; noteBox.textContent=`📝 ${t.note}`; }
+  else noteBox.style.display='none';
+
+  document.getElementById('modal-detail').classList.add('open');
+};
+
+window.closeDetailModal = function() {
+  document.getElementById('modal-detail').classList.remove('open');
+};
+
+window.openEdit = function() {
+  if (!detailTx) return;
+  document.getElementById('edit-title').value = detailTx.title || detailTx.description || '';
+  document.getElementById('edit-note').value = detailTx.note || '';
+  document.getElementById('edit-cat').innerHTML = userConfig.categories.map(c =>
+    `<option ${c===detailTx.category?'selected':''}>${c}</option>`).join('');
+  document.getElementById('edit-person').innerHTML = userConfig.persons.map(p =>
+    `<option ${p===detailTx.person?'selected':''}>${p}</option>`).join('');
+  document.getElementById('edit-form').classList.add('open');
+  document.getElementById('detail-actions').style.display = 'none';
+};
+
+window.cancelEdit = function() {
+  document.getElementById('edit-form').classList.remove('open');
+  document.getElementById('detail-actions').style.display = 'flex';
+};
+
+window.saveEdit = async function() {
+  if (!detailTx) return;
+  const title = document.getElementById('edit-title').value.trim();
+  const note = document.getElementById('edit-note').value.trim();
+  const category = document.getElementById('edit-cat').value;
+  const person = document.getElementById('edit-person').value;
+  try {
+    const ref = doc(db, 'users', currentUser.uid, 'transactions', detailTx.id);
+    await updateDoc(ref, { title, description: title, note, category, person });
+    const idx = transactions.findIndex(x => x.id === detailTx.id);
+    if (idx >= 0) transactions[idx] = { ...transactions[idx], title, description: title, note, category, person };
+    closeDetailModal();
+    showToast('✓ Lançamento atualizado!', true);
+    renderHome();
+  } catch(e) { showToast('❌ Erro ao salvar.', false); }
+};
+
+window.confirmDelete = function() {
+  document.getElementById('delete-btn').style.display = 'none';
+  document.getElementById('confirm-delete-btn').style.display = 'block';
+};
+
+window.doDelete = async function() {
+  if (!detailTx) return;
+  try {
+    await deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', detailTx.id));
+    transactions = transactions.filter(x => x.id !== detailTx.id);
+    closeDetailModal();
+    showToast('✓ Lançamento excluído!', true);
+    renderHome();
+  } catch(e) { showToast('❌ Erro ao excluir.', false); }
+};
+
 // ── CLOSE ON OUTSIDE CLICK ──
-['modal','modal-card','modal-profile','modal-person'].forEach(id => {
+['modal','modal-card','modal-profile','modal-person','modal-detail'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
   });
