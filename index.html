@@ -144,8 +144,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
   .header-logo { display: none; }
 
   /* Conteúdo */
-  .content { padding: 0; }
-  .page { padding: 32px; max-width: 900px; }
+  .content { padding: 0; display: flex; justify-content: center; }
+  .page { padding: 32px; max-width: 900px; width: 100%; }
 
   /* Grid de 2 colunas na home */
   .desktop-grid {
@@ -406,8 +406,8 @@ select.field-input option{background:#1A1D27}
 
 /* ── ONBOARDING SLIDES ── */
 #onboarding-screen{height:100dvh;display:none;flex-direction:column;background:var(--bg);position:relative;overflow:hidden}
-.ob-slides{flex:1;display:flex;overflow:hidden;position:relative}
-.ob-slide{min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;text-align:center;transition:transform .4s cubic-bezier(.32,.72,0,1)}
+.ob-slides{flex:1;display:flex;width:400%;overflow:hidden;position:relative}
+.ob-slide{width:25%;min-width:25%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;text-align:center;transition:transform .4s cubic-bezier(.32,.72,0,1)}
 .ob-emoji{font-size:72px;margin-bottom:24px;line-height:1}
 .ob-title{font-family:'Sora',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;margin-bottom:12px;color:var(--text)}
 .ob-desc{font-size:15px;color:var(--text2);line-height:1.6;max-width:320px}
@@ -453,7 +453,7 @@ select.field-input option{background:#1A1D27}
     <div class="ob-slide">
       <div class="ob-emoji">👥</div>
       <div class="ob-title">Divida com quem quiser</div>
-      <div class="ob-desc">Gastou com mais pessoas? O FinTrack divide automaticamente e gera um resumo pronto para enviar no WhatsApp.</div>
+      <div class="ob-desc">Gastou com mais pessoas? O FinTrack divide automaticamente e gera um resumo pronto para enviar no WhatsApp, com o valor de cada um.</div>
     </div>
     <div class="ob-slide">
       <div class="ob-emoji">📊</div>
@@ -1012,12 +1012,25 @@ function showAuth() {
 function userRef() { return doc(db, 'users', currentUser.uid); }
 function txCol() { return collection(db, 'users', currentUser.uid, 'transactions'); }
 
+function defaultUserConfig() {
+  return {
+    cards: [],
+    categories: ['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Vestuário','Supermercado','Restaurante','Combustível','Streaming','Outros'],
+    persons: ['Eu'],
+    banks: ['Sicoob','Santander','Nubank','Itaú','Bradesco','Inter','C6 Bank'],
+  };
+}
+
 async function loadUserData() {
+  // Isola completamente os dados: zera tudo antes de carregar o usuário atual,
+  // garantindo que nenhum dado de outra conta permaneça em memória.
+  userConfig = defaultUserConfig();
+  transactions = [];
   try {
     const snap = await getDoc(userRef());
     if (snap.exists()) {
       const data = snap.data();
-      if (data.config) userConfig = { ...userConfig, ...data.config };
+      if (data.config) userConfig = { ...defaultUserConfig(), ...data.config };
     } else {
       await setDoc(userRef(), { config: userConfig, createdAt: new Date().toISOString() });
     }
@@ -1083,7 +1096,9 @@ window.loginGoogle = async function() {
 
 window.doLogout = async function() {
   await signOut(auth);
+  currentUser = null;
   transactions = [];
+  userConfig = defaultUserConfig();
   closeProfile();
 };
 
@@ -1566,20 +1581,28 @@ window.saveCard = function() {
 };
 
 // ── EXPORT ──
+function csvField(val) {
+  // Escapa campos para CSV: se contiver ; " ou quebra de linha, envolve em aspas duplas
+  const s = String(val ?? '');
+  if (/[;"\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
 window.exportCSV = function() {
   if (!transactions.length) { showToast('⚠️ Nenhum dado para exportar', false); return; }
-  const header = 'Data,Competência,Tipo,Cartão/Banco,Descrição,Categoria,Titular,Divide com,Valor Total,Meu Valor,Parcela\n';
+  // Usa ; como delimitador (padrão do Excel em pt-BR) para que cada dado
+  // caia em sua própria coluna; usar , quebraria por conflitar com a vírgula decimal.
+  const header = ['Data','Competência','Tipo','Cartão/Banco','Descrição','Categoria','Titular','Divide com','Valor Total','Meu Valor','Parcela'].map(csvField).join(';') + '\n';
   const rows = transactions.map(t => [
     t.date, t.competenceDate||t.date,
     {credit:'Crédito',debit:'Débito',pix:'Pix',transfer_in:'Entrada'}[t.type],
     t.card||t.bank||'',
-    (t.description||'').replace(/,/g,''),
+    t.description||'',
     t.category||'', t.person||'',
-    (t.splitWith||[]).join(';'),
+    (t.splitWith||[]).join(', '),
     (t.amount||0).toFixed(2).replace('.',','),
     (t.myAmount||t.amount||0).toFixed(2).replace('.',','),
     t.installmentOf ? `${t.installmentNum}/${t.installmentOf}` : '1/1',
-  ].join(',')).join('\n');
+  ].map(csvField).join(';')).join('\n');
   const blob = new Blob(['\uFEFF'+header+rows], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1840,7 +1863,7 @@ window.obRestart = function() {
 function obGoTo(n) {
   obCurrent = n;
   const slides = document.getElementById('ob-slides');
-  slides.style.transform = `translateX(-${n * 100}%)`;
+  slides.style.transform = `translateX(-${n * (100 / OB_TOTAL)}%)`;
   for (let i = 0; i < OB_TOTAL; i++) {
     document.getElementById('ob-dot-'+i).classList.toggle('active', i === n);
   }
