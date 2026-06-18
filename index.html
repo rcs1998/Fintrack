@@ -403,9 +403,92 @@ select.field-input option{background:#1A1D27}
 .confirm-delete-btn{display:none;background:var(--red);color:#fff;width:100%;padding:14px;border-radius:var(--radius);border:none;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
 .edit-form{padding:0 20px;display:none;flex-direction:column;gap:12px;margin-bottom:20px}
 .edit-form.open{display:flex}
+
+/* ── ONBOARDING SLIDES ── */
+#onboarding-screen{height:100dvh;display:none;flex-direction:column;background:var(--bg);position:relative;overflow:hidden}
+.ob-slides{flex:1;display:flex;overflow:hidden;position:relative}
+.ob-slide{min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;text-align:center;transition:transform .4s cubic-bezier(.32,.72,0,1)}
+.ob-emoji{font-size:72px;margin-bottom:24px;line-height:1}
+.ob-title{font-family:'Sora',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;margin-bottom:12px;color:var(--text)}
+.ob-desc{font-size:15px;color:var(--text2);line-height:1.6;max-width:320px}
+.ob-footer{padding:24px 24px max(32px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:16px;flex-shrink:0}
+.ob-dots{display:flex;gap:6px}
+.ob-dot{width:6px;height:6px;border-radius:3px;background:var(--border);transition:all .3s}
+.ob-dot.active{width:20px;background:var(--accent)}
+.ob-next{width:100%;max-width:360px;padding:16px;border-radius:var(--radius);border:none;background:var(--accent);color:#fff;font-family:'Sora',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s}
+.ob-next:active{opacity:.85;transform:scale(.98)}
+.ob-skip{font-size:13px;color:var(--text3);cursor:pointer;padding:4px 12px}
+.ob-skip:hover{color:var(--text2)}
+
+/* ── TOUR SPOTLIGHT ── */
+#tour-overlay{position:fixed;inset:0;z-index:500;pointer-events:none;display:none}
+#tour-overlay.active{display:block;pointer-events:auto}
+#tour-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0)}
+.tour-spotlight{position:absolute;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.75);transition:all .4s cubic-bezier(.32,.72,0,1);pointer-events:none}
+.tour-tooltip{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;max-width:280px;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:501}
+.tour-tooltip-title{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px}
+.tour-tooltip-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px}
+.tour-tooltip-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tour-step-counter{font-size:11px;color:var(--text3);font-weight:600}
+.tour-next-btn{padding:8px 16px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.tour-skip-btn{font-size:12px;color:var(--text3);cursor:pointer;padding:4px}
+.tour-skip-btn:hover{color:var(--red)}
 </style>
 </head>
 <body>
+
+<!-- ONBOARDING SLIDES -->
+<div id="onboarding-screen">
+  <div class="ob-slides" id="ob-slides">
+    <div class="ob-slide">
+      <div class="ob-emoji">💸</div>
+      <div class="ob-title">Bem-vindo ao FinTrack</div>
+      <div class="ob-desc">Seu controle financeiro pessoal. Registre gastos, divida despesas e acompanhe tudo em um só lugar.</div>
+    </div>
+    <div class="ob-slide">
+      <div class="ob-emoji">⚡</div>
+      <div class="ob-title">Lançamentos rápidos</div>
+      <div class="ob-desc">Registre um gasto em segundos. Escolha o tipo, digite o valor no teclado numérico e confirme — sem complicação.</div>
+    </div>
+    <div class="ob-slide">
+      <div class="ob-emoji">👥</div>
+      <div class="ob-title">Divida com quem quiser</div>
+      <div class="ob-desc">Gastou com mais pessoas? O FinTrack divide automaticamente e gera um resumo pronto para enviar no WhatsApp.</div>
+    </div>
+    <div class="ob-slide">
+      <div class="ob-emoji">📊</div>
+      <div class="ob-title">Relatórios completos</div>
+      <div class="ob-desc">Veja seus gastos por categoria, titular e cartão. Exporte em CSV para análises mais detalhadas quando precisar.</div>
+    </div>
+  </div>
+  <div class="ob-footer">
+    <div class="ob-dots">
+      <div class="ob-dot active" id="ob-dot-0"></div>
+      <div class="ob-dot" id="ob-dot-1"></div>
+      <div class="ob-dot" id="ob-dot-2"></div>
+      <div class="ob-dot" id="ob-dot-3"></div>
+    </div>
+    <button class="ob-next" id="ob-next-btn" onclick="obNext()">Próximo</button>
+    <div class="ob-skip" onclick="obSkip()">Pular introdução</div>
+  </div>
+</div>
+
+<!-- TOUR OVERLAY -->
+<div id="tour-overlay">
+  <div id="tour-backdrop" onclick="endTour()"></div>
+  <div class="tour-spotlight" id="tour-spotlight"></div>
+  <div class="tour-tooltip" id="tour-tooltip">
+    <div class="tour-tooltip-title" id="tour-tip-title"></div>
+    <div class="tour-tooltip-desc" id="tour-tip-desc"></div>
+    <div class="tour-tooltip-footer">
+      <div class="tour-step-counter" id="tour-counter"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="tour-skip-btn" onclick="endTour()">Pular tour</span>
+        <button class="tour-next-btn" onclick="tourNext()">Próximo →</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- LOADING -->
 <div id="loading-screen">
@@ -554,6 +637,30 @@ select.field-input option{background:#1A1D27}
           <button class="add-btn" onclick="addBank()">+</button>
         </div>
       </div></div>
+      <div style="height:8px"></div>
+      <div class="section-title">Ajuda</div>
+      <div class="config-card">
+        <div class="config-row" onclick="startTour()" style="cursor:pointer">
+          <div class="config-row-left">
+            <div>🎯</div>
+            <div>
+              <div class="config-row-label">Ver tour do sistema</div>
+              <div class="config-row-sub">Conheça todas as funcionalidades</div>
+            </div>
+          </div>
+          <div style="color:var(--accent);font-size:14px">▶</div>
+        </div>
+        <div class="config-row" onclick="obRestart()" style="cursor:pointer">
+          <div class="config-row-left">
+            <div>📖</div>
+            <div>
+              <div class="config-row-label">Ver apresentação inicial</div>
+              <div class="config-row-sub">Os slides de boas-vindas</div>
+            </div>
+          </div>
+          <div style="color:var(--accent);font-size:14px">▶</div>
+        </div>
+      </div>
       <div style="height:8px"></div>
       <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.0 · Dados salvos na nuvem ☁️</div>
     </div>
@@ -831,21 +938,40 @@ onAuthStateChanged(auth, async (user) => {
     showApp();
   } else {
     currentUser = null;
-    showAuth();
+    // Mostra onboarding se nunca foi visto (usa localStorage como flag)
+    const seen = localStorage.getItem('ft_ob_seen');
+    if (!seen) {
+      showOnboarding();
+      // Restaura botões padrão do onboarding
+      document.getElementById('ob-next-btn').onclick = obNext;
+      document.querySelector('.ob-skip').onclick = obSkip;
+    } else {
+      showAuth();
+    }
   }
 });
 
 function showApp() {
+  localStorage.setItem('ft_ob_seen', '1');
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('onboarding-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   updateAvatar();
   renderHome();
   renderConfig();
+  // Tour automático para usuários que nunca fizeram
+  if (!userConfig.tourDone) {
+    setTimeout(() => startTour(), 800);
+    userConfig.tourDone = true;
+    saveConfig();
+  }
 }
 
 function showAuth() {
+  localStorage.setItem('ft_ob_seen', '1');
   document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('onboarding-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
 }
@@ -1604,6 +1730,146 @@ window.doDelete = async function() {
     showToast('✓ Lançamento excluído!', true);
     renderHome();
   } catch(e) { showToast('❌ Erro ao excluir.', false); }
+};
+
+// ── ONBOARDING SLIDES ──
+let obCurrent = 0;
+const OB_TOTAL = 4;
+
+function showOnboarding() {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('onboarding-screen').style.display = 'flex';
+  obGoTo(0);
+}
+
+window.obNext = function() {
+  if (obCurrent < OB_TOTAL - 1) {
+    obGoTo(obCurrent + 1);
+  } else {
+    obSkip();
+  }
+};
+
+window.obSkip = function() {
+  document.getElementById('onboarding-screen').style.display = 'none';
+  showAuth();
+};
+
+window.obRestart = function() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('onboarding-screen').style.display = 'flex';
+  obGoTo(0);
+  document.querySelector('.ob-skip').onclick = () => {
+    document.getElementById('onboarding-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+  };
+  document.getElementById('ob-next-btn').onclick = () => {
+    if (obCurrent < OB_TOTAL - 1) {
+      obGoTo(obCurrent + 1);
+    } else {
+      document.getElementById('onboarding-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+    }
+  };
+};
+
+function obGoTo(n) {
+  obCurrent = n;
+  const slides = document.getElementById('ob-slides');
+  slides.style.transform = `translateX(-${n * 100}%)`;
+  for (let i = 0; i < OB_TOTAL; i++) {
+    document.getElementById('ob-dot-'+i).classList.toggle('active', i === n);
+  }
+  const btn = document.getElementById('ob-next-btn');
+  btn.textContent = n === OB_TOTAL - 1 ? 'Criar conta ou entrar →' : 'Próximo';
+}
+
+// Swipe nos slides
+(function() {
+  let startX = 0;
+  const el = document.getElementById('ob-slides');
+  if (!el) return;
+  el.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
+  el.addEventListener('touchend', e => {
+    const diff = startX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && obCurrent < OB_TOTAL - 1) obGoTo(obCurrent + 1);
+      else if (diff < 0 && obCurrent > 0) obGoTo(obCurrent - 1);
+    }
+  });
+})();
+
+// ── TOUR ──
+const TOUR_STEPS = [
+  { selector: '.balance-card', title: '💰 Resumo do mês', desc: 'Aqui você vê o total gasto no mês atual, separado por crédito e débito/Pix, e o número de lançamentos.' },
+  { selector: '.month-selector', title: '📅 Navegação por mês', desc: 'Use as setas para navegar entre meses e ver o histórico de gastos de qualquer período.' },
+  { selector: '.fab', title: '➕ Novo lançamento', desc: 'Toque aqui para registrar um gasto. Você escolhe o tipo, digita o valor e preenche os detalhes em 4 passos simples.' },
+  { selector: '#nav-report, #snav-report', title: '📊 Relatórios', desc: 'Veja seus gastos detalhados por categoria, titular e cartão. Toque em um titular para gerar a cobrança e enviar no WhatsApp.' },
+  { selector: '#nav-config, #snav-config', title: '⚙️ Configurações', desc: 'Cadastre seus cartões de crédito com data de vencimento, adicione categorias, titulares e bancos personalizados.' },
+  { selector: '.user-avatar, #user-avatar-sidebar', title: '👤 Sua conta', desc: 'Toque aqui para ver seu perfil e sair da conta. Cada usuário tem seus dados completamente isolados.' },
+];
+
+let tourStep = 0;
+
+window.startTour = function() {
+  showPage('home');
+  setTimeout(() => {
+    tourStep = 0;
+    document.getElementById('tour-overlay').classList.add('active');
+    renderTourStep();
+  }, 300);
+};
+
+function renderTourStep() {
+  const step = TOUR_STEPS[tourStep];
+  const el = document.querySelector(step.selector);
+  if (!el) { tourNext(); return; }
+
+  const rect = el.getBoundingClientRect();
+  const pad = 8;
+  const spotlight = document.getElementById('tour-spotlight');
+  spotlight.style.top = (rect.top - pad) + 'px';
+  spotlight.style.left = (rect.left - pad) + 'px';
+  spotlight.style.width = (rect.width + pad * 2) + 'px';
+  spotlight.style.height = (rect.height + pad * 2) + 'px';
+
+  document.getElementById('tour-tip-title').textContent = step.title;
+  document.getElementById('tour-tip-desc').textContent = step.desc;
+  document.getElementById('tour-counter').textContent = `${tourStep + 1} de ${TOUR_STEPS.length}`;
+
+  const tooltip = document.getElementById('tour-tooltip');
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const tw = 280;
+  const th = 160;
+
+  // Posiciona tooltip: tenta abaixo, senão acima
+  let top = rect.bottom + pad + 12;
+  let left = rect.left;
+  if (top + th > vh - 20) top = rect.top - th - 12;
+  if (left + tw > vw - 16) left = vw - tw - 16;
+  if (left < 16) left = 16;
+  if (top < 16) top = 16;
+
+  tooltip.style.top = top + 'px';
+  tooltip.style.left = left + 'px';
+
+  // Último passo: muda botão
+  const nextBtn = tooltip.querySelector('.tour-next-btn');
+  nextBtn.textContent = tourStep === TOUR_STEPS.length - 1 ? 'Concluir ✓' : 'Próximo →';
+}
+
+window.tourNext = function() {
+  tourStep++;
+  if (tourStep >= TOUR_STEPS.length) { endTour(); return; }
+  renderTourStep();
+};
+
+window.endTour = async function() {
+  document.getElementById('tour-overlay').classList.remove('active');
+  if (currentUser) {
+    try { await updateDoc(userRef(), { tourDone: true }); } catch(e){}
+  }
 };
 
 // ── CLOSE ON OUTSIDE CLICK ──
