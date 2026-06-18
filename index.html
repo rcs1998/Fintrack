@@ -242,6 +242,26 @@ select.field-input option{background:#1A1D27}
 .profile-name{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px}
 .profile-email{font-size:13px;color:var(--text3);margin-bottom:24px}
 .logout-btn{width:100%;padding:14px;border-radius:var(--radius);border:1.5px solid var(--red);background:var(--red-soft);color:var(--red);font-family:'Sora',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+
+/* COBRANÇA PESSOA */
+.person-summary-header{padding:20px 20px 0;text-align:center}
+.person-avatar{width:60px;height:60px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;font-family:'Sora',sans-serif;color:#fff;margin:0 auto 10px}
+.person-total-label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.person-total-value{font-family:'Sora',sans-serif;font-size:32px;font-weight:700;color:var(--red);margin-bottom:4px}
+.person-month-label{font-size:13px;color:var(--text2);margin-bottom:20px}
+.person-tx-list{padding:0 20px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.person-tx-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.person-tx-left{flex:1;min-width:0}
+.person-tx-desc{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-tx-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.person-tx-amount{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:var(--red);flex-shrink:0}
+.person-actions{display:flex;flex-direction:column;gap:8px;padding:0 20px 8px}
+.whatsapp-btn{width:100%;padding:16px;border-radius:var(--radius);border:none;background:#25D366;color:#fff;font-family:'Sora',sans-serif;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s}
+.whatsapp-btn:active{opacity:.85;transform:scale(.98)}
+.copy-btn{width:100%;padding:14px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.tx-note{font-size:11px;color:var(--text3);font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.report-row.clickable{cursor:pointer;transition:background .15s}
+.report-row.clickable:active{background:var(--surface2)}
 </style>
 </head>
 <body>
@@ -421,7 +441,14 @@ select.field-input option{background:#1A1D27}
         <div class="field-group" id="f-card-wrap"><label class="field-label">Cartão</label><select class="field-input" id="f-card"></select></div>
         <div class="field-group" id="f-bank-wrap" style="display:none"><label class="field-label">Banco</label><select class="field-input" id="f-bank"></select></div>
         <div class="field-group"><label class="field-label">Categoria</label><select class="field-input" id="f-cat"></select></div>
-        <div class="field-group"><label class="field-label">Descrição</label><input class="field-input" type="text" id="f-desc" placeholder="Ex: Supermercado Extra"></div>
+        <div class="field-group">
+          <label class="field-label">Título <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(padronizado — para relatórios)</span></label>
+          <input class="field-input" type="text" id="f-title" placeholder="Ex: 99App, Supermercado Extra, Netflix...">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Nota <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(opcional — contexto pessoal)</span></label>
+          <input class="field-input" type="text" id="f-note" placeholder="Ex: Ida ao aeroporto com a família">
+        </div>
       </div>
       <div class="cta-wrap">
         <button class="back-btn" onclick="goStep(1)">← Voltar</button>
@@ -517,6 +544,35 @@ select.field-input option{background:#1A1D27}
       <div class="profile-name" id="profile-name-display">—</div>
       <div class="profile-email" id="profile-email-display">—</div>
       <button class="logout-btn" onclick="doLogout()">Sair da conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COBRANÇA PESSOA -->
+<div class="modal-overlay" id="modal-person">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="person-modal-title">Cobrança</div>
+      <button class="modal-close" onclick="closePersonModal()">✕</button>
+    </div>
+    <div class="person-summary-header">
+      <div class="person-avatar" id="person-modal-avatar">?</div>
+      <div class="person-total-label">Total a pagar</div>
+      <div class="person-total-value" id="person-modal-total">R$ 0,00</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:20px">
+        <button class="month-btn" onclick="personChangeMonth(-1)">◀</button>
+        <div class="month-label" id="person-modal-month" style="font-size:14px">—</div>
+        <button class="month-btn" onclick="personChangeMonth(1)">▶</button>
+      </div>
+    </div>
+    <div class="person-tx-list" id="person-modal-txlist"></div>
+    <div class="person-actions">
+      <button class="whatsapp-btn" onclick="shareWhatsApp()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Enviar no WhatsApp
+      </button>
+      <button class="copy-btn" onclick="copyToClipboard()">📋 Copiar texto</button>
     </div>
   </div>
 </div>
@@ -742,10 +798,12 @@ function renderHome() {
     const amt = t.myAmount ?? t.amount;
     const inst = t.installmentOf ? ` (${t.installmentNum}/${t.installmentOf}x)` : '';
     const person = t.person && t.person !== 'Eu' ? ` · ${t.person}` : '';
+    const noteStr = t.note ? `<div class="tx-note">${t.note}</div>` : '';
     return `<div class="transaction-item">
       <div class="tx-icon" style="background:${isOut?'var(--red-soft)':'var(--green-soft)'}">${CAT_ICONS[t.category]||'📦'}</div>
       <div class="tx-info">
-        <div class="tx-desc">${t.description||'Sem descrição'}${inst}</div>
+        <div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
+        ${noteStr}
         <div class="tx-meta">${fmtDate(t.date)}${person} <span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span></div>
       </div>
       <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
@@ -766,7 +824,9 @@ window.openModal = function() {
   document.getElementById('inst-panel').style.display = 'none';
   document.getElementById('split-sub').textContent = 'Valor individual: —';
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('f-desc').value = '';
+  document.getElementById('f-desc') && (document.getElementById('f-desc').value = '');
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-note').value = '';
   goStep(1);
   document.getElementById('modal').classList.add('open');
 };
@@ -832,7 +892,8 @@ function populateStep4() {
     ['Data', fmtDate(dateVal)],
     selectedType==='credit' ? ['Competência', compDate?formatCompetence(compDate):'—'] : null,
     ['Categoria', document.getElementById('f-cat').value],
-    ['Descrição', document.getElementById('f-desc').value||'—'],
+    ['Título', document.getElementById('f-title').value||'—'],
+    document.getElementById('f-note').value ? ['Nota', document.getElementById('f-note').value] : null,
     ['Titular', document.getElementById('f-person').value],
     splitActive&&splitSelected.length ? ['Divide com', splitSelected.join(', ')] : null,
     splitActive&&splitSelected.length ? ['Meu valor', fmt(myAmt)] : null,
@@ -869,7 +930,9 @@ window.confirmLaunch = async function() {
   const card = cardIdx >= 0 ? userConfig.cards[cardIdx] : null;
   const person = document.getElementById('f-person').value || userConfig.persons[0] || 'Eu';
   const category = document.getElementById('f-cat').value || userConfig.categories[0] || 'Outros';
-  const desc = document.getElementById('f-desc').value || '';
+  const title = document.getElementById('f-title').value || '';
+  const note = document.getElementById('f-note').value || '';
+  const desc = title; // mantém compatibilidade com campo description
   const bank = document.getElementById('f-bank').value || '';
 
   let compDate = dateVal;
@@ -879,7 +942,7 @@ window.confirmLaunch = async function() {
 
   const base = {
     type: selectedType, date: dateVal, competenceDate: compDate,
-    amount, myAmount, category, description: desc, person,
+    amount, myAmount, category, description: title, title, note, person,
     card: card ? card.name : null,
     bank: selectedType !== 'credit' ? bank : null,
     splitWith: splitActive ? splitSelected : [],
@@ -993,22 +1056,24 @@ function getFilteredTxs() {
 function renderReport() {
   const txs = getFilteredTxs();
   const total = txs.reduce((s,t) => s+(t.myAmount??t.amount), 0);
-  function renderBreakdown(id, keyFn) {
+  function renderBreakdown(id, keyFn, clickable=false) {
     const map = {};
     txs.forEach(t => { const k = keyFn(t)||'Outros'; map[k] = (map[k]||0)+(t.myAmount??t.amount); });
     const entries = Object.entries(map).sort((a,b)=>b[1]-a[1]);
     if (!entries.length) { document.getElementById(id).innerHTML = '<div style="padding:12px;color:var(--text3);font-size:13px">Sem dados</div>'; return; }
     document.getElementById(id).innerHTML = entries.map(([k,v]) => {
       const pct = total > 0 ? v/total : 0;
-      return `<div class="report-row">
-        <div style="font-size:13px;min-width:80px">${k}</div>
+      const clickAttr = clickable ? `onclick="openPersonModal('${k}')" ` : '';
+      const arrow = clickable ? `<span style="color:var(--accent);font-size:14px;margin-left:4px">›</span>` : '';
+      return `<div class="report-row${clickable?' clickable':''}" ${clickAttr}>
+        <div style="font-size:13px;min-width:80px">${k}${arrow}</div>
         <div class="report-bar-wrap"><div class="report-bar" style="width:${Math.round(pct*100)}%"></div></div>
         <div class="report-val">${fmt(v)}</div>
       </div>`;
     }).join('');
   }
   renderBreakdown('report-cat', t => t.category);
-  renderBreakdown('report-person', t => t.person);
+  renderBreakdown('report-person', t => t.person, true);
   renderBreakdown('report-card-data', t => t.card || t.bank);
 }
 
@@ -1136,8 +1201,100 @@ window.showToast = showToast;
 function fmt(v) { return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtDate(d) { if(!d)return''; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
 
+// ── COBRANÇA POR PESSOA ──
+let personModalData = { name: '', txs: [], total: 0 };
+let personMonth = new Date().getMonth();
+let personYear = new Date().getFullYear();
+let personName = '';
+
+window.openPersonModal = function(name) {
+  personName = name;
+  personMonth = currentMonth;
+  personYear = currentYear;
+  document.getElementById('person-modal-title').textContent = name;
+  document.getElementById('person-modal-avatar').textContent = name[0].toUpperCase();
+  document.getElementById('modal-person').classList.add('open');
+  renderPersonModal();
+};
+
+function renderPersonModal() {
+  const txs = transactions.filter(t => {
+    if (t.type === 'transfer_in') return false;
+    if (t.person !== personName) return false;
+    const d = new Date((t.competenceDate || t.date) + 'T12:00:00');
+    return d.getMonth() === personMonth && d.getFullYear() === personYear;
+  });
+  const total = txs.reduce((s,t) => s+(t.myAmount??t.amount), 0);
+  personModalData = { name: personName, txs, total };
+
+  document.getElementById('person-modal-total').textContent = fmt(total);
+  document.getElementById('person-modal-month').textContent = `${MONTHS[personMonth]} ${personYear}`;
+
+  const sorted = [...txs].sort((a,b) => new Date(a.date)-new Date(b.date));
+  const typeLabel = {credit:'Crédito',debit:'Débito',pix:'Pix',transfer_in:'Entrada'};
+
+  if (!sorted.length) {
+    document.getElementById('person-modal-txlist').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">🎉</div><div class="empty-label">Nenhum lançamento</div><div class="empty-sub">Sem gastos neste mês</div></div>';
+  } else {
+    document.getElementById('person-modal-txlist').innerHTML = sorted.map(t => {
+      const inst = t.installmentOf ? ` (${t.installmentNum}/${t.installmentOf}x)` : '';
+      const noteStr = t.note ? `<div class="tx-note">${t.note}</div>` : '';
+      return `<div class="person-tx-item">
+        <div class="person-tx-left">
+          <div class="person-tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
+          ${noteStr}
+          <div class="person-tx-meta">${fmtDate(t.date)} · ${CAT_ICONS[t.category]||'📦'} ${t.category||''} · ${typeLabel[t.type]||''}</div>
+        </div>
+        <div class="person-tx-amount">${fmt(t.myAmount??t.amount)}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+window.personChangeMonth = function(dir) {
+  personMonth += dir;
+  if (personMonth > 11) { personMonth = 0; personYear++; }
+  if (personMonth < 0) { personMonth = 11; personYear--; }
+  renderPersonModal();
+};
+
+window.closePersonModal = function() {
+  document.getElementById('modal-person').classList.remove('open');
+};
+
+function buildPersonMessage() {
+  const { name, txs, total } = personModalData;
+  const sorted = [...txs].sort((a,b) => new Date(a.date)-new Date(b.date));
+  const lines = sorted.map(t => {
+    const inst = t.installmentOf ? ` (${t.installmentNum}/${t.installmentOf}x)` : '';
+    const note = t.note ? ` — _${t.note}_` : '';
+    return `• ${fmtDate(t.date)} — ${t.title||t.description||'Sem título'}${inst}: *${fmt(t.myAmount??t.amount)}*${note}`;
+  });
+  const mes = `${MONTHS[personMonth]} ${personYear}`;
+  return `💳 *Resumo FinTrack — ${name}*\n\nOlá, ${name}! Segue o resumo dos seus gastos em *${mes}*:\n\n${lines.join('\n')}\n\n*Total: ${fmt(total)}*\n\n_Enviado pelo FinTrack_ 📊`;
+}
+
+window.shareWhatsApp = function() {
+  const msg = buildPersonMessage();
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+window.copyToClipboard = function() {
+  const msg = buildPersonMessage();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(msg).then(() => showToast('✓ Texto copiado!', true));
+  } else {
+    const el = document.createElement('textarea');
+    el.value = msg; document.body.appendChild(el);
+    el.select(); document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('✓ Texto copiado!', true);
+  }
+};
+
 // ── CLOSE ON OUTSIDE CLICK ──
-['modal','modal-card','modal-profile'].forEach(id => {
+['modal','modal-card','modal-profile','modal-person'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
   });
