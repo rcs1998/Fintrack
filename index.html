@@ -607,6 +607,10 @@ select.field-input option{background:#1A1D27}
     <!-- CONFIG -->
     <div class="page" id="page-config">
       <div style="height:16px"></div>
+      <div id="setup-lock-banner" style="display:none;background:var(--red-soft);border:1.5px solid var(--red);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px">
+        <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:var(--red);margin-bottom:4px">🔒 Configuração obrigatória</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.4">Para começar a usar o FinTrack, cadastre pelo menos <b>1 cartão de crédito</b> (necessário para lançamentos de Crédito) e <b>1 banco</b> (necessário para Débito, Pix e Entrada). As demais telas serão liberadas automaticamente após isso.</div>
+      </div>
       <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:20px">Configurações</div>
       <div class="section-title">Cartões de crédito</div>
       <div class="config-card" id="cards-config-list"></div>
@@ -958,14 +962,42 @@ function showApp() {
   document.getElementById('onboarding-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   updateAvatar();
-  renderHome();
   renderConfig();
-  // Tour automático para usuários que nunca fizeram
-  if (!userConfig.tourDone) {
-    setTimeout(() => startTour(), 800);
-    userConfig.tourDone = true;
-    saveConfig();
+  updateSetupLock();
+  if (isSetupIncomplete()) {
+    // Usuário novo ou sem configuração mínima: força tela de Configurações
+    showPage('config');
+  } else {
+    renderHome();
+    // Tour automático para usuários que nunca fizeram
+    if (!userConfig.tourDone) {
+      setTimeout(() => startTour(), 800);
+      userConfig.tourDone = true;
+      saveConfig();
+    }
   }
+}
+
+// ── BLOQUEIO DE CONFIGURAÇÃO INICIAL ──
+// Crédito exige cartão cadastrado; Débito/Pix/Entrada exigem banco cadastrado.
+// Enquanto não houver pelo menos 1 cartão E 1 banco cadastrados, o app fica
+// travado na aba de Configurações e não libera lançamentos.
+function isSetupIncomplete() {
+  return !(userConfig.cards && userConfig.cards.length > 0 && userConfig.banks && userConfig.banks.length > 0);
+}
+
+function updateSetupLock() {
+  const locked = isSetupIncomplete();
+  const banner = document.getElementById('setup-lock-banner');
+  if (banner) banner.style.display = locked ? 'block' : 'none';
+  document.querySelectorAll('.fab, .sidebar-new-btn').forEach(el => {
+    el.style.display = locked ? 'none' : '';
+  });
+  ['nav-home','nav-report','snav-home','snav-report'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = locked ? '.4' : '';
+    if (el) el.style.pointerEvents = locked ? 'none' : '';
+  });
 }
 
 function showAuth() {
@@ -1076,6 +1108,10 @@ window.closeProfile = function() { document.getElementById('modal-profile').clas
 
 // ── NAVIGATION ──
 window.showPage = function(p) {
+  if (isSetupIncomplete() && p !== 'config') {
+    showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco para liberar o app', false);
+    p = 'config';
+  }
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
@@ -1150,6 +1186,11 @@ function renderHome() {
 
 // ── MODAL ──
 window.openModal = function() {
+  if (isSetupIncomplete()) {
+    showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco antes de lançar', false);
+    showPage('config');
+    return;
+  }
   amountRaw = ''; selectedType = 'credit';
   splitActive = false; splitSelected = []; instActive = false; instCount = 2;
   updateAmountDisplay();
@@ -1258,6 +1299,19 @@ function formatCompetence(dateStr) {
 window.confirmLaunch = async function() {
   const amount = parseAmount();
   if (!amount) { showToast('⚠️ Informe o valor', false); return; }
+
+  const cardIdxRawCheck = document.getElementById('f-card').value;
+  const cardChosen = cardIdxRawCheck !== '' && !isNaN(parseInt(cardIdxRawCheck));
+  const bankChosen = !!document.getElementById('f-bank').value;
+  if (selectedType === 'credit' && (!userConfig.cards.length || !cardChosen)) {
+    showToast('⚠️ Cadastre e selecione um cartão para lançamentos de Crédito', false);
+    return;
+  }
+  if (selectedType !== 'credit' && (!userConfig.banks.length || !bankChosen)) {
+    showToast('⚠️ Cadastre e selecione um banco para Débito/Pix/Entrada', false);
+    return;
+  }
+
   const btn = document.getElementById('confirm-btn');
   btn.disabled = true; btn.textContent = 'Salvando...';
 
@@ -1439,10 +1493,15 @@ window.addPerson = function() {
 window.removePerson = function(i) { userConfig.persons.splice(i,1); saveConfig(); renderConfig(); };
 window.addBank = function() {
   const v = document.getElementById('bank-input').value.trim();
+  const wasIncomplete = isSetupIncomplete();
   if (v && !userConfig.banks.includes(v)) { userConfig.banks.push(v); saveConfig(); renderConfig(); }
   document.getElementById('bank-input').value = '';
+  updateSetupLock();
+  if (wasIncomplete && !isSetupIncomplete()) {
+    showToast('🎉 Configuração concluída! App liberado.', true);
+  }
 };
-window.removeBank = function(i) { userConfig.banks.splice(i,1); saveConfig(); renderConfig(); };
+window.removeBank = function(i) { userConfig.banks.splice(i,1); saveConfig(); renderConfig(); updateSetupLock(); };
 
 // ── CARDS ──
 function renderCardsList() {
@@ -1481,7 +1540,7 @@ window.editCard = function(i) {
   document.getElementById('card-interval').value = c.interval;
   document.getElementById('modal-card').classList.add('open');
 };
-window.deleteCard = function(i) { userConfig.cards.splice(i,1); saveConfig(); renderConfig(); };
+window.deleteCard = function(i) { userConfig.cards.splice(i,1); saveConfig(); renderConfig(); updateSetupLock(); };
 window.closeCardModal = function() { document.getElementById('modal-card').classList.remove('open'); };
 window.toggleCustomInterval = function() {
   document.getElementById('custom-interval-wrap').style.display =
@@ -1494,11 +1553,16 @@ window.saveCard = function() {
   const intSel = document.getElementById('card-interval').value;
   const interval = intSel === 'custom' ? parseInt(document.getElementById('custom-interval').value) : parseInt(intSel);
   if (!name || !due || !interval) { showToast('⚠️ Preencha todos os campos', false); return; }
+  const wasIncomplete = isSetupIncomplete();
   const card = { name, bank, dueDay: due, interval };
   if (editCardIdx !== null) userConfig.cards[editCardIdx] = card;
   else userConfig.cards.push(card);
   saveConfig(); renderConfig(); closeCardModal();
   showToast('✓ Cartão salvo!', true);
+  updateSetupLock();
+  if (wasIncomplete && !isSetupIncomplete()) {
+    showToast('🎉 Configuração concluída! App liberado.', true);
+  }
 };
 
 // ── EXPORT ──
