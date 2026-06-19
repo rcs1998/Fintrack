@@ -67,9 +67,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .nav-item.active{color:var(--accent)}
 .nav-item .nav-icon{font-size:20px}
 
+.main-area{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .sidebar{display:none}
 
-.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.content{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .content::-webkit-scrollbar{display:none}
 .page{display:none;padding:20px;padding-bottom:24px}
 .page.active{display:block}
