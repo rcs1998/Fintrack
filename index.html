@@ -52,9 +52,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .auth-error.show{display:block}
 
 /* APP */
-#app{height:100dvh;display:none;flex-direction:column;max-width:430px;margin:0 auto;position:relative;overflow:hidden}
+#app{position:fixed;inset:0;display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
 
-.header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 0;flex-shrink:0}
+.header{display:flex;align-items:center;justify-content:space-between;padding:calc(20px + env(safe-area-inset-top)) 20px 0;flex-shrink:0}
 .header-logo{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.5px}
 .header-logo span{color:var(--accent)}
 .header-actions{display:flex;gap:10px;align-items:center}
