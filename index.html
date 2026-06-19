@@ -62,7 +62,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .auth-error.show{display:block}
 
 /* APP */
-#app{position:fixed;inset:0;display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
+#app{position:fixed;top:0;left:0;right:0;height:100dvh;display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
 
 .header{display:flex;align-items:center;justify-content:space-between;padding:calc(20px + env(safe-area-inset-top)) 20px 0;flex-shrink:0}
 .header-logo{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.5px}
@@ -1998,6 +1998,21 @@ window.endTour = async function() {
     if (e.target === this) this.classList.remove('open');
   });
 });
+
+// ── FIX ALTURA REAL EM iOS (PWA standalone) ──
+// O Safari/WebKit no iOS às vezes reserva espaço para a barra de ferramentas
+// do navegador mesmo em modo standalone (onde ela não existe), fazendo
+// 100vh/100dvh sobrarem espaço morto no rodapé. Medimos a altura real via
+// visualViewport (mais precisa) e aplicamos diretamente no #app via JS.
+function setRealAppHeight() {
+  const h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  document.getElementById('app').style.height = h + 'px';
+}
+setRealAppHeight();
+window.addEventListener('resize', setRealAppHeight);
+window.addEventListener('orientationchange', () => setTimeout(setRealAppHeight, 100));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', setRealAppHeight);
+
 
 </script>
 </body>
