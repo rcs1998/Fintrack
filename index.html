@@ -22,6 +22,7 @@
   --accent:#6C63FF;--accent-soft:rgba(108,99,255,0.15);
   --green:#22C55E;--green-soft:rgba(34,197,94,0.12);
   --red:#EF4444;--red-soft:rgba(239,68,68,0.12);
+  --orange:#F59E0B;--orange-soft:rgba(245,158,11,0.12);
   --text:#F0F0F8;--text2:#8B8FA8;--text3:#5A5E7A;
   --radius:16px;--radius-sm:10px;
 }
@@ -30,6 +31,7 @@ html[data-theme="light"]{
   --accent:#6C63FF;--accent-soft:rgba(108,99,255,0.12);
   --green:#16A34A;--green-soft:rgba(22,163,74,0.10);
   --red:#DC2626;--red-soft:rgba(220,38,38,0.10);
+  --orange:#D97706;--orange-soft:rgba(217,119,6,0.10);
   --text:#1A1D27;--text2:#5A5E7A;--text3:#8B8FA8;
 }
 #theme-toggle-track::before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
@@ -93,19 +95,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 /* ── DESKTOP LAYOUT ── */
 @media (min-width: 768px) {
   body { overflow: auto; }
-
   #auth-screen { padding: 40px; }
   .auth-form { max-width: 400px; }
   .auth-tabs { max-width: 400px !important; }
-
   #app {
     max-width: 100%;
     height: 100dvh;
     flex-direction: row;
     overflow: hidden;
   }
-
-  /* Sidebar esquerda */
   .sidebar {
     width: 240px;
     flex-shrink: 0;
@@ -143,8 +141,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
   .sidebar-user-info { flex: 1; min-width: 0; }
   .sidebar-user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sidebar-user-email { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* Área principal */
   .main-area {
     flex: 1;
     display: flex;
@@ -152,8 +148,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
     overflow: hidden;
     height: 100%;
   }
-
-  /* Header desktop */
   .header {
     padding: 24px 32px 0;
     border-bottom: 1px solid var(--border);
@@ -161,12 +155,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
     justify-content: flex-end;
   }
   .header-logo { display: none; }
-
-  /* Conteúdo */
   .content { padding: 0; }
   .page { padding: 32px; max-width: 900px; margin: 0 auto; }
-
-  /* Grid de 2 colunas na home */
   .desktop-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -174,12 +164,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
     align-items: start;
   }
   .desktop-col { display: flex; flex-direction: column; gap: 0; }
-
-  /* Bottom nav vira sidebar — oculta no desktop */
   .bottom-nav { display: none; }
   .fab { display: none; }
-
-  /* Botão novo lançamento na sidebar */
   .sidebar-new-btn {
     margin: 0 12px 20px;
     padding: 13px 16px;
@@ -195,8 +181,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
     box-shadow: 0 4px 16px rgba(108,99,255,.35);
   }
   .sidebar-new-btn:hover { opacity: .9; transform: translateY(-1px); }
-
-  /* Modal centralizado no desktop */
   .modal-overlay { align-items: center; justify-content: center; }
   .modal-sheet {
     border-radius: var(--radius) !important;
@@ -207,8 +191,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
   }
   @keyframes fadeScale { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
   .modal-handle { display: none; }
-
-  /* Cards maiores */
   .balance-card { padding: 28px; }
   .balance-value { font-size: 42px; }
   .cat-grid { grid-template-columns: repeat(4,1fr); }
@@ -246,6 +228,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .tag-credit{background:var(--accent-soft);color:var(--accent)}
 .tag-debit{background:var(--green-soft);color:var(--green)}
 .tag-pix{background:rgba(34,197,94,.1);color:#4ade80}
+.tag-recurring{background:var(--orange-soft);color:var(--orange)}
 
 .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
 .cat-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -304,6 +287,7 @@ select.field-input{cursor:pointer}
 select.field-input option{background:#1A1D27}
 
 .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px}
+.toggle-row.highlight{border-color:var(--orange);background:var(--orange-soft)}
 .toggle-label{font-size:15px;font-weight:500}
 .toggle-sub{font-size:12px;color:var(--text2);margin-top:2px}
 .toggle{width:46px;height:26px;border-radius:13px;background:var(--border);border:none;cursor:pointer;position:relative;transition:background .3s;flex-shrink:0}
@@ -311,6 +295,7 @@ select.field-input option{background:#1A1D27}
 .toggle.on{background:var(--accent)}
 .toggle.on::after{transform:translateX(20px)}
 .toggle.green.on{background:var(--green)}
+.toggle.orange.on{background:var(--orange)}
 
 .installments-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:16px}
 .inst-btn{padding:10px 4px;border-radius:8px;text-align:center;font-size:13px;font-weight:700;font-family:'Sora',sans-serif;background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);cursor:pointer;transition:all .2s}
@@ -323,6 +308,7 @@ select.field-input option{background:#1A1D27}
 .split-chip.selected .check{display:inline}
 
 .info-box{background:var(--accent-soft);border:1px solid rgba(108,99,255,.3);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--accent)}
+.info-box.orange{background:var(--orange-soft);border-color:rgba(245,158,11,.3);color:var(--orange)}
 
 /* NUMPAD */
 .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:16px 20px}
@@ -359,6 +345,13 @@ select.field-input option{background:#1A1D27}
 .report-bar-wrap{flex:1;margin:0 12px;height:4px;background:var(--surface2);border-radius:2px}
 .report-bar{height:100%;border-radius:2px;background:var(--accent)}
 .report-val{font-size:13px;font-weight:700;font-family:'Sora',sans-serif;min-width:80px;text-align:right}
+
+/* Filtro personalizado */
+.custom-date-range{display:none;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:20px;gap:12px;align-items:center;flex-wrap:wrap}
+.custom-date-range.show{display:flex}
+.custom-date-range label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);white-space:nowrap}
+.custom-date-range .field-input{flex:1;min-width:120px;padding:10px 12px;font-size:13px}
+.custom-date-apply{padding:10px 16px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
 
 /* CONFIG */
 .config-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
@@ -423,6 +416,13 @@ select.field-input option{background:#1A1D27}
 .edit-form{padding:0 20px;display:none;flex-direction:column;gap:12px;margin-bottom:20px}
 .edit-form.open{display:flex}
 
+/* DELETE RECURRING MODAL */
+.delete-recurring-options{display:flex;flex-direction:column;gap:10px;padding:16px 20px 8px}
+.del-opt-btn{width:100%;padding:16px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Sora',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-align:left;transition:all .2s}
+.del-opt-btn:active{background:var(--surface)}
+.del-opt-btn.danger{border-color:var(--red);color:var(--red)}
+.del-opt-sub{font-size:12px;color:var(--text3);margin-top:3px;font-weight:400}
+
 /* ── ONBOARDING SLIDES ── */
 #onboarding-screen{height:100dvh;display:none;flex-direction:column;background:var(--bg);position:relative;overflow:hidden}
 .ob-slides{flex:1;display:flex;width:400%;overflow:hidden;position:relative}
@@ -454,7 +454,6 @@ select.field-input option{background:#1A1D27}
 .tour-skip-btn:hover{color:var(--red)}
 </style>
 <script>
-  // Aplica o tema salvo antes da renderização, evitando flash visual incorreto
   if (localStorage.getItem('ft_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
 </script>
 </head>
@@ -621,6 +620,15 @@ select.field-input option{background:#1A1D27}
         <div class="report-filter" onclick="setReportFilter('6m',this)">6 meses</div>
         <div class="report-filter" onclick="setReportFilter('year',this)">Este ano</div>
         <div class="report-filter" onclick="setReportFilter('all',this)">Tudo</div>
+        <div class="report-filter" onclick="setReportFilter('custom',this)">📅 Personalizado</div>
+      </div>
+      <!-- Filtro de período personalizado -->
+      <div class="custom-date-range" id="custom-date-range">
+        <label>De</label>
+        <input type="date" class="field-input" id="report-date-from">
+        <label>até</label>
+        <input type="date" class="field-input" id="report-date-to">
+        <button class="custom-date-apply" onclick="applyCustomFilter()">Aplicar</button>
       </div>
       <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
       <div class="report-card"><div class="report-card-title">👤 Por titular</div><div id="report-person"></div></div>
@@ -692,7 +700,7 @@ select.field-input option{background:#1A1D27}
         </div>
       </div>
       <div style="height:8px"></div>
-      <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.0 · Dados salvos na nuvem ☁️</div>
+      <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.1 · Dados salvos na nuvem ☁️</div>
     </div>
   </div>
 
@@ -775,6 +783,19 @@ select.field-input option{background:#1A1D27}
           <label class="field-label">Selecione quem divide</label>
           <div class="split-people" id="split-people-list"></div>
           <div class="info-box" id="split-info">Selecione as pessoas que dividem este gasto</div>
+        </div>
+        <!-- RECORRÊNCIA — só aparece no crédito -->
+        <div id="recurring-section" style="display:none">
+          <div class="toggle-row highlight" id="recurring-toggle-row">
+            <div>
+              <div class="toggle-label">🔄 Assinatura / Recorrente?</div>
+              <div class="toggle-sub">Lança automaticamente todo mês</div>
+            </div>
+            <button class="toggle orange" id="recurring-toggle" onclick="toggleRecurring()"></button>
+          </div>
+          <div id="recurring-panel" style="display:none">
+            <div class="info-box orange">Este lançamento será projetado para os próximos <strong>12 meses</strong> automaticamente. Você pode excluir um mês específico ou toda a recorrência depois.</div>
+          </div>
         </div>
         <div id="installment-section">
           <div class="toggle-row">
@@ -905,7 +926,7 @@ select.field-input option{background:#1A1D27}
     <div class="detail-rows" id="detail-rows"></div>
     <div class="detail-note-box" id="detail-note-box" style="display:none"></div>
 
-    <!-- FORM DE EDIÇÃO (oculto por padrão) -->
+    <!-- FORM DE EDIÇÃO -->
     <div class="edit-form" id="edit-form">
       <div class="field-group" style="margin-bottom:0"><label class="field-label">Título</label><input class="field-input" id="edit-title" type="text"></div>
       <div class="field-group" style="margin-bottom:0"><label class="field-label">Nota</label><input class="field-input" id="edit-note" type="text" placeholder="Opcional"></div>
@@ -917,8 +938,20 @@ select.field-input option{background:#1A1D27}
 
     <div class="detail-actions" id="detail-actions">
       <button class="edit-btn" onclick="openEdit()">✏️ Editar lançamento</button>
-      <button class="delete-btn" id="delete-btn" onclick="confirmDelete()">🗑 Excluir lançamento</button>
-      <button class="confirm-delete-btn" id="confirm-delete-btn" onclick="doDelete()">⚠️ Confirmar exclusão</button>
+      <button class="delete-btn" id="delete-btn" onclick="initDelete()">🗑 Excluir lançamento</button>
+      <!-- opções de exclusão inline -->
+      <div id="delete-options" style="display:none;flex-direction:column;gap:8px">
+        <div style="font-size:13px;color:var(--text3);text-align:center;padding:4px 0">Excluir como?</div>
+        <button class="del-opt-btn" onclick="doDelete('single')">
+          🗓 Só este mês
+          <div class="del-opt-sub">Remove apenas este lançamento</div>
+        </button>
+        <button class="del-opt-btn danger" id="del-all-btn" onclick="doDelete('all')" style="display:none">
+          🔄 Toda a recorrência
+          <div class="del-opt-sub">Remove todos os meses futuros e passados desta assinatura</div>
+        </button>
+        <button class="back-btn" onclick="cancelDeleteOptions()" style="margin-bottom:0">Cancelar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -926,7 +959,7 @@ select.field-input option{background:#1A1D27}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyByoauTX_Pap5cSzTpP43yjJspE5uBx2-c",
@@ -954,6 +987,8 @@ let transactions = [];
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let reportFilter = 'month';
+let customDateFrom = '';
+let customDateTo = '';
 
 // Form state
 let amountRaw = '';
@@ -962,6 +997,7 @@ let splitActive = false;
 let splitSelected = [];
 let instActive = false;
 let instCount = 2;
+let recurringActive = false;
 let editCardIdx = null;
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -975,11 +1011,9 @@ onAuthStateChanged(auth, async (user) => {
     showApp();
   } else {
     currentUser = null;
-    // Mostra onboarding se nunca foi visto (usa localStorage como flag)
     const seen = localStorage.getItem('ft_ob_seen');
     if (!seen) {
       showOnboarding();
-      // Restaura botões padrão do onboarding
       document.getElementById('ob-next-btn').onclick = obNext;
       document.querySelector('.ob-skip').onclick = obSkip;
     } else {
@@ -999,11 +1033,9 @@ function showApp() {
   renderConfig();
   updateSetupLock();
   if (isSetupIncomplete()) {
-    // Usuário novo ou sem configuração mínima: força tela de Configurações
     showPage('config');
   } else {
     renderHome();
-    // Tour automático para usuários que nunca fizeram
     if (!userConfig.tourDone) {
       setTimeout(() => startTour(), 800);
       userConfig.tourDone = true;
@@ -1012,10 +1044,6 @@ function showApp() {
   }
 }
 
-// ── BLOQUEIO DE CONFIGURAÇÃO INICIAL ──
-// Crédito exige cartão cadastrado; Débito/Pix/Entrada exigem banco cadastrado.
-// Enquanto não houver pelo menos 1 cartão E 1 banco cadastrados, o app fica
-// travado na aba de Configurações e não libera lançamentos.
 function isSetupIncomplete() {
   return !(userConfig.cards && userConfig.cards.length > 0 && userConfig.banks && userConfig.banks.length > 0);
 }
@@ -1056,8 +1084,6 @@ function defaultUserConfig() {
 }
 
 async function loadUserData() {
-  // Isola completamente os dados: zera tudo antes de carregar o usuário atual,
-  // garantindo que nenhum dado de outra conta permaneça em memória.
   userConfig = defaultUserConfig();
   transactions = [];
   try {
@@ -1085,6 +1111,11 @@ async function saveTx(tx) {
   } catch(e) { console.error(e); throw e; }
 }
 
+// ── UUID simples para recurringId ──
+function genUUID() {
+  return 'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+}
+
 // ── AUTH FUNCTIONS ──
 window.switchAuthTab = function(tab) {
   document.getElementById('tab-login').classList.toggle('active', tab==='login');
@@ -1106,8 +1137,7 @@ window.submitAuth = async function() {
   const errEl = document.getElementById('auth-error');
   errEl.classList.remove('show');
   if (!email || !password) { errEl.textContent = 'Preencha e-mail e senha.'; errEl.classList.add('show'); return; }
-  btn.disabled = true;
-  btn.textContent = '...';
+  btn.disabled = true; btn.textContent = '...';
   try {
     if (mode === 'register') {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -1132,31 +1162,25 @@ window.loginGoogle = async function() {
 window.handleForgotPassword = async function() {
   const email = document.getElementById('auth-email').value.trim();
   const errEl = document.getElementById('auth-error');
-  errEl.classList.remove('show');
-  errEl.style.color = '';
+  errEl.classList.remove('show'); errEl.style.color = '';
   if (!email) {
     errEl.textContent = 'Digite seu e-mail no campo acima para recuperar a senha.';
-    errEl.classList.add('show');
-    return;
+    errEl.classList.add('show'); return;
   }
   try {
     await sendPasswordResetEmail(auth, email);
     errEl.textContent = '✓ E-mail de recuperação enviado! Verifique sua caixa de entrada (e o spam).';
-    errEl.style.color = 'var(--green)';
-    errEl.classList.add('show');
+    errEl.style.color = 'var(--green)'; errEl.classList.add('show');
   } catch(e) {
     const msgs = { 'auth/invalid-email':'E-mail inválido.', 'auth/user-not-found':'Não encontramos uma conta com esse e-mail.' };
     errEl.textContent = msgs[e.code] || 'Não foi possível enviar o e-mail. Tente novamente.';
-    errEl.style.color = '';
-    errEl.classList.add('show');
+    errEl.style.color = ''; errEl.classList.add('show');
   }
 };
 
 window.doLogout = async function() {
   await signOut(auth);
-  currentUser = null;
-  transactions = [];
-  userConfig = defaultUserConfig();
+  currentUser = null; transactions = []; userConfig = defaultUserConfig();
   closeProfile();
 };
 
@@ -1251,6 +1275,7 @@ function renderHome() {
     const isOut = t.type !== 'transfer_in';
     const amt = t.myAmount ?? t.amount;
     const inst = t.installmentOf ? ` (${t.installmentNum}/${t.installmentOf}x)` : '';
+    const recTag = t.isRecurring ? `<span class="tag tag-recurring">🔄 Recorrente</span>` : '';
     const person = t.person && t.person !== 'Eu' ? ` · ${t.person}` : '';
     const noteStr = t.note ? `<div class="tx-note">${t.note}</div>` : '';
     return `<div class="transaction-item" onclick="openDetailModal('${t.id}')">
@@ -1258,7 +1283,7 @@ function renderHome() {
       <div class="tx-info">
         <div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
         ${noteStr}
-        <div class="tx-meta">${fmtDate(t.date)}${person} <span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span></div>
+        <div class="tx-meta">${fmtDate(t.date)}${person} <span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span>${recTag}</div>
       </div>
       <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
     </div>`;
@@ -1269,21 +1294,21 @@ function renderHome() {
 window.openModal = function() {
   if (isSetupIncomplete()) {
     showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco antes de lançar', false);
-    showPage('config');
-    return;
+    showPage('config'); return;
   }
   amountRaw = ''; selectedType = 'credit';
-  splitActive = false; splitSelected = []; instActive = false; instCount = 2;
+  splitActive = false; splitSelected = []; instActive = false; instCount = 2; recurringActive = false;
   updateAmountDisplay();
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
   document.querySelector('[data-type="credit"]').classList.add('selected');
   document.getElementById('split-toggle').classList.remove('on');
   document.getElementById('inst-toggle').classList.remove('on');
+  document.getElementById('recurring-toggle').classList.remove('on');
   document.getElementById('split-panel').style.display = 'none';
   document.getElementById('inst-panel').style.display = 'none';
+  document.getElementById('recurring-panel').style.display = 'none';
   document.getElementById('split-sub').textContent = 'Valor individual: —';
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('f-desc') && (document.getElementById('f-desc').value = '');
   document.getElementById('f-title').value = '';
   document.getElementById('f-note').value = '';
   goStep(1);
@@ -1319,6 +1344,12 @@ function populateStep2() {
 }
 
 function populateStep3() {
+  const isCredit = selectedType === 'credit';
+  // Mostra/oculta seção de recorrência (só no crédito)
+  document.getElementById('recurring-section').style.display = isCredit ? '' : 'none';
+  // Se não é crédito, garante que parcelado aparece (já estava assim)
+  document.getElementById('installment-section').style.display = isCredit ? '' : 'none';
+
   document.getElementById('f-person').innerHTML = userConfig.persons.map(p => `<option>${p}</option>`).join('');
   document.getElementById('split-people-list').innerHTML = userConfig.persons.map(p => `
     <div class="split-chip ${splitSelected.includes(p)?'selected':''}" onclick="toggleSplitPerson(this,'${p}')">
@@ -1329,6 +1360,16 @@ function populateStep3() {
   let found = false;
   btns.forEach(b => { if(parseInt(b.textContent)===instCount){b.classList.add('selected');found=true;} });
   if(!found && btns[0]) btns[0].classList.add('selected');
+
+  // Recorrente e parcelado são mutuamente exclusivos
+  const recurringToggleRow = document.getElementById('recurring-toggle-row');
+  if (instActive) {
+    recurringToggleRow.style.opacity = '.4';
+    recurringToggleRow.style.pointerEvents = 'none';
+  } else {
+    recurringToggleRow.style.opacity = '';
+    recurringToggleRow.style.pointerEvents = '';
+  }
 }
 
 function populateStep4() {
@@ -1343,8 +1384,15 @@ function populateStep4() {
   const dateVal = document.getElementById('f-date').value;
   let compDate = dateVal;
   if (selectedType==='credit' && card) compDate = calcCompetence(dateVal, card.dueDay, card.interval);
-  document.getElementById('sum-inst-note').textContent = instActive && selectedType==='credit'
-    ? `${instCount}x de ${fmt(amount/instCount)} · A partir de ${formatCompetence(compDate)}` : '';
+
+  let noteStr = '';
+  if (recurringActive) {
+    noteStr = `🔄 Recorrente — será lançado nos próximos 12 meses`;
+  } else if (instActive && selectedType==='credit') {
+    noteStr = `${instCount}x de ${fmt(amount/instCount)} · A partir de ${formatCompetence(compDate)}`;
+  }
+  document.getElementById('sum-inst-note').textContent = noteStr;
+
   const rows = [
     ['Tipo', {credit:'💳 Crédito',debit:'💸 Débito',pix:'⚡ Pix',transfer_in:'⬆ Entrada'}[selectedType]],
     selectedType==='credit' ? ['Cartão', card?card.name:'—'] : ['Banco', document.getElementById('f-bank').value],
@@ -1356,6 +1404,7 @@ function populateStep4() {
     ['Titular', document.getElementById('f-person').value],
     splitActive&&splitSelected.length ? ['Divide com', splitSelected.join(', ')] : null,
     splitActive&&splitSelected.length ? ['Meu valor', fmt(myAmt)] : null,
+    recurringActive ? ['Recorrência', '12 meses'] : null,
   ].filter(Boolean);
   document.getElementById('summary-content').innerHTML = rows.map(([k,v]) =>
     `<div class="summary-row"><div class="summary-key">${k}</div><div class="summary-val">${v}</div></div>`).join('');
@@ -1385,12 +1434,10 @@ window.confirmLaunch = async function() {
   const cardChosen = cardIdxRawCheck !== '' && !isNaN(parseInt(cardIdxRawCheck));
   const bankChosen = !!document.getElementById('f-bank').value;
   if (selectedType === 'credit' && (!userConfig.cards.length || !cardChosen)) {
-    showToast('⚠️ Cadastre e selecione um cartão para lançamentos de Crédito', false);
-    return;
+    showToast('⚠️ Cadastre e selecione um cartão para lançamentos de Crédito', false); return;
   }
   if (selectedType !== 'credit' && (!userConfig.banks.length || !bankChosen)) {
-    showToast('⚠️ Cadastre e selecione um banco para Débito/Pix/Entrada', false);
-    return;
+    showToast('⚠️ Cadastre e selecione um banco para Débito/Pix/Entrada', false); return;
   }
 
   const btn = document.getElementById('confirm-btn');
@@ -1404,7 +1451,6 @@ window.confirmLaunch = async function() {
   const category = document.getElementById('f-cat').value || userConfig.categories[0] || 'Outros';
   const title = document.getElementById('f-title').value || '';
   const note = document.getElementById('f-note').value || '';
-  const desc = title; // mantém compatibilidade com campo description
   const bank = document.getElementById('f-bank').value || '';
 
   let compDate = dateVal;
@@ -1422,7 +1468,29 @@ window.confirmLaunch = async function() {
   };
 
   try {
-    if (instActive && selectedType === 'credit' && instCount > 1) {
+    // ── RECORRENTE ──
+    if (recurringActive && selectedType === 'credit') {
+      const recurringId = genUUID();
+      const [cy, cm] = compDate.split('-').map(Number);
+      for (let i = 0; i < 12; i++) {
+        let mo = cm - 1 + i, yr = cy;
+        while (mo > 11) { mo -= 12; yr++; }
+        const cDate = `${yr}-${String(mo+1).padStart(2,'0')}-01`;
+        const tx = {
+          ...base,
+          competenceDate: cDate,
+          isRecurring: true,
+          recurringId,
+          recurringMonth: i, // 0 = mês base
+        };
+        const newId = await saveTx(tx);
+        transactions.unshift({ id: newId, ...tx });
+      }
+      closeModal();
+      showToast('✓ Recorrência criada para 12 meses!', true);
+
+    // ── PARCELADO ──
+    } else if (instActive && selectedType === 'credit' && instCount > 1) {
       const perInst = amount / instCount;
       const myPerInst = myAmount / instCount;
       const [cy, cm] = compDate.split('-').map(Number);
@@ -1434,12 +1502,16 @@ window.confirmLaunch = async function() {
         const newId = await saveTx(tx);
         transactions.unshift({ id: newId, ...tx });
       }
+      closeModal();
+      showToast('✓ Lançamento parcelado salvo!', true);
+
+    // ── SIMPLES ──
     } else {
       const newId = await saveTx(base);
       transactions.unshift({ id: newId, ...base });
+      closeModal();
+      showToast('✓ Lançamento salvo!', true);
     }
-    closeModal();
-    showToast('✓ Lançamento salvo!', true);
     renderHome();
   } catch(e) {
     showToast('❌ Erro ao salvar. Tente novamente.', false);
@@ -1471,6 +1543,19 @@ window.selectType = function(el) {
   selectedType = el.dataset.type;
 };
 
+// ── RECORRÊNCIA ──
+window.toggleRecurring = function() {
+  recurringActive = !recurringActive;
+  document.getElementById('recurring-toggle').classList.toggle('on', recurringActive);
+  document.getElementById('recurring-panel').style.display = recurringActive ? 'block' : 'none';
+  // Se ativou recorrente, desativa parcelado
+  if (recurringActive && instActive) {
+    instActive = false;
+    document.getElementById('inst-toggle').classList.remove('on');
+    document.getElementById('inst-panel').style.display = 'none';
+  }
+};
+
 // ── SPLIT ──
 window.toggleSplit = function() {
   splitActive = !splitActive;
@@ -1499,6 +1584,16 @@ window.toggleInstallments = function() {
   instActive = !instActive;
   document.getElementById('inst-toggle').classList.toggle('on', instActive);
   document.getElementById('inst-panel').style.display = instActive ? 'block' : 'none';
+  // Se ativou parcelado, desativa recorrente
+  if (instActive && recurringActive) {
+    recurringActive = false;
+    document.getElementById('recurring-toggle').classList.remove('on');
+    document.getElementById('recurring-panel').style.display = 'none';
+  }
+  // Bloqueia/desbloqueia toggle de recorrente
+  const recurringToggleRow = document.getElementById('recurring-toggle-row');
+  recurringToggleRow.style.opacity = instActive ? '.4' : '';
+  recurringToggleRow.style.pointerEvents = instActive ? 'none' : '';
 };
 window.selectInst = function(el) {
   document.querySelectorAll('.inst-btn').forEach(b => b.classList.remove('selected'));
@@ -1511,20 +1606,54 @@ window.setReportFilter = function(f, el) {
   reportFilter = f;
   document.querySelectorAll('.report-filter').forEach(x => x.classList.remove('active'));
   el.classList.add('active');
+  const dateRange = document.getElementById('custom-date-range');
+  if (f === 'custom') {
+    dateRange.classList.add('show');
+    // Preenche datas padrão: primeiro e último dia do mês atual
+    const now = new Date();
+    const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
+    const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    if (!document.getElementById('report-date-from').value)
+      document.getElementById('report-date-from').value = `${y}-${m}-01`;
+    if (!document.getElementById('report-date-to').value)
+      document.getElementById('report-date-to').value = `${y}-${m}-${lastDay}`;
+    // Não renderiza ainda — espera o usuário aplicar
+  } else {
+    dateRange.classList.remove('show');
+    customDateFrom = ''; customDateTo = '';
+    renderReport();
+  }
+};
+
+window.applyCustomFilter = function() {
+  customDateFrom = document.getElementById('report-date-from').value;
+  customDateTo = document.getElementById('report-date-to').value;
+  if (!customDateFrom || !customDateTo) {
+    showToast('⚠️ Selecione as duas datas', false); return;
+  }
+  if (customDateFrom > customDateTo) {
+    showToast('⚠️ Data inicial maior que a final', false); return;
+  }
   renderReport();
 };
+
 function getFilteredTxs() {
   const now = new Date();
   return transactions.filter(t => {
     if (t.type === 'transfer_in') return false;
     const d = new Date((t.competenceDate || t.date) + 'T12:00:00');
-    if (reportFilter==='month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
-    if (reportFilter==='3m') return d >= new Date(now.getFullYear(), now.getMonth()-2, 1);
-    if (reportFilter==='6m') return d >= new Date(now.getFullYear(), now.getMonth()-5, 1);
-    if (reportFilter==='year') return d.getFullYear()===now.getFullYear();
+    if (reportFilter === 'month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+    if (reportFilter === '3m') return d >= new Date(now.getFullYear(), now.getMonth()-2, 1);
+    if (reportFilter === '6m') return d >= new Date(now.getFullYear(), now.getMonth()-5, 1);
+    if (reportFilter === 'year') return d.getFullYear()===now.getFullYear();
+    if (reportFilter === 'custom' && customDateFrom && customDateTo) {
+      const txDate = (t.competenceDate || t.date);
+      return txDate >= customDateFrom && txDate <= customDateTo;
+    }
     return true;
   });
 }
+
 function renderReport() {
   const txs = getFilteredTxs();
   const total = txs.reduce((s,t) => s+(t.myAmount??t.amount), 0);
@@ -1578,9 +1707,7 @@ window.addBank = function() {
   if (v && !userConfig.banks.includes(v)) { userConfig.banks.push(v); saveConfig(); renderConfig(); }
   document.getElementById('bank-input').value = '';
   updateSetupLock();
-  if (wasIncomplete && !isSetupIncomplete()) {
-    showToast('🎉 Configuração concluída! App liberado.', true);
-  }
+  if (wasIncomplete && !isSetupIncomplete()) showToast('🎉 Configuração concluída! App liberado.', true);
 };
 window.removeBank = function(i) { userConfig.banks.splice(i,1); saveConfig(); renderConfig(); updateSetupLock(); };
 
@@ -1641,23 +1768,18 @@ window.saveCard = function() {
   saveConfig(); renderConfig(); closeCardModal();
   showToast('✓ Cartão salvo!', true);
   updateSetupLock();
-  if (wasIncomplete && !isSetupIncomplete()) {
-    showToast('🎉 Configuração concluída! App liberado.', true);
-  }
+  if (wasIncomplete && !isSetupIncomplete()) showToast('🎉 Configuração concluída! App liberado.', true);
 };
 
 // ── EXPORT ──
 function csvField(val) {
-  // Escapa campos para CSV: se contiver ; " ou quebra de linha, envolve em aspas duplas
   const s = String(val ?? '');
   if (/[;"\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
 window.exportCSV = function() {
   if (!transactions.length) { showToast('⚠️ Nenhum dado para exportar', false); return; }
-  // Usa ; como delimitador (padrão do Excel em pt-BR) para que cada dado
-  // caia em sua própria coluna; usar , quebraria por conflitar com a vírgula decimal.
-  const header = ['Data','Competência','Tipo','Cartão/Banco','Descrição','Categoria','Titular','Divide com','Valor Total','Meu Valor','Parcela'].map(csvField).join(';') + '\n';
+  const header = ['Data','Competência','Tipo','Cartão/Banco','Descrição','Categoria','Titular','Divide com','Valor Total','Meu Valor','Parcela','Recorrente'].map(csvField).join(';') + '\n';
   const rows = transactions.map(t => [
     t.date, t.competenceDate||t.date,
     {credit:'Crédito',debit:'Débito',pix:'Pix',transfer_in:'Entrada'}[t.type],
@@ -1668,6 +1790,7 @@ window.exportCSV = function() {
     (t.amount||0).toFixed(2).replace('.',','),
     (t.myAmount||t.amount||0).toFixed(2).replace('.',','),
     t.installmentOf ? `${t.installmentNum}/${t.installmentOf}` : '1/1',
+    t.isRecurring ? 'Sim' : 'Não',
   ].map(csvField).join(';')).join('\n');
   const blob = new Blob(['\uFEFF'+header+rows], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -1749,9 +1872,7 @@ window.personChangeMonth = function(dir) {
   renderPersonModal();
 };
 
-window.closePersonModal = function() {
-  document.getElementById('modal-person').classList.remove('open');
-};
+window.closePersonModal = function() { document.getElementById('modal-person').classList.remove('open'); };
 
 function buildPersonMessage() {
   const { name, txs, total } = personModalData;
@@ -1794,7 +1915,7 @@ window.openDetailModal = function(id) {
   // Reset estado
   document.getElementById('edit-form').classList.remove('open');
   document.getElementById('detail-actions').style.display = 'flex';
-  document.getElementById('confirm-delete-btn').style.display = 'none';
+  document.getElementById('delete-options').style.display = 'none';
   document.getElementById('delete-btn').style.display = 'block';
 
   const isOut = t.type !== 'transfer_in';
@@ -1805,9 +1926,11 @@ window.openDetailModal = function(id) {
   document.getElementById('detail-amount').className = 'detail-amount '+(isOut?'out':'in');
   document.getElementById('detail-amount').textContent = (isOut?'- ':'+  ')+fmt(amt);
 
+  const recBadge = t.isRecurring ? ` <span class="tag tag-recurring">🔄 Recorrente</span>` : '';
   document.getElementById('detail-badges').innerHTML =
     `<span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span>` +
-    (t.installmentOf ? ` <span class="tag tag-credit">Parcela ${t.installmentNum}/${t.installmentOf}</span>` : '');
+    (t.installmentOf ? ` <span class="tag tag-credit">Parcela ${t.installmentNum}/${t.installmentOf}</span>` : '') +
+    recBadge;
 
   const rows = [
     ['Data', fmtDate(t.date)],
@@ -1819,6 +1942,7 @@ window.openDetailModal = function(id) {
     t.splitWith&&t.splitWith.length ? ['Divide com', t.splitWith.join(', ')] : null,
     t.amount !== t.myAmount ? ['Valor total', fmt(t.amount)] : null,
     t.amount !== t.myAmount ? ['Meu valor', fmt(t.myAmount)] : null,
+    t.isRecurring ? ['Recorrência', 'Assinatura mensal'] : null,
   ].filter(Boolean);
 
   document.getElementById('detail-rows').innerHTML = rows.map(([k,v]) =>
@@ -1831,9 +1955,7 @@ window.openDetailModal = function(id) {
   document.getElementById('modal-detail').classList.add('open');
 };
 
-window.closeDetailModal = function() {
-  document.getElementById('modal-detail').classList.remove('open');
-};
+window.closeDetailModal = function() { document.getElementById('modal-detail').classList.remove('open'); };
 
 window.openEdit = function() {
   if (!detailTx) return;
@@ -1869,18 +1991,41 @@ window.saveEdit = async function() {
   } catch(e) { showToast('❌ Erro ao salvar.', false); }
 };
 
-window.confirmDelete = function() {
+// ── EXCLUSÃO (simples + recorrente) ──
+window.initDelete = function() {
+  if (!detailTx) return;
   document.getElementById('delete-btn').style.display = 'none';
-  document.getElementById('confirm-delete-btn').style.display = 'block';
+  document.getElementById('delete-options').style.display = 'flex';
+  // Mostra opção "toda a recorrência" só se for recorrente
+  document.getElementById('del-all-btn').style.display = detailTx.isRecurring ? 'block' : 'none';
 };
 
-window.doDelete = async function() {
+window.cancelDeleteOptions = function() {
+  document.getElementById('delete-options').style.display = 'none';
+  document.getElementById('delete-btn').style.display = 'block';
+};
+
+window.doDelete = async function(mode) {
   if (!detailTx) return;
   try {
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', detailTx.id));
-    transactions = transactions.filter(x => x.id !== detailTx.id);
+    if (mode === 'all' && detailTx.isRecurring && detailTx.recurringId) {
+      // Exclui todos os lançamentos com o mesmo recurringId
+      const toDelete = transactions.filter(t => t.recurringId === detailTx.recurringId);
+      const batch = writeBatch(db);
+      toDelete.forEach(t => {
+        batch.delete(doc(db, 'users', currentUser.uid, 'transactions', t.id));
+      });
+      await batch.commit();
+      const ids = new Set(toDelete.map(t => t.id));
+      transactions = transactions.filter(t => !ids.has(t.id));
+      showToast(`✓ ${toDelete.length} lançamentos excluídos!`, true);
+    } else {
+      // Exclui só este
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', detailTx.id));
+      transactions = transactions.filter(x => x.id !== detailTx.id);
+      showToast('✓ Lançamento excluído!', true);
+    }
     closeDetailModal();
-    showToast('✓ Lançamento excluído!', true);
     renderHome();
   } catch(e) { showToast('❌ Erro ao excluir.', false); }
 };
@@ -1896,11 +2041,8 @@ function showOnboarding() {
 }
 
 window.obNext = function() {
-  if (obCurrent < OB_TOTAL - 1) {
-    obGoTo(obCurrent + 1);
-  } else {
-    obSkip();
-  }
+  if (obCurrent < OB_TOTAL - 1) { obGoTo(obCurrent + 1); }
+  else { obSkip(); }
 };
 
 window.obSkip = function() {
@@ -1917,9 +2059,8 @@ window.obRestart = function() {
     document.getElementById('app').style.display = 'flex';
   };
   document.getElementById('ob-next-btn').onclick = () => {
-    if (obCurrent < OB_TOTAL - 1) {
-      obGoTo(obCurrent + 1);
-    } else {
+    if (obCurrent < OB_TOTAL - 1) { obGoTo(obCurrent + 1); }
+    else {
       document.getElementById('onboarding-screen').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
     }
@@ -1937,7 +2078,6 @@ function obGoTo(n) {
   btn.textContent = n === OB_TOTAL - 1 ? 'Criar conta ou entrar →' : 'Próximo';
 }
 
-// Swipe nos slides
 (function() {
   let startX = 0;
   const el = document.getElementById('ob-slides');
@@ -1956,8 +2096,8 @@ function obGoTo(n) {
 const TOUR_STEPS = [
   { selector: '.balance-card', title: '💰 Resumo do mês', desc: 'Aqui você vê o total gasto no mês atual, separado por crédito e débito/Pix, e o número de lançamentos.' },
   { selector: '.month-selector', title: '📅 Navegação por mês', desc: 'Use as setas para navegar entre meses e ver o histórico de gastos de qualquer período.' },
-  { selector: '.fab', title: '➕ Novo lançamento', desc: 'Toque aqui para registrar um gasto. Você escolhe o tipo, digita o valor e preenche os detalhes em 4 passos simples.' },
-  { selector: '#nav-report, #snav-report', title: '📊 Relatórios', desc: 'Veja seus gastos detalhados por categoria, titular e cartão. Toque em um titular para gerar a cobrança e enviar no WhatsApp.' },
+  { selector: '.fab', title: '➕ Novo lançamento', desc: 'Toque aqui para registrar um gasto. Você pode criar lançamentos recorrentes (assinaturas) que se repetem todo mês automaticamente.' },
+  { selector: '#nav-report, #snav-report', title: '📊 Relatórios', desc: 'Veja seus gastos por categoria, titular e cartão. Use o filtro personalizado para qualquer período.' },
   { selector: '#nav-config, #snav-config', title: '⚙️ Configurações', desc: 'Cadastre seus cartões de crédito com data de vencimento, adicione categorias, titulares e bancos personalizados.' },
   { selector: '.user-avatar, #user-avatar-sidebar', title: '👤 Sua conta', desc: 'Toque aqui para ver seu perfil e sair da conta. Cada usuário tem seus dados completamente isolados.' },
 ];
@@ -1993,10 +2133,8 @@ function renderTourStep() {
   const tooltip = document.getElementById('tour-tooltip');
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const tw = 280;
-  const th = 160;
+  const tw = 280; const th = 160;
 
-  // Posiciona tooltip: tenta abaixo, senão acima
   let top = rect.bottom + pad + 12;
   let left = rect.left;
   if (top + th > vh - 20) top = rect.top - th - 12;
@@ -2007,7 +2145,6 @@ function renderTourStep() {
   tooltip.style.top = top + 'px';
   tooltip.style.left = left + 'px';
 
-  // Último passo: muda botão
   const nextBtn = tooltip.querySelector('.tour-next-btn');
   nextBtn.textContent = tourStep === TOUR_STEPS.length - 1 ? 'Concluir ✓' : 'Próximo →';
 }
@@ -2032,18 +2169,14 @@ window.endTour = async function() {
   });
 });
 
-// ── REGISTRO DO SERVICE WORKER (PWA instalável no Android) ──
+// ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(err => console.error('SW falhou:', err));
   });
 }
 
-// ── FIX ALTURA REAL EM iOS (PWA standalone) ──
-// O Safari/WebKit no iOS pode calcular 100vh/100dvh de forma imprecisa em
-// modo standalone, sobrando espaço morto no rodapé. Medimos a altura real
-// via JS e expomos como variável CSS --real-vh (equivalente a 1% da altura
-// real), usada no #app via calc(var(--real-vh) * 100).
+// ── FIX ALTURA REAL EM iOS ──
 function setRealAppHeight() {
   const h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
   document.documentElement.style.setProperty('--real-vh', (h / 100) + 'px');
@@ -2056,10 +2189,7 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('scroll', setRealAppHeight);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) setRealAppHeight(); });
-// Recalcula algumas vezes após o carregamento, cobrindo qualquer ajuste
-// tardio de UI do sistema no momento da abertura do app.
 [0, 50, 150, 300, 600, 1000, 2000].forEach(ms => setTimeout(setRealAppHeight, ms));
-
 
 </script>
 </body>
