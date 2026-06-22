@@ -334,10 +334,19 @@ select.field-input option{background:#1A1D27}
 .back-btn{background:var(--surface2);color:var(--text2);width:100%;padding:14px;border-radius:var(--radius);border:1.5px solid var(--border);font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px}
 
 /* REPORT */
-.report-header{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto}
+.report-header{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto}
 .report-header::-webkit-scrollbar{display:none}
 .report-filter{flex-shrink:0;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);cursor:pointer}
 .report-filter.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+/* ── NOVO: filtro por tipo de pagamento ── */
+.report-type-filters{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto}
+.report-type-filters::-webkit-scrollbar{display:none}
+.report-type-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;background:var(--surface);color:var(--text3);border:1.5px solid var(--border);cursor:pointer;transition:all .2s}
+.report-type-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.report-type-btn.credit.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.report-type-btn.debit.active{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+.report-type-btn.pix.active{border-color:#4ade80;color:#4ade80;background:rgba(74,222,128,.1)}
+
 .report-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
 .report-card-title{font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
 .report-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
@@ -412,16 +421,49 @@ select.field-input option{background:#1A1D27}
 .detail-actions{display:flex;flex-direction:column;gap:8px;padding:0 20px 8px}
 .edit-btn{width:100%;padding:15px;border-radius:var(--radius);border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-family:'Sora',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
 .delete-btn{width:100%;padding:14px;border-radius:var(--radius);border:1.5px solid var(--red);background:transparent;color:var(--red);font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
-.confirm-delete-btn{display:none;background:var(--red);color:#fff;width:100%;padding:14px;border-radius:var(--radius);border:none;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
 .edit-form{padding:0 20px;display:none;flex-direction:column;gap:12px;margin-bottom:20px}
 .edit-form.open{display:flex}
 
-/* DELETE RECURRING MODAL */
-.delete-recurring-options{display:flex;flex-direction:column;gap:10px;padding:16px 20px 8px}
+/* DELETE OPTIONS */
 .del-opt-btn{width:100%;padding:16px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Sora',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-align:left;transition:all .2s}
 .del-opt-btn:active{background:var(--surface)}
 .del-opt-btn.danger{border-color:var(--red);color:var(--red)}
 .del-opt-sub{font-size:12px;color:var(--text3);margin-top:3px;font-weight:400}
+
+/* ══════════════════════════════════
+   CONTAS A PAGAR — novo módulo
+══════════════════════════════════ */
+.bills-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.bill-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 12px;display:flex;flex-direction:column;gap:4px}
+.bill-stat-label{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.8px;text-transform:uppercase}
+.bill-stat-value{font-family:'Sora',sans-serif;font-size:18px;font-weight:700}
+.bill-stat-value.total{color:var(--text)}
+.bill-stat-value.paid{color:var(--green)}
+.bill-stat-value.open{color:var(--red)}
+
+.bill-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;margin-bottom:8px}
+.bill-item.paid-item{opacity:.6}
+.bill-item:active{background:var(--surface2)}
+.bill-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.bill-status-dot.paid{background:var(--green)}
+.bill-status-dot.overdue{background:var(--red)}
+.bill-status-dot.today{background:var(--orange)}
+.bill-status-dot.pending{background:var(--border)}
+.bill-info{flex:1;min-width:0}
+.bill-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bill-meta{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:6px}
+.bill-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.bill-badge.paid{background:var(--green-soft);color:var(--green)}
+.bill-badge.overdue{background:var(--red-soft);color:var(--red)}
+.bill-badge.today{background:var(--orange-soft);color:var(--orange)}
+.bill-badge.pending{background:var(--surface2);color:var(--text3)}
+.bill-amount-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.bill-amount{font-family:'Sora',sans-serif;font-size:15px;font-weight:700}
+.bill-amount.open{color:var(--red)}
+.bill-amount.paid{color:var(--green)}
+.bill-pay-btn{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;font-family:'Sora',sans-serif;border:none;background:var(--green);color:#fff;cursor:pointer;white-space:nowrap}
+.bill-pay-btn.undo{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+.bill-month-selector{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 
 /* ── ONBOARDING SLIDES ── */
 #onboarding-screen{height:100dvh;display:none;flex-direction:column;background:var(--bg);position:relative;overflow:hidden}
@@ -437,7 +479,6 @@ select.field-input option{background:#1A1D27}
 .ob-next{width:100%;max-width:360px;padding:16px;border-radius:var(--radius);border:none;background:var(--accent);color:#fff;font-family:'Sora',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s}
 .ob-next:active{opacity:.85;transform:scale(.98)}
 .ob-skip{font-size:13px;color:var(--text3);cursor:pointer;padding:4px 12px}
-.ob-skip:hover{color:var(--text2)}
 
 /* ── TOUR SPOTLIGHT ── */
 #tour-overlay{position:fixed;inset:0;z-index:500;pointer-events:none;display:none}
@@ -451,7 +492,6 @@ select.field-input option{background:#1A1D27}
 .tour-step-counter{font-size:11px;color:var(--text3);font-weight:600}
 .tour-next-btn{padding:8px 16px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
 .tour-skip-btn{font-size:12px;color:var(--text3);cursor:pointer;padding:4px}
-.tour-skip-btn:hover{color:var(--red)}
 </style>
 <script>
   if (localStorage.getItem('ft_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
@@ -473,14 +513,14 @@ select.field-input option{background:#1A1D27}
       <div class="ob-desc">Registre um gasto em segundos. Escolha o tipo, digite o valor no teclado numérico e confirme — sem complicação.</div>
     </div>
     <div class="ob-slide">
-      <div class="ob-emoji">👥</div>
-      <div class="ob-title">Divida com quem quiser</div>
-      <div class="ob-desc">Gastou com mais pessoas? O FinTrack divide automaticamente e gera um resumo pronto para enviar no WhatsApp, com o valor de cada um.</div>
+      <div class="ob-emoji">📋</div>
+      <div class="ob-title">Contas a pagar</div>
+      <div class="ob-desc">Cadastre suas contas fixas e variáveis, acompanhe vencimentos e marque como paga quando quitar. Sem mais esquecer boletos.</div>
     </div>
     <div class="ob-slide">
       <div class="ob-emoji">📊</div>
       <div class="ob-title">Relatórios completos</div>
-      <div class="ob-desc">Veja seus gastos por categoria, titular e cartão. Exporte em CSV para análises mais detalhadas quando precisar.</div>
+      <div class="ob-desc">Veja seus gastos por categoria, titular e cartão. Filtre por crédito, débito ou Pix e exporte em CSV.</div>
     </div>
   </div>
   <div class="ob-footer">
@@ -490,8 +530,8 @@ select.field-input option{background:#1A1D27}
       <div class="ob-dot" id="ob-dot-2"></div>
       <div class="ob-dot" id="ob-dot-3"></div>
     </div>
-    <button class="ob-next" id="ob-next-btn" onclick="obNext()">Próximo</button>
-    <div class="ob-skip" onclick="obSkip()">Pular introdução</div>
+    <button class="ob-next" id="ob-next-btn">Próximo</button>
+    <div class="ob-skip" id="ob-skip-btn">Pular introdução</div>
   </div>
 </div>
 
@@ -555,6 +595,9 @@ select.field-input option{background:#1A1D27}
       <div class="sidebar-item active" id="snav-home" onclick="showPage('home')">
         <span class="s-icon">🏠</span> Início
       </div>
+      <div class="sidebar-item" id="snav-bills" onclick="showPage('bills')">
+        <span class="s-icon">📋</span> Contas
+      </div>
       <div class="sidebar-item" id="snav-report" onclick="showPage('report')">
         <span class="s-icon">📊</span> Relatórios
       </div>
@@ -610,10 +653,33 @@ select.field-input option{background:#1A1D27}
       </div>
     </div>
 
+    <!-- CONTAS A PAGAR -->
+    <div class="page" id="page-bills">
+      <div style="height:16px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Contas a Pagar</div>
+        <button class="cta-btn" onclick="openBillModal()" style="width:auto;padding:10px 16px;font-size:13px">+ Nova conta</button>
+      </div>
+      <div class="bill-month-selector">
+        <button class="month-btn" onclick="changeBillMonth(-1)">◀</button>
+        <div class="month-label" id="bill-month-display">—</div>
+        <button class="month-btn" onclick="changeBillMonth(1)">▶</button>
+      </div>
+      <div class="bills-summary">
+        <div class="bill-stat-card"><div class="bill-stat-label">Total</div><div class="bill-stat-value total" id="bill-total">R$ 0,00</div></div>
+        <div class="bill-stat-card"><div class="bill-stat-label">Pago</div><div class="bill-stat-value paid" id="bill-paid-total">R$ 0,00</div></div>
+        <div class="bill-stat-card"><div class="bill-stat-label">Em aberto</div><div class="bill-stat-value open" id="bill-open-total">R$ 0,00</div></div>
+      </div>
+      <div id="bills-list">
+        <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-label">Nenhuma conta</div><div class="empty-sub">Toque em "+ Nova conta" para começar</div></div>
+      </div>
+    </div>
+
     <!-- RELATÓRIOS -->
     <div class="page" id="page-report">
       <div style="height:16px"></div>
       <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:16px">Relatórios</div>
+      <!-- Filtro de período -->
       <div class="report-header">
         <div class="report-filter active" onclick="setReportFilter('month',this)">Este mês</div>
         <div class="report-filter" onclick="setReportFilter('3m',this)">3 meses</div>
@@ -622,13 +688,20 @@ select.field-input option{background:#1A1D27}
         <div class="report-filter" onclick="setReportFilter('all',this)">Tudo</div>
         <div class="report-filter" onclick="setReportFilter('custom',this)">📅 Personalizado</div>
       </div>
-      <!-- Filtro de período personalizado -->
+      <!-- Filtro personalizado de período -->
       <div class="custom-date-range" id="custom-date-range">
         <label>De</label>
         <input type="date" class="field-input" id="report-date-from">
         <label>até</label>
         <input type="date" class="field-input" id="report-date-to">
         <button class="custom-date-apply" onclick="applyCustomFilter()">Aplicar</button>
+      </div>
+      <!-- ── NOVO: Filtro por tipo de pagamento ── -->
+      <div class="report-type-filters">
+        <button class="report-type-btn active" data-rtype="all" onclick="setReportTypeFilter('all',this)">Todos</button>
+        <button class="report-type-btn credit" data-rtype="credit" onclick="setReportTypeFilter('credit',this)">💳 Crédito</button>
+        <button class="report-type-btn debit" data-rtype="debit" onclick="setReportTypeFilter('debit',this)">💸 Débito</button>
+        <button class="report-type-btn pix" data-rtype="pix" onclick="setReportTypeFilter('pix',this)">⚡ Pix</button>
       </div>
       <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
       <div class="report-card"><div class="report-card-title">👤 Por titular</div><div id="report-person"></div></div>
@@ -643,7 +716,7 @@ select.field-input option{background:#1A1D27}
       <div style="height:16px"></div>
       <div id="setup-lock-banner" style="display:none;background:var(--red-soft);border:1.5px solid var(--red);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px">
         <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:var(--red);margin-bottom:4px">🔒 Configuração obrigatória</div>
-        <div style="font-size:13px;color:var(--text2);line-height:1.4">Para começar a usar o FinTrack, cadastre pelo menos <b>1 cartão de crédito</b> (necessário para lançamentos de Crédito) e <b>1 banco</b> (necessário para Débito, Pix e Entrada). As demais telas serão liberadas automaticamente após isso.</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.4">Para começar a usar o FinTrack, cadastre pelo menos <b>1 cartão de crédito</b> e <b>1 banco</b>. As demais telas serão liberadas automaticamente.</div>
       </div>
       <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:20px">Configurações</div>
       <div class="section-title">Cartões de crédito</div>
@@ -679,33 +752,28 @@ select.field-input option{background:#1A1D27}
       <div class="section-title">Ajuda</div>
       <div class="config-card">
         <div class="config-row" onclick="startTour()" style="cursor:pointer">
-          <div class="config-row-left">
-            <div>🎯</div>
-            <div>
-              <div class="config-row-label">Ver tour do sistema</div>
-              <div class="config-row-sub">Conheça todas as funcionalidades</div>
-            </div>
-          </div>
+          <div class="config-row-left"><div>🎯</div><div>
+            <div class="config-row-label">Ver tour do sistema</div>
+            <div class="config-row-sub">Conheça todas as funcionalidades</div>
+          </div></div>
           <div style="color:var(--accent);font-size:14px">▶</div>
         </div>
         <div class="config-row" onclick="obRestart()" style="cursor:pointer">
-          <div class="config-row-left">
-            <div>📖</div>
-            <div>
-              <div class="config-row-label">Ver apresentação inicial</div>
-              <div class="config-row-sub">Os slides de boas-vindas</div>
-            </div>
-          </div>
+          <div class="config-row-left"><div>📖</div><div>
+            <div class="config-row-label">Ver apresentação inicial</div>
+            <div class="config-row-sub">Os slides de boas-vindas</div>
+          </div></div>
           <div style="color:var(--accent);font-size:14px">▶</div>
         </div>
       </div>
       <div style="height:8px"></div>
-      <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.1 · Dados salvos na nuvem ☁️</div>
+      <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.2 · Dados salvos na nuvem ☁️</div>
     </div>
   </div>
 
   <div class="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="showPage('home')"><div class="nav-icon">🏠</div><div>Início</div></div>
+    <div class="nav-item" id="nav-bills" onclick="showPage('bills')"><div class="nav-icon">📋</div><div>Contas</div></div>
     <div class="nav-item" id="nav-report" onclick="showPage('report')"><div class="nav-icon">📊</div><div>Relatórios</div></div>
     <div class="nav-item" id="nav-config" onclick="showPage('config')"><div class="nav-icon">⚙️</div><div>Config.</div></div>
   </div>
@@ -784,7 +852,6 @@ select.field-input option{background:#1A1D27}
           <div class="split-people" id="split-people-list"></div>
           <div class="info-box" id="split-info">Selecione as pessoas que dividem este gasto</div>
         </div>
-        <!-- RECORRÊNCIA — só aparece no crédito -->
         <div id="recurring-section" style="display:none">
           <div class="toggle-row highlight" id="recurring-toggle-row">
             <div>
@@ -794,7 +861,7 @@ select.field-input option{background:#1A1D27}
             <button class="toggle orange" id="recurring-toggle" onclick="toggleRecurring()"></button>
           </div>
           <div id="recurring-panel" style="display:none">
-            <div class="info-box orange">Este lançamento será projetado para os próximos <strong>12 meses</strong> automaticamente. Você pode excluir um mês específico ou toda a recorrência depois.</div>
+            <div class="info-box orange">Este lançamento será projetado para os próximos <strong>12 meses</strong> automaticamente.</div>
           </div>
         </div>
         <div id="installment-section">
@@ -857,6 +924,74 @@ select.field-input option{background:#1A1D27}
       <div class="field-group" id="custom-interval-wrap" style="display:none"><label class="field-label">Dias de intervalo</label><input class="field-input" type="number" id="custom-interval" min="1" max="20" placeholder="Ex: 9"></div>
     </div>
     <div class="cta-wrap"><button class="cta-btn" onclick="saveCard()">Salvar cartão</button></div>
+  </div>
+</div>
+
+<!-- MODAL CONTA A PAGAR -->
+<div class="modal-overlay" id="modal-bill">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="bill-modal-title">Nova conta</div>
+      <button class="modal-close" onclick="closeBillModal()">✕</button>
+    </div>
+    <div class="form-body" style="padding-top:16px">
+      <div class="field-group">
+        <label class="field-label">Nome da conta</label>
+        <input class="field-input" id="bill-name" placeholder="Ex: CEMIG, Aluguel, Internet...">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Valor</label>
+        <input class="field-input" type="number" step="0.01" id="bill-value" placeholder="Ex: 147,86">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Vencimento (dia do mês)</label>
+        <input class="field-input" type="number" id="bill-due-day" min="1" max="31" placeholder="Ex: 10">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Mês de referência</label>
+        <input class="field-input" type="month" id="bill-month">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Categoria</label>
+        <select class="field-input" id="bill-category"></select>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">🔄 Conta fixa (recorrente)?</div>
+          <div class="toggle-sub">Replica automaticamente todo mês</div>
+        </div>
+        <button class="toggle orange" id="bill-recurring-toggle" onclick="toggleBillRecurring()"></button>
+      </div>
+    </div>
+    <div class="cta-wrap">
+      <button class="cta-btn success" id="bill-save-btn" onclick="saveBill()">✓ Salvar conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAGAR CONTA -->
+<div class="modal-overlay" id="modal-pay-bill">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Marcar como paga</div>
+      <button class="modal-close" onclick="closePayBillModal()">✕</button>
+    </div>
+    <div class="form-body" style="padding-top:16px">
+      <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:600;margin-bottom:16px" id="pay-bill-name">—</div>
+      <div class="field-group">
+        <label class="field-label">Valor pago</label>
+        <input class="field-input" type="number" step="0.01" id="pay-bill-value" placeholder="Valor efetivamente pago">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Data do pagamento</label>
+        <input class="field-input" type="date" id="pay-bill-date">
+      </div>
+    </div>
+    <div class="cta-wrap">
+      <button class="cta-btn success" onclick="confirmPayBill()">✓ Confirmar pagamento</button>
+    </div>
   </div>
 </div>
 
@@ -925,8 +1060,6 @@ select.field-input option{background:#1A1D27}
     <div style="text-align:center;margin-bottom:16px" id="detail-badges"></div>
     <div class="detail-rows" id="detail-rows"></div>
     <div class="detail-note-box" id="detail-note-box" style="display:none"></div>
-
-    <!-- FORM DE EDIÇÃO -->
     <div class="edit-form" id="edit-form">
       <div class="field-group" style="margin-bottom:0"><label class="field-label">Título</label><input class="field-input" id="edit-title" type="text"></div>
       <div class="field-group" style="margin-bottom:0"><label class="field-label">Nota</label><input class="field-input" id="edit-note" type="text" placeholder="Opcional"></div>
@@ -935,11 +1068,9 @@ select.field-input option{background:#1A1D27}
       <button class="cta-btn success" onclick="saveEdit()">✓ Salvar alterações</button>
       <button class="back-btn" onclick="cancelEdit()">Cancelar</button>
     </div>
-
     <div class="detail-actions" id="detail-actions">
       <button class="edit-btn" onclick="openEdit()">✏️ Editar lançamento</button>
       <button class="delete-btn" id="delete-btn" onclick="initDelete()">🗑 Excluir lançamento</button>
-      <!-- opções de exclusão inline -->
       <div id="delete-options" style="display:none;flex-direction:column;gap:8px">
         <div style="font-size:13px;color:var(--text3);text-align:center;padding:4px 0">Excluir como?</div>
         <button class="del-opt-btn" onclick="doDelete('single')">
@@ -948,7 +1079,7 @@ select.field-input option{background:#1A1D27}
         </button>
         <button class="del-opt-btn danger" id="del-all-btn" onclick="doDelete('all')" style="display:none">
           🔄 Toda a recorrência
-          <div class="del-opt-sub">Remove todos os meses futuros e passados desta assinatura</div>
+          <div class="del-opt-sub">Remove todos os meses desta assinatura</div>
         </button>
         <button class="back-btn" onclick="cancelDeleteOptions()" style="margin-bottom:0">Cancelar</button>
       </div>
@@ -984,9 +1115,13 @@ let userConfig = {
   banks: ['Sicoob','Santander','Nubank','Itaú','Bradesco','Inter','C6 Bank'],
 };
 let transactions = [];
+let bills = []; // ← novo: contas a pagar
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
+let billMonth = new Date().getMonth();
+let billYear = new Date().getFullYear();
 let reportFilter = 'month';
+let reportTypeFilter = 'all'; // ← novo: filtro por tipo
 let customDateFrom = '';
 let customDateTo = '';
 
@@ -999,6 +1134,10 @@ let instActive = false;
 let instCount = 2;
 let recurringActive = false;
 let editCardIdx = null;
+// Bill state
+let billRecurringActive = false;
+let editBillId = null;
+let payBillId = null;
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪'};
@@ -1012,13 +1151,8 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     currentUser = null;
     const seen = localStorage.getItem('ft_ob_seen');
-    if (!seen) {
-      showOnboarding();
-      document.getElementById('ob-next-btn').onclick = obNext;
-      document.querySelector('.ob-skip').onclick = obSkip;
-    } else {
-      showAuth();
-    }
+    if (!seen) { showOnboarding(); }
+    else { showAuth(); }
   }
 });
 
@@ -1055,7 +1189,7 @@ function updateSetupLock() {
   document.querySelectorAll('.fab, .sidebar-new-btn').forEach(el => {
     el.style.display = locked ? 'none' : '';
   });
-  ['nav-home','nav-report','snav-home','snav-report'].forEach(id => {
+  ['nav-home','nav-bills','nav-report','snav-home','snav-bills','snav-report'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.opacity = locked ? '.4' : '';
     if (el) el.style.pointerEvents = locked ? 'none' : '';
@@ -1073,6 +1207,7 @@ function showAuth() {
 // ── FIRESTORE ──
 function userRef() { return doc(db, 'users', currentUser.uid); }
 function txCol() { return collection(db, 'users', currentUser.uid, 'transactions'); }
+function billsCol() { return collection(db, 'users', currentUser.uid, 'bills'); }
 
 function defaultUserConfig() {
   return {
@@ -1086,6 +1221,7 @@ function defaultUserConfig() {
 async function loadUserData() {
   userConfig = defaultUserConfig();
   transactions = [];
+  bills = [];
   try {
     const snap = await getDoc(userRef());
     if (snap.exists()) {
@@ -1096,6 +1232,12 @@ async function loadUserData() {
     }
     const txSnap = await getDocs(query(txCol(), orderBy('createdAt', 'desc')));
     transactions = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Carrega contas a pagar
+    try {
+      const billSnap = await getDocs(query(billsCol(), orderBy('createdAt', 'desc')));
+      bills = billSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) { bills = []; }
   } catch(e) { console.error(e); }
 }
 
@@ -1111,7 +1253,6 @@ async function saveTx(tx) {
   } catch(e) { console.error(e); throw e; }
 }
 
-// ── UUID simples para recurringId ──
 function genUUID() {
   return 'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
@@ -1169,18 +1310,18 @@ window.handleForgotPassword = async function() {
   }
   try {
     await sendPasswordResetEmail(auth, email);
-    errEl.textContent = '✓ E-mail de recuperação enviado! Verifique sua caixa de entrada (e o spam).';
+    errEl.textContent = '✓ E-mail de recuperação enviado!';
     errEl.style.color = 'var(--green)'; errEl.classList.add('show');
   } catch(e) {
-    const msgs = { 'auth/invalid-email':'E-mail inválido.', 'auth/user-not-found':'Não encontramos uma conta com esse e-mail.' };
-    errEl.textContent = msgs[e.code] || 'Não foi possível enviar o e-mail. Tente novamente.';
+    const msgs = { 'auth/invalid-email':'E-mail inválido.', 'auth/user-not-found':'Conta não encontrada.' };
+    errEl.textContent = msgs[e.code] || 'Não foi possível enviar o e-mail.';
     errEl.style.color = ''; errEl.classList.add('show');
   }
 };
 
 window.doLogout = async function() {
   await signOut(auth);
-  currentUser = null; transactions = []; userConfig = defaultUserConfig();
+  currentUser = null; transactions = []; bills = []; userConfig = defaultUserConfig();
   closeProfile();
 };
 
@@ -1221,10 +1362,12 @@ window.showPage = function(p) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
-  document.getElementById('nav-'+p).classList.add('active');
+  const navEl = document.getElementById('nav-'+p);
+  if (navEl) navEl.classList.add('active');
   const snav = document.getElementById('snav-'+p);
   if (snav) snav.classList.add('active');
   if (p === 'home') renderHome();
+  if (p === 'bills') renderBills();
   if (p === 'report') renderReport();
   if (p === 'config') renderConfig();
 };
@@ -1234,6 +1377,13 @@ window.changeMonth = function(dir) {
   if (currentMonth > 11) { currentMonth = 0; currentYear++; }
   if (currentMonth < 0) { currentMonth = 11; currentYear--; }
   renderHome();
+};
+
+window.changeBillMonth = function(dir) {
+  billMonth += dir;
+  if (billMonth > 11) { billMonth = 0; billYear++; }
+  if (billMonth < 0) { billMonth = 11; billYear--; }
+  renderBills();
 };
 
 // ── HOME ──
@@ -1275,20 +1425,260 @@ function renderHome() {
     const isOut = t.type !== 'transfer_in';
     const amt = t.myAmount ?? t.amount;
     const inst = t.installmentOf ? ` (${t.installmentNum}/${t.installmentOf}x)` : '';
-    const recTag = t.isRecurring ? `<span class="tag tag-recurring">🔄 Recorrente</span>` : '';
+    const recTag = t.isRecurring ? `<span class="tag tag-recurring">🔄</span>` : '';
     const person = t.person && t.person !== 'Eu' ? ` · ${t.person}` : '';
+    const bankInfo = (t.type !== 'credit' && t.bank) ? ` · ${t.bank}` : '';
     const noteStr = t.note ? `<div class="tx-note">${t.note}</div>` : '';
     return `<div class="transaction-item" onclick="openDetailModal('${t.id}')">
       <div class="tx-icon" style="background:${isOut?'var(--red-soft)':'var(--green-soft)'}">${CAT_ICONS[t.category]||'📦'}</div>
       <div class="tx-info">
         <div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
         ${noteStr}
-        <div class="tx-meta">${fmtDate(t.date)}${person} <span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span>${recTag}</div>
+        <div class="tx-meta">${fmtDate(t.date)}${person}${bankInfo} <span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span>${recTag}</div>
       </div>
       <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
     </div>`;
   }).join('');
 }
+
+// ══════════════════════════════════════
+// CONTAS A PAGAR
+// ══════════════════════════════════════
+function getBillStatus(bill) {
+  if (bill.paid) return 'paid';
+  const today = new Date().toISOString().split('T')[0];
+  const dueStr = `${bill.refYear}-${String(bill.refMonth+1).padStart(2,'0')}-${String(bill.dueDay).padStart(2,'0')}`;
+  if (dueStr < today) return 'overdue';
+  if (dueStr === today) return 'today';
+  return 'pending';
+}
+
+function renderBills() {
+  const m = billMonth, y = billYear;
+  document.getElementById('bill-month-display').textContent = `${MONTHS[m]} ${y}`;
+
+  // Filtra contas do mês selecionado (ou recorrentes que aparecem em todo mês)
+  const monthBills = bills.filter(b => {
+    if (b.isRecurring) return true; // recorrentes aparecem em todos os meses
+    return b.refMonth === m && b.refYear === y;
+  });
+
+  // Para recorrentes, verifica se há um registro de pagamento no mês
+  const displayed = monthBills.map(b => {
+    if (!b.isRecurring) return b;
+    // Cria uma "view" da conta recorrente para este mês
+    const payKey = `${y}-${String(m+1).padStart(2,'0')}`;
+    const paidInfo = (b.payments || {})[payKey];
+    return {
+      ...b,
+      refMonth: m,
+      refYear: y,
+      paid: !!paidInfo,
+      paidValue: paidInfo?.value ?? b.value,
+      paidDate: paidInfo?.date ?? null,
+      _payKey: payKey,
+    };
+  });
+
+  // Totais
+  const total = displayed.reduce((s,b) => s + (b.value||0), 0);
+  const paid = displayed.filter(b=>b.paid).reduce((s,b) => s + (b.paidValue||b.value||0), 0);
+  const open = displayed.filter(b=>!b.paid).reduce((s,b) => s + (b.value||0), 0);
+  document.getElementById('bill-total').textContent = fmt(total);
+  document.getElementById('bill-paid-total').textContent = fmt(paid);
+  document.getElementById('bill-open-total').textContent = fmt(open);
+
+  const container = document.getElementById('bills-list');
+  if (!displayed.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-label">Nenhuma conta</div><div class="empty-sub">Toque em "+ Nova conta" para começar</div></div>`;
+    return;
+  }
+
+  // Ordena: em aberto primeiro (por vencimento), depois pagas
+  const sorted = [...displayed].sort((a,b) => {
+    if (a.paid !== b.paid) return a.paid ? 1 : -1;
+    return (a.dueDay||0) - (b.dueDay||0);
+  });
+
+  const statusLabel = { paid:'✓ Pago', overdue:'Vencido', today:'Vence hoje', pending:'Pendente' };
+
+  container.innerHTML = sorted.map(b => {
+    const st = getBillStatus(b);
+    const dueStr = b.dueDay ? `Vence dia ${b.dueDay}` : '';
+    const paidStr = b.paid ? ` · Pago em ${fmtDate(b.paidDate||'')} — ${fmt(b.paidValue||b.value)}` : '';
+    const recurTag = b.isRecurring ? `<span class="bill-badge pending" style="background:var(--orange-soft);color:var(--orange)">🔄 Fixa</span>` : '';
+    return `<div class="bill-item ${b.paid?'paid-item':''}" onclick="openBillDetail('${b.id}','${b._payKey||''}')">
+      <div class="bill-status-dot ${st}"></div>
+      <div class="bill-info">
+        <div class="bill-name">${b.name}</div>
+        <div class="bill-meta">
+          <span class="bill-badge ${st}">${statusLabel[st]}</span>
+          ${recurTag}
+          <span>${dueStr}${paidStr}</span>
+        </div>
+      </div>
+      <div class="bill-amount-wrap">
+        <div class="bill-amount ${b.paid?'paid':'open'}">${fmt(b.value)}</div>
+        ${!b.paid
+          ? `<button class="bill-pay-btn" onclick="event.stopPropagation();openPayBillModal('${b.id}','${b._payKey||''}',${b.value})">Pagar</button>`
+          : `<button class="bill-pay-btn undo" onclick="event.stopPropagation();undoPayBill('${b.id}','${b._payKey||''}')">Desfazer</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL NOVA CONTA ──
+window.openBillModal = function(billId = null) {
+  editBillId = billId;
+  billRecurringActive = false;
+  document.getElementById('bill-modal-title').textContent = billId ? 'Editar conta' : 'Nova conta';
+  document.getElementById('bill-recurring-toggle').classList.remove('on');
+
+  const now = new Date();
+  document.getElementById('bill-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('bill-category').innerHTML = userConfig.categories.map(c => `<option>${c}</option>`).join('');
+
+  if (billId) {
+    const b = bills.find(x => x.id === billId);
+    if (b) {
+      document.getElementById('bill-name').value = b.name || '';
+      document.getElementById('bill-value').value = b.value || '';
+      document.getElementById('bill-due-day').value = b.dueDay || '';
+      document.getElementById('bill-month').value = `${b.refYear}-${String(b.refMonth+1).padStart(2,'0')}`;
+      document.getElementById('bill-category').value = b.category || userConfig.categories[0];
+      billRecurringActive = !!b.isRecurring;
+      document.getElementById('bill-recurring-toggle').classList.toggle('on', billRecurringActive);
+    }
+  } else {
+    document.getElementById('bill-name').value = '';
+    document.getElementById('bill-value').value = '';
+    document.getElementById('bill-due-day').value = '';
+  }
+  document.getElementById('modal-bill').classList.add('open');
+};
+
+window.closeBillModal = function() { document.getElementById('modal-bill').classList.remove('open'); };
+
+window.toggleBillRecurring = function() {
+  billRecurringActive = !billRecurringActive;
+  document.getElementById('bill-recurring-toggle').classList.toggle('on', billRecurringActive);
+};
+
+window.saveBill = async function() {
+  const name = document.getElementById('bill-name').value.trim();
+  const value = parseFloat(document.getElementById('bill-value').value.replace(',','.'));
+  const dueDay = parseInt(document.getElementById('bill-due-day').value);
+  const monthVal = document.getElementById('bill-month').value; // "2026-06"
+  const category = document.getElementById('bill-category').value;
+
+  if (!name) { showToast('⚠️ Informe o nome da conta', false); return; }
+  if (!value || isNaN(value)) { showToast('⚠️ Informe o valor', false); return; }
+
+  const [refYear, refMonth] = monthVal.split('-').map(Number);
+
+  const billData = {
+    name, value, dueDay: dueDay || null, refMonth: refMonth - 1, refYear,
+    category: category || 'Outros',
+    isRecurring: billRecurringActive,
+    paid: false, payments: {},
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    if (editBillId) {
+      const ref = doc(db, 'users', currentUser.uid, 'bills', editBillId);
+      await updateDoc(ref, { name: billData.name, value: billData.value, dueDay: billData.dueDay, category: billData.category, isRecurring: billData.isRecurring, refMonth: billData.refMonth, refYear: billData.refYear });
+      const idx = bills.findIndex(x => x.id === editBillId);
+      if (idx >= 0) bills[idx] = { ...bills[idx], ...billData };
+    } else {
+      const ref = await addDoc(billsCol(), billData);
+      bills.unshift({ id: ref.id, ...billData });
+    }
+    closeBillModal();
+    renderBills();
+    showToast('✓ Conta salva!', true);
+  } catch(e) { showToast('❌ Erro ao salvar conta.', false); console.error(e); }
+};
+
+// ── PAGAR CONTA ──
+window.openPayBillModal = function(billId, payKey, defaultValue) {
+  payBillId = { billId, payKey };
+  const b = bills.find(x => x.id === billId);
+  document.getElementById('pay-bill-name').textContent = b ? b.name : '';
+  document.getElementById('pay-bill-value').value = defaultValue || '';
+  document.getElementById('pay-bill-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-pay-bill').classList.add('open');
+};
+
+window.closePayBillModal = function() { document.getElementById('modal-pay-bill').classList.remove('open'); };
+
+window.confirmPayBill = async function() {
+  if (!payBillId) return;
+  const { billId, payKey } = payBillId;
+  const value = parseFloat(document.getElementById('pay-bill-value').value.replace(',','.'));
+  const date = document.getElementById('pay-bill-date').value;
+  if (!value || isNaN(value)) { showToast('⚠️ Informe o valor pago', false); return; }
+
+  const b = bills.find(x => x.id === billId);
+  if (!b) return;
+
+  try {
+    const ref = doc(db, 'users', currentUser.uid, 'bills', billId);
+    if (b.isRecurring) {
+      // Para recorrentes, salva em payments[payKey]
+      const payments = { ...(b.payments||{}), [payKey]: { value, date } };
+      await updateDoc(ref, { payments });
+      const idx = bills.findIndex(x => x.id === billId);
+      if (idx >= 0) bills[idx] = { ...bills[idx], payments };
+    } else {
+      await updateDoc(ref, { paid: true, paidValue: value, paidDate: date });
+      const idx = bills.findIndex(x => x.id === billId);
+      if (idx >= 0) bills[idx] = { ...bills[idx], paid: true, paidValue: value, paidDate: date };
+    }
+    closePayBillModal();
+    renderBills();
+    showToast('✓ Conta marcada como paga!', true);
+  } catch(e) { showToast('❌ Erro ao salvar.', false); }
+};
+
+window.undoPayBill = async function(billId, payKey) {
+  const b = bills.find(x => x.id === billId);
+  if (!b) return;
+  try {
+    const ref = doc(db, 'users', currentUser.uid, 'bills', billId);
+    if (b.isRecurring && payKey) {
+      const payments = { ...(b.payments||{}) };
+      delete payments[payKey];
+      await updateDoc(ref, { payments });
+      const idx = bills.findIndex(x => x.id === billId);
+      if (idx >= 0) bills[idx] = { ...bills[idx], payments };
+    } else {
+      await updateDoc(ref, { paid: false, paidValue: null, paidDate: null });
+      const idx = bills.findIndex(x => x.id === billId);
+      if (idx >= 0) bills[idx] = { ...bills[idx], paid: false, paidValue: null, paidDate: null };
+    }
+    renderBills();
+    showToast('✓ Pagamento desfeito!', true);
+  } catch(e) { showToast('❌ Erro.', false); }
+};
+
+window.openBillDetail = function(billId, payKey) {
+  // Abre modal de edição ao clicar na conta
+  openBillModal(billId);
+};
+
+// Botão deletar conta (dentro do modal de edição — vamos adicionar inline)
+window.deleteBill = async function() {
+  if (!editBillId) return;
+  try {
+    await deleteDoc(doc(db, 'users', currentUser.uid, 'bills', editBillId));
+    bills = bills.filter(x => x.id !== editBillId);
+    closeBillModal();
+    renderBills();
+    showToast('✓ Conta excluída!', true);
+  } catch(e) { showToast('❌ Erro ao excluir.', false); }
+};
 
 // ── MODAL ──
 window.openModal = function() {
@@ -1339,15 +1729,19 @@ function populateStep2() {
   document.getElementById('f-card').innerHTML = userConfig.cards.length
     ? userConfig.cards.map((c,i) => `<option value="${i}">${c.name} (vence dia ${c.dueDay})</option>`).join('')
     : '<option value="">— Nenhum cartão cadastrado —</option>';
-  document.getElementById('f-bank').innerHTML = userConfig.banks.map(b => `<option>${b}</option>`).join('');
+
+  // ── FIX: reconstrói o select de banco corretamente ──
+  const bankSelect = document.getElementById('f-bank');
+  bankSelect.innerHTML = userConfig.banks.length
+    ? userConfig.banks.map(b => `<option value="${b}">${b}</option>`).join('')
+    : '<option value="">— Nenhum banco cadastrado —</option>';
+
   document.getElementById('f-cat').innerHTML = userConfig.categories.map(c => `<option>${c}</option>`).join('');
 }
 
 function populateStep3() {
   const isCredit = selectedType === 'credit';
-  // Mostra/oculta seção de recorrência (só no crédito)
   document.getElementById('recurring-section').style.display = isCredit ? '' : 'none';
-  // Se não é crédito, garante que parcelado aparece (já estava assim)
   document.getElementById('installment-section').style.display = isCredit ? '' : 'none';
 
   document.getElementById('f-person').innerHTML = userConfig.persons.map(p => `<option>${p}</option>`).join('');
@@ -1361,7 +1755,6 @@ function populateStep3() {
   btns.forEach(b => { if(parseInt(b.textContent)===instCount){b.classList.add('selected');found=true;} });
   if(!found && btns[0]) btns[0].classList.add('selected');
 
-  // Recorrente e parcelado são mutuamente exclusivos
   const recurringToggleRow = document.getElementById('recurring-toggle-row');
   if (instActive) {
     recurringToggleRow.style.opacity = '.4';
@@ -1385,17 +1778,17 @@ function populateStep4() {
   let compDate = dateVal;
   if (selectedType==='credit' && card) compDate = calcCompetence(dateVal, card.dueDay, card.interval);
 
+  // ── FIX: pega banco pelo value do select ──
+  const bankVal = document.getElementById('f-bank').value;
+
   let noteStr = '';
-  if (recurringActive) {
-    noteStr = `🔄 Recorrente — será lançado nos próximos 12 meses`;
-  } else if (instActive && selectedType==='credit') {
-    noteStr = `${instCount}x de ${fmt(amount/instCount)} · A partir de ${formatCompetence(compDate)}`;
-  }
+  if (recurringActive) noteStr = `🔄 Recorrente — será lançado nos próximos 12 meses`;
+  else if (instActive && selectedType==='credit') noteStr = `${instCount}x de ${fmt(amount/instCount)} · A partir de ${formatCompetence(compDate)}`;
   document.getElementById('sum-inst-note').textContent = noteStr;
 
   const rows = [
     ['Tipo', {credit:'💳 Crédito',debit:'💸 Débito',pix:'⚡ Pix',transfer_in:'⬆ Entrada'}[selectedType]],
-    selectedType==='credit' ? ['Cartão', card?card.name:'—'] : ['Banco', document.getElementById('f-bank').value],
+    selectedType==='credit' ? ['Cartão', card?card.name:'—'] : ['Banco', bankVal || '—'],
     ['Data', fmtDate(dateVal)],
     selectedType==='credit' ? ['Competência', compDate?formatCompetence(compDate):'—'] : null,
     ['Categoria', document.getElementById('f-cat').value],
@@ -1430,13 +1823,15 @@ window.confirmLaunch = async function() {
   const amount = parseAmount();
   if (!amount) { showToast('⚠️ Informe o valor', false); return; }
 
-  const cardIdxRawCheck = document.getElementById('f-card').value;
-  const cardChosen = cardIdxRawCheck !== '' && !isNaN(parseInt(cardIdxRawCheck));
-  const bankChosen = !!document.getElementById('f-bank').value;
+  const cardIdxRaw = document.getElementById('f-card').value;
+  const cardChosen = cardIdxRaw !== '' && !isNaN(parseInt(cardIdxRaw));
+  // ── FIX: pega banco diretamente pelo value do select ──
+  const bankVal = document.getElementById('f-bank').value;
+
   if (selectedType === 'credit' && (!userConfig.cards.length || !cardChosen)) {
     showToast('⚠️ Cadastre e selecione um cartão para lançamentos de Crédito', false); return;
   }
-  if (selectedType !== 'credit' && (!userConfig.banks.length || !bankChosen)) {
+  if (selectedType !== 'credit' && (!userConfig.banks.length || !bankVal)) {
     showToast('⚠️ Cadastre e selecione um banco para Débito/Pix/Entrada', false); return;
   }
 
@@ -1444,14 +1839,12 @@ window.confirmLaunch = async function() {
   btn.disabled = true; btn.textContent = 'Salvando...';
 
   const dateVal = document.getElementById('f-date').value || new Date().toISOString().split('T')[0];
-  const cardIdxRaw = document.getElementById('f-card').value;
   const cardIdx = cardIdxRaw !== '' && !isNaN(parseInt(cardIdxRaw)) ? parseInt(cardIdxRaw) : -1;
   const card = cardIdx >= 0 ? userConfig.cards[cardIdx] : null;
   const person = document.getElementById('f-person').value || userConfig.persons[0] || 'Eu';
   const category = document.getElementById('f-cat').value || userConfig.categories[0] || 'Outros';
   const title = document.getElementById('f-title').value || '';
   const note = document.getElementById('f-note').value || '';
-  const bank = document.getElementById('f-bank').value || '';
 
   let compDate = dateVal;
   if (selectedType === 'credit' && card) compDate = calcCompetence(dateVal, card.dueDay, card.interval);
@@ -1462,13 +1855,13 @@ window.confirmLaunch = async function() {
     type: selectedType, date: dateVal, competenceDate: compDate,
     amount, myAmount, category, description: title, title, note, person,
     card: card ? card.name : null,
-    bank: selectedType !== 'credit' ? bank : null,
+    // ── FIX: salva o banco pelo value do select, não hard-coded ──
+    bank: selectedType !== 'credit' ? bankVal : null,
     splitWith: splitActive ? splitSelected : [],
     createdAt: new Date().toISOString(),
   };
 
   try {
-    // ── RECORRENTE ──
     if (recurringActive && selectedType === 'credit') {
       const recurringId = genUUID();
       const [cy, cm] = compDate.split('-').map(Number);
@@ -1476,20 +1869,12 @@ window.confirmLaunch = async function() {
         let mo = cm - 1 + i, yr = cy;
         while (mo > 11) { mo -= 12; yr++; }
         const cDate = `${yr}-${String(mo+1).padStart(2,'0')}-01`;
-        const tx = {
-          ...base,
-          competenceDate: cDate,
-          isRecurring: true,
-          recurringId,
-          recurringMonth: i, // 0 = mês base
-        };
+        const tx = { ...base, competenceDate: cDate, isRecurring: true, recurringId, recurringMonth: i };
         const newId = await saveTx(tx);
         transactions.unshift({ id: newId, ...tx });
       }
       closeModal();
       showToast('✓ Recorrência criada para 12 meses!', true);
-
-    // ── PARCELADO ──
     } else if (instActive && selectedType === 'credit' && instCount > 1) {
       const perInst = amount / instCount;
       const myPerInst = myAmount / instCount;
@@ -1504,8 +1889,6 @@ window.confirmLaunch = async function() {
       }
       closeModal();
       showToast('✓ Lançamento parcelado salvo!', true);
-
-    // ── SIMPLES ──
     } else {
       const newId = await saveTx(base);
       transactions.unshift({ id: newId, ...base });
@@ -1548,7 +1931,6 @@ window.toggleRecurring = function() {
   recurringActive = !recurringActive;
   document.getElementById('recurring-toggle').classList.toggle('on', recurringActive);
   document.getElementById('recurring-panel').style.display = recurringActive ? 'block' : 'none';
-  // Se ativou recorrente, desativa parcelado
   if (recurringActive && instActive) {
     instActive = false;
     document.getElementById('inst-toggle').classList.remove('on');
@@ -1584,13 +1966,11 @@ window.toggleInstallments = function() {
   instActive = !instActive;
   document.getElementById('inst-toggle').classList.toggle('on', instActive);
   document.getElementById('inst-panel').style.display = instActive ? 'block' : 'none';
-  // Se ativou parcelado, desativa recorrente
   if (instActive && recurringActive) {
     recurringActive = false;
     document.getElementById('recurring-toggle').classList.remove('on');
     document.getElementById('recurring-panel').style.display = 'none';
   }
-  // Bloqueia/desbloqueia toggle de recorrente
   const recurringToggleRow = document.getElementById('recurring-toggle-row');
   recurringToggleRow.style.opacity = instActive ? '.4' : '';
   recurringToggleRow.style.pointerEvents = instActive ? 'none' : '';
@@ -1601,7 +1981,9 @@ window.selectInst = function(el) {
   instCount = parseInt(el.textContent);
 };
 
-// ── REPORT ──
+// ══════════════════════════════════════
+// RELATÓRIOS — com filtro por tipo
+// ══════════════════════════════════════
 window.setReportFilter = function(f, el) {
   reportFilter = f;
   document.querySelectorAll('.report-filter').forEach(x => x.classList.remove('active'));
@@ -1609,7 +1991,6 @@ window.setReportFilter = function(f, el) {
   const dateRange = document.getElementById('custom-date-range');
   if (f === 'custom') {
     dateRange.classList.add('show');
-    // Preenche datas padrão: primeiro e último dia do mês atual
     const now = new Date();
     const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
     const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
@@ -1617,7 +1998,6 @@ window.setReportFilter = function(f, el) {
       document.getElementById('report-date-from').value = `${y}-${m}-01`;
     if (!document.getElementById('report-date-to').value)
       document.getElementById('report-date-to').value = `${y}-${m}-${lastDay}`;
-    // Não renderiza ainda — espera o usuário aplicar
   } else {
     dateRange.classList.remove('show');
     customDateFrom = ''; customDateTo = '';
@@ -1625,15 +2005,19 @@ window.setReportFilter = function(f, el) {
   }
 };
 
+// ── NOVO: filtro por tipo de pagamento ──
+window.setReportTypeFilter = function(type, el) {
+  reportTypeFilter = type;
+  document.querySelectorAll('.report-type-btn').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  renderReport();
+};
+
 window.applyCustomFilter = function() {
   customDateFrom = document.getElementById('report-date-from').value;
   customDateTo = document.getElementById('report-date-to').value;
-  if (!customDateFrom || !customDateTo) {
-    showToast('⚠️ Selecione as duas datas', false); return;
-  }
-  if (customDateFrom > customDateTo) {
-    showToast('⚠️ Data inicial maior que a final', false); return;
-  }
+  if (!customDateFrom || !customDateTo) { showToast('⚠️ Selecione as duas datas', false); return; }
+  if (customDateFrom > customDateTo) { showToast('⚠️ Data inicial maior que a final', false); return; }
   renderReport();
 };
 
@@ -1641,6 +2025,9 @@ function getFilteredTxs() {
   const now = new Date();
   return transactions.filter(t => {
     if (t.type === 'transfer_in') return false;
+    // ── NOVO: filtro por tipo de pagamento ──
+    if (reportTypeFilter !== 'all' && t.type !== reportTypeFilter) return false;
+
     const d = new Date((t.competenceDate || t.date) + 'T12:00:00');
     if (reportFilter === 'month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
     if (reportFilter === '3m') return d >= new Date(now.getFullYear(), now.getMonth()-2, 1);
@@ -1675,7 +2062,8 @@ function renderReport() {
   }
   renderBreakdown('report-cat', t => t.category);
   renderBreakdown('report-person', t => t.person, true);
-  renderBreakdown('report-card-data', t => t.card || t.bank);
+  // ── Para cartão/banco: mostra tanto cartão quanto banco de forma unificada ──
+  renderBreakdown('report-card-data', t => t.card || t.bank || '—');
 }
 
 // ── CONFIG ──
@@ -1871,7 +2259,6 @@ window.personChangeMonth = function(dir) {
   if (personMonth < 0) { personMonth = 11; personYear--; }
   renderPersonModal();
 };
-
 window.closePersonModal = function() { document.getElementById('modal-person').classList.remove('open'); };
 
 function buildPersonMessage() {
@@ -1890,7 +2277,6 @@ window.shareWhatsApp = function() {
   const msg = buildPersonMessage();
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 };
-
 window.copyToClipboard = function() {
   const msg = buildPersonMessage();
   if (navigator.clipboard) {
@@ -1912,7 +2298,6 @@ window.openDetailModal = function(id) {
   if (!t) return;
   detailTx = t;
 
-  // Reset estado
   document.getElementById('edit-form').classList.remove('open');
   document.getElementById('detail-actions').style.display = 'flex';
   document.getElementById('delete-options').style.display = 'none';
@@ -1936,6 +2321,7 @@ window.openDetailModal = function(id) {
     ['Data', fmtDate(t.date)],
     t.type==='credit' ? ['Competência', t.competenceDate ? formatCompetence(t.competenceDate) : '—'] : null,
     t.card ? ['Cartão', t.card] : null,
+    // ── FIX: mostra banco corretamente ──
     t.bank ? ['Banco', t.bank] : null,
     ['Categoria', `${CAT_ICONS[t.category]||'📦'} ${t.category||'—'}`],
     ['Titular', t.person||'—'],
@@ -1991,12 +2377,10 @@ window.saveEdit = async function() {
   } catch(e) { showToast('❌ Erro ao salvar.', false); }
 };
 
-// ── EXCLUSÃO (simples + recorrente) ──
 window.initDelete = function() {
   if (!detailTx) return;
   document.getElementById('delete-btn').style.display = 'none';
   document.getElementById('delete-options').style.display = 'flex';
-  // Mostra opção "toda a recorrência" só se for recorrente
   document.getElementById('del-all-btn').style.display = detailTx.isRecurring ? 'block' : 'none';
 };
 
@@ -2009,18 +2393,14 @@ window.doDelete = async function(mode) {
   if (!detailTx) return;
   try {
     if (mode === 'all' && detailTx.isRecurring && detailTx.recurringId) {
-      // Exclui todos os lançamentos com o mesmo recurringId
       const toDelete = transactions.filter(t => t.recurringId === detailTx.recurringId);
       const batch = writeBatch(db);
-      toDelete.forEach(t => {
-        batch.delete(doc(db, 'users', currentUser.uid, 'transactions', t.id));
-      });
+      toDelete.forEach(t => batch.delete(doc(db, 'users', currentUser.uid, 'transactions', t.id)));
       await batch.commit();
       const ids = new Set(toDelete.map(t => t.id));
       transactions = transactions.filter(t => !ids.has(t.id));
       showToast(`✓ ${toDelete.length} lançamentos excluídos!`, true);
     } else {
-      // Exclui só este
       await deleteDoc(doc(db, 'users', currentUser.uid, 'transactions', detailTx.id));
       transactions = transactions.filter(x => x.id !== detailTx.id);
       showToast('✓ Lançamento excluído!', true);
@@ -2030,7 +2410,7 @@ window.doDelete = async function(mode) {
   } catch(e) { showToast('❌ Erro ao excluir.', false); }
 };
 
-// ── ONBOARDING SLIDES ──
+// ── ONBOARDING ──
 let obCurrent = 0;
 const OB_TOTAL = 4;
 
@@ -2040,42 +2420,35 @@ function showOnboarding() {
   obGoTo(0);
 }
 
-window.obNext = function() {
-  if (obCurrent < OB_TOTAL - 1) { obGoTo(obCurrent + 1); }
-  else { obSkip(); }
+document.getElementById('ob-next-btn').onclick = function() {
+  if (obCurrent < OB_TOTAL - 1) obGoTo(obCurrent + 1);
+  else { document.getElementById('onboarding-screen').style.display = 'none'; showAuth(); }
 };
-
-window.obSkip = function() {
-  document.getElementById('onboarding-screen').style.display = 'none';
-  showAuth();
+document.getElementById('ob-skip-btn').onclick = function() {
+  document.getElementById('onboarding-screen').style.display = 'none'; showAuth();
 };
 
 window.obRestart = function() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('onboarding-screen').style.display = 'flex';
   obGoTo(0);
-  document.querySelector('.ob-skip').onclick = () => {
+  document.getElementById('ob-skip-btn').onclick = () => {
     document.getElementById('onboarding-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
   };
   document.getElementById('ob-next-btn').onclick = () => {
-    if (obCurrent < OB_TOTAL - 1) { obGoTo(obCurrent + 1); }
-    else {
-      document.getElementById('onboarding-screen').style.display = 'none';
-      document.getElementById('app').style.display = 'flex';
-    }
+    if (obCurrent < OB_TOTAL - 1) obGoTo(obCurrent + 1);
+    else { document.getElementById('onboarding-screen').style.display = 'none'; document.getElementById('app').style.display = 'flex'; }
   };
 };
 
 function obGoTo(n) {
   obCurrent = n;
-  const slides = document.getElementById('ob-slides');
-  slides.style.transform = `translateX(-${n * (100 / OB_TOTAL)}%)`;
+  document.getElementById('ob-slides').style.transform = `translateX(-${n * (100 / OB_TOTAL)}%)`;
   for (let i = 0; i < OB_TOTAL; i++) {
     document.getElementById('ob-dot-'+i).classList.toggle('active', i === n);
   }
-  const btn = document.getElementById('ob-next-btn');
-  btn.textContent = n === OB_TOTAL - 1 ? 'Criar conta ou entrar →' : 'Próximo';
+  document.getElementById('ob-next-btn').textContent = n === OB_TOTAL - 1 ? 'Criar conta ou entrar →' : 'Próximo';
 }
 
 (function() {
@@ -2094,12 +2467,11 @@ function obGoTo(n) {
 
 // ── TOUR ──
 const TOUR_STEPS = [
-  { selector: '.balance-card', title: '💰 Resumo do mês', desc: 'Aqui você vê o total gasto no mês atual, separado por crédito e débito/Pix, e o número de lançamentos.' },
-  { selector: '.month-selector', title: '📅 Navegação por mês', desc: 'Use as setas para navegar entre meses e ver o histórico de gastos de qualquer período.' },
-  { selector: '.fab', title: '➕ Novo lançamento', desc: 'Toque aqui para registrar um gasto. Você pode criar lançamentos recorrentes (assinaturas) que se repetem todo mês automaticamente.' },
-  { selector: '#nav-report, #snav-report', title: '📊 Relatórios', desc: 'Veja seus gastos por categoria, titular e cartão. Use o filtro personalizado para qualquer período.' },
-  { selector: '#nav-config, #snav-config', title: '⚙️ Configurações', desc: 'Cadastre seus cartões de crédito com data de vencimento, adicione categorias, titulares e bancos personalizados.' },
-  { selector: '.user-avatar, #user-avatar-sidebar', title: '👤 Sua conta', desc: 'Toque aqui para ver seu perfil e sair da conta. Cada usuário tem seus dados completamente isolados.' },
+  { selector: '.balance-card', title: '💰 Resumo do mês', desc: 'Total gasto no mês, separado por crédito e débito/Pix.' },
+  { selector: '#nav-bills, #snav-bills', title: '📋 Contas a Pagar', desc: 'Novo! Cadastre contas fixas e variáveis, acompanhe vencimentos e marque como pagas.' },
+  { selector: '.fab', title: '➕ Novo lançamento', desc: 'Registre gastos de cartão, débito ou Pix. Suporta parcelamento e assinaturas recorrentes.' },
+  { selector: '.report-type-filters', title: '🔍 Filtro por tipo', desc: 'Novo! Filtre os relatórios por Crédito, Débito ou Pix para ver separado cada forma de pagamento.' },
+  { selector: '#nav-config, #snav-config', title: '⚙️ Configurações', desc: 'Cadastre seus cartões, bancos, categorias e titulares personalizados.' },
 ];
 
 let tourStep = 0;
@@ -2117,7 +2489,6 @@ function renderTourStep() {
   const step = TOUR_STEPS[tourStep];
   const el = document.querySelector(step.selector);
   if (!el) { tourNext(); return; }
-
   const rect = el.getBoundingClientRect();
   const pad = 8;
   const spotlight = document.getElementById('tour-spotlight');
@@ -2125,28 +2496,21 @@ function renderTourStep() {
   spotlight.style.left = (rect.left - pad) + 'px';
   spotlight.style.width = (rect.width + pad * 2) + 'px';
   spotlight.style.height = (rect.height + pad * 2) + 'px';
-
   document.getElementById('tour-tip-title').textContent = step.title;
   document.getElementById('tour-tip-desc').textContent = step.desc;
   document.getElementById('tour-counter').textContent = `${tourStep + 1} de ${TOUR_STEPS.length}`;
-
   const tooltip = document.getElementById('tour-tooltip');
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const tw = 280; const th = 160;
-
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const tw = 280, th = 160;
   let top = rect.bottom + pad + 12;
   let left = rect.left;
   if (top + th > vh - 20) top = rect.top - th - 12;
   if (left + tw > vw - 16) left = vw - tw - 16;
   if (left < 16) left = 16;
   if (top < 16) top = 16;
-
   tooltip.style.top = top + 'px';
   tooltip.style.left = left + 'px';
-
-  const nextBtn = tooltip.querySelector('.tour-next-btn');
-  nextBtn.textContent = tourStep === TOUR_STEPS.length - 1 ? 'Concluir ✓' : 'Próximo →';
+  tooltip.querySelector('.tour-next-btn').textContent = tourStep === TOUR_STEPS.length - 1 ? 'Concluir ✓' : 'Próximo →';
 }
 
 window.tourNext = function() {
@@ -2163,10 +2527,9 @@ window.endTour = async function() {
 };
 
 // ── CLOSE ON OUTSIDE CLICK ──
-['modal','modal-card','modal-profile','modal-person','modal-detail'].forEach(id => {
-  document.getElementById(id).addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('open');
-  });
+['modal','modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
 });
 
 // ── SERVICE WORKER ──
