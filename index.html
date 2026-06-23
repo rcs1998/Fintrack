@@ -1412,7 +1412,7 @@ function renderReport(){
   }
   renderBreakdown('report-cat',t=>t.category);
   renderBreakdown('report-person',t=>t.person,true);
-  renderBreakdown('report-card-data',t=>t.card||t.bank||'—');
+  renderBreakdown('report-card-data',t=>t.type==='credit'?(t.card||'—'):(t.bank||t.card||'—'));
 }
 
 function renderConfig(){renderCardsList();renderChips('cat-chips',userConfig.categories,'removeCategory');renderChips('person-chips',userConfig.persons,'removePerson');renderChips('bank-chips',userConfig.banks,'removeBank');}
