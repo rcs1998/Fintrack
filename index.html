@@ -882,6 +882,7 @@ let customDateFrom = '';
 let customDateTo = '';
 let amountRaw = '';
 let selectedType = 'credit';
+let selectedBank = ''; // ✅ FIX banco: salvo em variável JS, não lido do DOM oculto
 let splitActive = false;
 let splitSelected = [];
 let instActive = false;
@@ -1215,7 +1216,7 @@ window.deleteBill = async function() {
 
 window.openModal = function() {
   if(isSetupIncomplete()){showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco antes de lançar',false);showPage('config');return;}
-  amountRaw='';selectedType='credit';splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
+  amountRaw='';selectedType='credit';selectedBank='';splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
   updateAmountDisplay();
   document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));
   document.querySelector('[data-type="credit"]').classList.add('selected');
@@ -1254,11 +1255,14 @@ function populateStep2() {
   document.getElementById('f-card').innerHTML=userConfig.cards.length
     ?userConfig.cards.map((c,i)=>`<option value="${i}">${c.name} (vence dia ${c.dueDay})</option>`).join('')
     :'<option value="">— Nenhum cartão cadastrado —</option>';
-  // ✅ FIX 4: value explícito no select de banco
+  // ✅ FIX banco: popula select com values explícitos E salva em variável JS
   const bankSel=document.getElementById('f-bank');
   bankSel.innerHTML=userConfig.banks.length
     ?userConfig.banks.map(b=>`<option value="${b}">${b}</option>`).join('')
     :'<option value="">— Nenhum banco cadastrado —</option>';
+  // Inicializa variável com o primeiro banco e escuta mudanças
+  selectedBank = bankSel.value;
+  bankSel.onchange = () => { selectedBank = bankSel.value; };
   document.getElementById('f-cat').innerHTML=userConfig.categories.map(c=>`<option>${c}</option>`).join('');
 }
 
@@ -1285,7 +1289,7 @@ function populateStep4() {
   const card=!isNaN(cardIdx)?userConfig.cards[cardIdx]:null;
   const dateVal=document.getElementById('f-date').value;
   let compDate=dateVal;if(selectedType==='credit'&&card)compDate=calcCompetence(dateVal,card.dueDay,card.interval);
-  const bankVal=document.getElementById('f-bank').value;
+  const bankVal=selectedBank||document.getElementById('f-bank').value;
   let noteStr='';
   if(recurringActive)noteStr=`🔄 Recorrente — será lançado nos próximos 12 meses`;
   else if(instActive&&selectedType==='credit')noteStr=`${instCount}x de ${fmt(amount/instCount)} · A partir de ${formatCompetence(compDate)}`;
@@ -1321,8 +1325,8 @@ window.confirmLaunch = async function() {
   if(!amount){showToast('⚠️ Informe o valor',false);return;}
   const cardIdxRaw=document.getElementById('f-card').value;
   const cardChosen=cardIdxRaw!==''&&!isNaN(parseInt(cardIdxRaw));
-  // ✅ FIX 4: pega banco pelo value explícito
-  const bankVal=document.getElementById('f-bank').value;
+  // ✅ FIX banco: usa variável JS, não lê do DOM (select pode estar oculto em iOS)
+  const bankVal=selectedBank||document.getElementById('f-bank').value;
   if(selectedType==='credit'&&(!userConfig.cards.length||!cardChosen)){showToast('⚠️ Cadastre e selecione um cartão para Crédito',false);return;}
   if(selectedType!=='credit'&&(!userConfig.banks.length||!bankVal)){showToast('⚠️ Cadastre e selecione um banco para Débito/Pix/Entrada',false);return;}
   const btn=document.getElementById('confirm-btn');btn.disabled=true;btn.textContent='Salvando...';
