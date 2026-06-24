@@ -349,6 +349,12 @@ select.field-input option{background:#1A1D27}
 .install-step-icon{font-size:20px;margin-top:1px;flex-shrink:0}
 .install-tip{background:var(--green-soft);border:1px solid var(--green);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--green);line-height:1.5}
 
+/* ── NOTIFICAÇÃO PERMISSÃO ── */
+.notif-banner{display:none;background:var(--orange-soft);border:1.5px solid var(--orange);border-radius:var(--radius-sm);padding:12px 14px;margin:0 0 16px;cursor:pointer;transition:all .2s}
+.notif-banner.show{display:flex;align-items:center;gap:12px}
+.notif-banner-text{flex:1;font-size:13px;color:var(--orange);line-height:1.4}
+.notif-banner-btn{padding:7px 12px;border-radius:8px;background:var(--orange);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+
 /* ONBOARDING */
 #onboarding-screen{height:100dvh;display:none;flex-direction:column;background:var(--bg);position:relative;overflow:hidden}
 .ob-slides{flex:1;display:flex;width:400%;overflow:hidden;position:relative}
@@ -441,6 +447,15 @@ select.field-input option{background:#1A1D27}
       <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
       Continuar com Google
     </button>
+    <!-- Banner instalação PWA -->
+    <div onclick="openInstallModal()" style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;cursor:pointer;transition:all .2s;margin-top:4px">
+      <div style="font-size:28px;line-height:1">📲</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;font-family:'Sora',sans-serif;margin-bottom:2px">Instalar como app</div>
+        <div style="font-size:11px;color:var(--text3)">Acesso rápido + notificações de vencimento</div>
+      </div>
+      <div style="color:var(--accent);font-size:18px;font-weight:700">›</div>
+    </div>
   </div>
 </div>
 
@@ -508,6 +523,12 @@ select.field-input option{background:#1A1D27}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Contas a Pagar</div>
           <button class="cta-btn" onclick="openBillModal()" style="width:auto;padding:10px 16px;font-size:13px">+ Nova conta</button>
+        </div>
+        <!-- Banner permissão de notificação -->
+        <div class="notif-banner" id="notif-banner" onclick="requestNotifPermission()">
+          <div style="font-size:22px">🔔</div>
+          <div class="notif-banner-text">Ative as notificações para receber avisos de contas vencendo</div>
+          <button class="notif-banner-btn" onclick="event.stopPropagation();requestNotifPermission()">Ativar</button>
         </div>
         <div class="bill-month-selector">
           <button class="month-btn" onclick="changeBillMonth(-1)">◀</button>
@@ -601,7 +622,8 @@ select.field-input option{background:#1A1D27}
           </div>
         </div>
         <div style="height:8px"></div>
-        <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.3 · Dados salvos na nuvem ☁️</div>
+        <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.4 · Dados salvos na nuvem ☁️</div>
+      <div class="install-tour-anchor" style="height:1px"></div>
       </div>
     </div>
 
@@ -1029,6 +1051,7 @@ function showApp() {
   updateAvatar(); renderConfig(); updateSetupLock();
   if (isSetupIncomplete()) { showPage('config'); }
   else { renderHome(); if (!userConfig.tourDone) { setTimeout(()=>startTour(),800); userConfig.tourDone=true; saveConfig(); } }
+  checkBillsDueOnPageLoad();
 }
 
 function isSetupIncomplete() { return !(userConfig.cards&&userConfig.cards.length>0&&userConfig.banks&&userConfig.banks.length>0); }
@@ -1143,7 +1166,7 @@ window.showPage = function(p) {
   const navEl=document.getElementById('nav-'+p); if(navEl) navEl.classList.add('active');
   const snav=document.getElementById('snav-'+p); if(snav) snav.classList.add('active');
   if(p==='home') renderHome();
-  if(p==='bills') renderBills();
+  if(p==='bills') { renderBills(); updateNotifBanner(); checkBillsDue(); }
   if(p==='report') renderReport();
   if(p==='config') renderConfig();
 };
@@ -1758,6 +1781,7 @@ const TOUR_STEPS=[
   {selector:'.fab',title:'➕ Botão inteligente',desc:'Na aba Contas abre o formulário de nova conta. Em qualquer outra aba abre o formulário de novo lançamento.'},
   {selector:'.report-type-filters',title:'🔍 Filtros de relatório',desc:'Filtre por Crédito, Débito ou Pix e combine com filtro de período personalizado para análises detalhadas.',page:'report'},
   {selector:'#nav-config, #snav-config',title:'⚙️ Configurações',desc:'Cadastre cartões, bancos, categorias e titulares. Em Ajuda você encontra o guia para instalar o FinTrack no seu celular.'},
+  {selector:'.install-tour-anchor',title:'📲 Instale o FinTrack!',desc:'Salve o FinTrack na sua tela inicial para acesso rápido e receba notificações quando uma conta estiver vencendo. É rápido e gratuito!',action:'install'},
 ];
 let tourStep=0;
 window.startTour=function(){showPage('home');setTimeout(()=>{tourStep=0;document.getElementById('tour-overlay').classList.add('active');renderTourStep();},300);};
@@ -1782,7 +1806,12 @@ function renderTourStep(){
   tooltip.style.top=top+'px';tooltip.style.left=left+'px';
   tooltip.querySelector('.tour-next-btn').textContent=tourStep===TOUR_STEPS.length-1?'Concluir ✓':'Próximo →';
 }
-window.tourNext=function(){tourStep++;if(tourStep>=TOUR_STEPS.length){endTour();return;}renderTourStep();};
+window.tourNext=function(){
+  const step=TOUR_STEPS[tourStep];
+  // Passo de instalação: abre modal ao avançar
+  if(step&&step.action==='install'){endTour();openInstallModal();return;}
+  tourStep++;if(tourStep>=TOUR_STEPS.length){endTour();return;}renderTourStep();
+};
 window.endTour=async function(){document.getElementById('tour-overlay').classList.remove('active');if(currentUser){try{await updateDoc(userRef(),{tourDone:true});}catch(e){}}};
 
 window.openInstallModal = function() { document.getElementById('modal-install').classList.add('open'); };
@@ -1797,6 +1826,91 @@ window.switchInstallOS = function(os, el) {
 ['modal','modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
 
 if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW falhou:',err));});}
+
+// ── NOTIFICAÇÕES DE VENCIMENTO ──
+function updateNotifBanner() {
+  const banner = document.getElementById('notif-banner');
+  if (!banner) return;
+  // Mostra banner se notificações não foram concedidas e a API existe
+  if ('Notification' in window && Notification.permission === 'default') {
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+window.requestNotifPermission = async function() {
+  if (!('Notification' in window)) {
+    showToast('⚠️ Seu navegador não suporta notificações', false);
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    showToast('✅ Notificações ativadas!', true);
+    updateNotifBanner();
+    checkBillsDue(); // verifica imediatamente
+  } else {
+    showToast('Notificações bloqueadas. Habilite nas configurações do navegador.', false);
+    updateNotifBanner();
+  }
+};
+
+function checkBillsDue() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!bills || !bills.length) return;
+
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const in3Days = new Date(now); in3Days.setDate(in3Days.getDate() + 3);
+  const in3Str = in3Days.toISOString().split('T')[0];
+  const m = now.getMonth(); const y = now.getFullYear();
+  const payKey = `${y}-${String(m+1).padStart(2,'0')}`;
+
+  bills.forEach(b => {
+    if (!b.dueDay) return;
+    // Verifica se já foi paga neste mês
+    const isPaid = b.isRecurring
+      ? !!((b.payments||{})[payKey])
+      : !!b.paid;
+    if (isPaid) return;
+
+    const dueStr = `${y}-${String(m+1).padStart(2,'0')}-${String(b.dueDay).padStart(2,'0')}`;
+
+    // Chave única para não repetir notificação no mesmo dia
+    const notifKey = `ft_notif_${b.id}_${dueStr}`;
+    if (localStorage.getItem(notifKey)) return;
+
+    let title = '', body = '';
+    if (dueStr === todayStr) {
+      title = '⚠️ Conta vence HOJE!';
+      body = `${b.name} — ${fmt(b.value)} vence hoje. Não esqueça de pagar!`;
+    } else if (dueStr > todayStr && dueStr <= in3Str) {
+      const diff = Math.round((new Date(dueStr) - now) / 86400000);
+      title = `📋 Conta vence em ${diff} dia${diff>1?'s':''}`;
+      body = `${b.name} — ${fmt(b.value)} vence dia ${b.dueDay}.`;
+    } else {
+      return; // não está vencendo em breve
+    }
+
+    try {
+      new Notification(title, {
+        body,
+        icon: 'icon-192.png',
+        badge: 'icon-192.png',
+        tag: notifKey,
+      });
+      localStorage.setItem(notifKey, '1');
+    } catch(e) { console.error('Notif error:', e); }
+  });
+}
+
+// Verifica vencimentos ao abrir o app e ao entrar na aba Contas
+function checkBillsDueOnPageLoad() {
+  setTimeout(() => {
+    updateNotifBanner();
+    checkBillsDue();
+  }, 2000);
+}
 
 function setRealAppHeight(){const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;document.documentElement.style.setProperty('--real-vh',(h/100)+'px');}
 setRealAppHeight();
