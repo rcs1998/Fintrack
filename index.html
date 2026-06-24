@@ -332,6 +332,23 @@ select.field-input option{background:#1A1D27}
 .bill-pay-btn{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;font-family:'Sora',sans-serif;border:none;background:var(--green);color:#fff;cursor:pointer;white-space:nowrap}
 .bill-pay-btn.undo{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
 .bill-month-selector{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+
+/* ── MODAL INSTALAÇÃO PWA ── */
+.install-modal-body{padding:0 20px 8px}
+.install-os-tabs{display:flex;gap:8px;margin-bottom:20px}
+.install-os-tab{flex:1;padding:10px;border-radius:var(--radius-sm);text-align:center;font-size:14px;font-weight:700;font-family:'Sora',sans-serif;background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);cursor:pointer;transition:all .2s}
+.install-os-tab.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.install-steps-panel{display:none}
+.install-steps-panel.active{display:block}
+.install-step{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.install-step:last-child{border-bottom:none}
+.install-step-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.install-step-text{flex:1}
+.install-step-title{font-size:14px;font-weight:600;margin-bottom:3px}
+.install-step-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.install-step-icon{font-size:20px;margin-top:1px;flex-shrink:0}
+.install-tip{background:var(--green-soft);border:1px solid var(--green);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--green);line-height:1.5}
+
 /* ONBOARDING */
 #onboarding-screen{height:100dvh;display:none;flex-direction:column;background:var(--bg);position:relative;overflow:hidden}
 .ob-slides{flex:1;display:flex;width:400%;overflow:hidden;position:relative}
@@ -576,6 +593,11 @@ select.field-input option{background:#1A1D27}
           <div class="config-row" onclick="obRestart()" style="cursor:pointer">
             <div class="config-row-left"><div>📖</div><div><div class="config-row-label">Ver apresentação inicial</div><div class="config-row-sub">Os slides de boas-vindas</div></div></div>
             <div style="color:var(--accent);font-size:14px">▶</div>
+        </div>
+        <div class="config-row" onclick="openInstallModal()" style="cursor:pointer">
+          <div class="config-row-left"><div>📲</div><div><div class="config-row-label">Instalar no celular</div><div class="config-row-sub">Passo a passo para iPhone e Android</div></div></div>
+          <div style="color:var(--accent);font-size:14px">▶</div>
+        </div>
           </div>
         </div>
         <div style="height:8px"></div>
@@ -622,7 +644,7 @@ select.field-input option{background:#1A1D27}
         <div class="num-key" onclick="numpad('1')">1</div><div class="num-key" onclick="numpad('2')">2</div><div class="num-key" onclick="numpad('3')">3</div>
         <div class="num-key" onclick="numpad('4')">4</div><div class="num-key" onclick="numpad('5')">5</div><div class="num-key" onclick="numpad('6')">6</div>
         <div class="num-key" onclick="numpad('7')">7</div><div class="num-key" onclick="numpad('8')">8</div><div class="num-key" onclick="numpad('9')">9</div>
-        <div class="num-key" onclick="numpad(',')">，</div><div class="num-key" onclick="numpad('0')">0</div><div class="num-key" onclick="numpad('del')">⌫</div>
+        <div class="num-key" onclick="numpad('00')">00</div><div class="num-key" onclick="numpad('0')">0</div><div class="num-key" onclick="numpad('del')">⌫</div>
       </div>
       <div class="cta-wrap"><button class="cta-btn" onclick="goStep(2)">Continuar →</button></div>
     </div>
@@ -732,7 +754,7 @@ select.field-input option{background:#1A1D27}
     <div class="modal-header"><div class="modal-title" id="bill-modal-title">Nova conta</div><button class="modal-close" onclick="closeBillModal()">✕</button></div>
     <div class="form-body" style="padding-top:16px">
       <div class="field-group"><label class="field-label">Nome da conta</label><input class="field-input" id="bill-name" placeholder="Ex: CEMIG, Aluguel, Internet..."></div>
-      <div class="field-group"><label class="field-label">Valor</label><input class="field-input" type="number" step="0.01" id="bill-value" placeholder="Ex: 147,86"></div>
+      <div class="field-group"><label class="field-label">Valor</label><input class="field-input" type="text" inputmode="decimal" id="bill-value" placeholder="Ex: 147,86"></div>
       <div class="field-group"><label class="field-label">Vencimento (dia do mês)</label><input class="field-input" type="number" id="bill-due-day" min="1" max="31" placeholder="Ex: 10"></div>
       <div class="field-group"><label class="field-label">Mês de referência</label><input class="field-input" type="month" id="bill-month"></div>
       <div class="field-group"><label class="field-label">Categoria</label><select class="field-input" id="bill-category"></select></div>
@@ -756,7 +778,7 @@ select.field-input option{background:#1A1D27}
     <div class="modal-header"><div class="modal-title">Marcar como paga</div><button class="modal-close" onclick="closePayBillModal()">✕</button></div>
     <div class="form-body" style="padding-top:16px">
       <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:600;margin-bottom:16px" id="pay-bill-name">—</div>
-      <div class="field-group"><label class="field-label">Valor pago</label><input class="field-input" type="number" step="0.01" id="pay-bill-value" placeholder="Valor efetivamente pago"></div>
+      <div class="field-group"><label class="field-label">Valor pago</label><input class="field-input" type="text" inputmode="decimal" id="pay-bill-value" placeholder="Ex: 150,00"></div>
       <div class="field-group"><label class="field-label">Data do pagamento</label><input class="field-input" type="date" id="pay-bill-date"></div>
     </div>
     <div class="cta-wrap"><button class="cta-btn success" onclick="confirmPayBill()">✓ Confirmar pagamento</button></div>
@@ -779,6 +801,7 @@ select.field-input option{background:#1A1D27}
           <span id="theme-toggle-track" style="position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:26px;transition:.2s"></span>
         </label>
       </div>
+      <button onclick="closeProfile();openInstallModal()" style="width:100%;padding:13px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px">📲 Instalar no celular</button>
       <button class="logout-btn" onclick="doLogout()">Sair da conta</button>
     </div>
   </div>
@@ -849,6 +872,99 @@ select.field-input option{background:#1A1D27}
   </div>
 </div>
 
+
+<!-- MODAL INSTALAÇÃO PWA -->
+<div class="modal-overlay" id="modal-install">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">📲 Instalar no celular</div>
+      <button class="modal-close" onclick="closeInstallModal()">✕</button>
+    </div>
+    <div class="install-modal-body" style="padding-top:16px">
+      <div class="install-tip">
+        ✅ Instalar o FinTrack como app te dá acesso rápido pela tela inicial, sem precisar abrir o navegador!
+      </div>
+      <div class="install-os-tabs">
+        <div class="install-os-tab active" onclick="switchInstallOS('ios',this)">🍎 iPhone / iPad</div>
+        <div class="install-os-tab" onclick="switchInstallOS('android',this)">🤖 Android</div>
+      </div>
+
+      <!-- iOS -->
+      <div class="install-steps-panel active" id="install-ios">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-text">
+            <div class="install-step-title">Abra no Safari</div>
+            <div class="install-step-desc">O FinTrack precisa estar aberto no <strong>Safari</strong> — não funciona pelo Chrome ou outro navegador no iPhone.</div>
+          </div>
+          <div class="install-step-icon">🧭</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-text">
+            <div class="install-step-title">Toque em Compartilhar</div>
+            <div class="install-step-desc">Na barra inferior do Safari, toque no ícone de <strong>compartilhar</strong> (quadrado com seta para cima).</div>
+          </div>
+          <div class="install-step-icon">⬆️</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          <div class="install-step-text">
+            <div class="install-step-title">Adicionar à Tela de Início</div>
+            <div class="install-step-desc">Role o menu para baixo e toque em <strong>"Adicionar à Tela de Início"</strong>.</div>
+          </div>
+          <div class="install-step-icon">➕</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">4</div>
+          <div class="install-step-text">
+            <div class="install-step-title">Confirmar</div>
+            <div class="install-step-desc">Toque em <strong>"Adicionar"</strong> no canto superior direito. O FinTrack aparece na sua tela inicial como um app!</div>
+          </div>
+          <div class="install-step-icon">✅</div>
+        </div>
+      </div>
+
+      <!-- Android -->
+      <div class="install-steps-panel" id="install-android">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-text">
+            <div class="install-step-title">Abra no Chrome</div>
+            <div class="install-step-desc">Acesse o FinTrack pelo <strong>Google Chrome</strong>. Ele é o navegador que suporta instalação de apps no Android.</div>
+          </div>
+          <div class="install-step-icon">🌐</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-text">
+            <div class="install-step-title">Menu do Chrome</div>
+            <div class="install-step-desc">Toque nos <strong>três pontos ⋮</strong> no canto superior direito do Chrome.</div>
+          </div>
+          <div class="install-step-icon">⋮</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          <div class="install-step-text">
+            <div class="install-step-title">Adicionar à tela inicial</div>
+            <div class="install-step-desc">Selecione <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar aplicativo"</strong> (depende da versão do Chrome).</div>
+          </div>
+          <div class="install-step-icon">📲</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">4</div>
+          <div class="install-step-text">
+            <div class="install-step-title">Instalar</div>
+            <div class="install-step-desc">Toque em <strong>"Instalar"</strong> na janela que aparecer. O FinTrack é adicionado à sua tela inicial!</div>
+          </div>
+          <div class="install-step-icon">✅</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -880,9 +996,11 @@ let reportFilter = 'month';
 let reportTypeFilter = 'all';
 let customDateFrom = '';
 let customDateTo = '';
-let amountRaw = '';
+// ── NUMPAD estilo banco: dígitos entram da direita, sempre 2 casas decimais ──
+let amountCents = 0; // valor em centavos (inteiro)
+let amountRaw = ''; // mantido para compatibilidade
 let selectedType = 'credit';
-let selectedBank = ''; // ✅ FIX banco: salvo em variável JS, não lido do DOM oculto
+let selectedBank = '';
 let splitActive = false;
 let splitSelected = [];
 let instActive = false;
@@ -1150,25 +1268,50 @@ window.closeBillModal = function() { document.getElementById('modal-bill').class
 window.toggleBillRecurring = function() { billRecurringActive=!billRecurringActive; document.getElementById('bill-recurring-toggle').classList.toggle('on',billRecurringActive); };
 
 window.saveBill = async function() {
-  const name=document.getElementById('bill-name').value.trim();
-  const value=parseFloat(document.getElementById('bill-value').value.replace(',','.'));
-  const dueDay=parseInt(document.getElementById('bill-due-day').value);
-  const monthVal=document.getElementById('bill-month').value;
-  const category=document.getElementById('bill-category').value;
-  if(!name){showToast('⚠️ Informe o nome da conta',false);return;}
-  if(!value||isNaN(value)){showToast('⚠️ Informe o valor',false);return;}
-  const[refYear,refMonth]=monthVal.split('-').map(Number);
-  const billData={name,value,dueDay:dueDay||null,refMonth:refMonth-1,refYear,category:category||'Outros',isRecurring:billRecurringActive,paid:false,payments:{},createdAt:new Date().toISOString()};
+  const name = document.getElementById('bill-name').value.trim();
+  // Lê valor como texto e normaliza: aceita vírgula ou ponto
+  const rawVal = document.getElementById('bill-value').value.toString().trim().replace(',','.');
+  const value = parseFloat(rawVal);
+  const dueDayRaw = document.getElementById('bill-due-day').value;
+  const dueDay = dueDayRaw ? parseInt(dueDayRaw) : null;
+  const monthVal = document.getElementById('bill-month').value;
+  const category = document.getElementById('bill-category').value || 'Outros';
+
+  if (!name) { showToast('⚠️ Informe o nome da conta', false); return; }
+  if (!rawVal || isNaN(value) || value <= 0) { showToast('⚠️ Informe o valor da conta', false); return; }
+  if (!monthVal) { showToast('⚠️ Selecione o mês de referência', false); return; }
+
+  const parts = monthVal.split('-');
+  const refYear = parseInt(parts[0]);
+  const refMonth = parseInt(parts[1]) - 1; // 0-indexed
+
+  const billData = {
+    name, value, dueDay,
+    refMonth, refYear, category,
+    isRecurring: billRecurringActive,
+    paid: false, payments: {},
+    createdAt: new Date().toISOString(),
+  };
+
+  const btn = document.getElementById('bill-save-btn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
   try {
-    if(editBillId){
-      const ref=doc(db,'users',currentUser.uid,'bills',editBillId);
-      await updateDoc(ref,{name:billData.name,value:billData.value,dueDay:billData.dueDay,category:billData.category,isRecurring:billData.isRecurring,refMonth:billData.refMonth,refYear:billData.refYear});
-      const idx=bills.findIndex(x=>x.id===editBillId); if(idx>=0) bills[idx]={...bills[idx],...billData};
+    if (editBillId) {
+      const ref = doc(db, 'users', currentUser.uid, 'bills', editBillId);
+      await updateDoc(ref, { name, value, dueDay, category, isRecurring: billRecurringActive, refMonth, refYear });
+      const idx = bills.findIndex(x => x.id === editBillId);
+      if (idx >= 0) bills[idx] = { ...bills[idx], ...billData };
     } else {
-      const ref=await addDoc(billsCol(),billData); bills.unshift({id:ref.id,...billData});
+      const ref = await addDoc(billsCol(), billData);
+      bills.unshift({ id: ref.id, ...billData });
     }
-    closeBillModal(); renderBills(); showToast('✓ Conta salva!',true);
-  } catch(e){showToast('❌ Erro ao salvar conta.',false);console.error(e);}
+    closeBillModal(); renderBills(); showToast('✓ Conta salva!', true);
+  } catch(e) {
+    console.error('saveBill error:', e);
+    showToast(`❌ ${e.code === 'permission-denied' ? 'Sem permissão. Verifique as regras do Firestore.' : 'Erro ao salvar: ' + (e.message||e.code||'desconhecido')}`, false);
+  } finally {
+    btn.disabled = false; btn.textContent = '✓ Salvar conta';
+  }
 };
 
 window.openPayBillModal = function(billId,payKey,defaultValue) {
@@ -1216,7 +1359,7 @@ window.deleteBill = async function() {
 
 window.openModal = function() {
   if(isSetupIncomplete()){showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco antes de lançar',false);showPage('config');return;}
-  amountRaw='';selectedType='credit';selectedBank='';splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
+  amountCents=0;amountRaw='';selectedType='credit';selectedBank='';splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
   updateAmountDisplay();
   document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));
   document.querySelector('[data-type="credit"]').classList.add('selected');
@@ -1357,9 +1500,34 @@ window.confirmLaunch = async function() {
   finally{btn.disabled=false;btn.textContent='✓ Confirmar lançamento';}
 };
 
-window.numpad = function(k){if(k==='del')amountRaw=amountRaw.slice(0,-1);else if(k===','){if(!amountRaw.includes(','))amountRaw+=',';}else{if(amountRaw.length<10)amountRaw+=k;}updateAmountDisplay();};
-function updateAmountDisplay(){const v=parseAmount();document.getElementById('amount-display').textContent=amountRaw?'R$ '+amountRaw:'R$ 0,00';document.getElementById('amount-display').className='amount-value'+(v>0?' has-value':'');}
-function parseAmount(){if(!amountRaw)return 0;return parseFloat(amountRaw.replace(',','.'))||0;}
+// Numpad estilo banco: dígitos entram pela direita, vírgula fixa
+window.numpad = function(k) {
+  if (k === '00') {
+    if (amountCents < 999999) amountCents = amountCents * 100;
+  } else if (k === 'del') {
+    amountCents = Math.floor(amountCents / 10);
+  } else if (k !== ',') { // vírgula ignorada — já é automática
+    if (amountCents < 9999999) // máx R$ 99.999,99
+      amountCents = amountCents * 10 + parseInt(k);
+  }
+  updateAmountDisplay();
+};
+function updateAmountDisplay() {
+  const v = parseAmount();
+  if (amountCents === 0) {
+    document.getElementById('amount-display').textContent = 'R$ 0,00';
+    document.getElementById('amount-display').className = 'amount-value';
+  } else {
+    const reais = Math.floor(amountCents / 100);
+    const cents = amountCents % 100;
+    const fmtReais = reais.toLocaleString('pt-BR');
+    document.getElementById('amount-display').textContent = `R$ ${fmtReais},${String(cents).padStart(2,'0')}`;
+    document.getElementById('amount-display').className = 'amount-value has-value';
+  }
+  // Atualiza amountRaw para compatibilidade com updateSplitInfo
+  amountRaw = amountCents > 0 ? String(amountCents) : '';
+}
+function parseAmount() { return amountCents / 100; }
 window.selectType = function(el){document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));el.classList.add('selected');selectedType=el.dataset.type;};
 
 window.toggleRecurring = function(){recurringActive=!recurringActive;document.getElementById('recurring-toggle').classList.toggle('on',recurringActive);document.getElementById('recurring-panel').style.display=recurringActive?'block':'none';if(recurringActive&&instActive){instActive=false;document.getElementById('inst-toggle').classList.remove('on');document.getElementById('inst-panel').style.display='none';}};
@@ -1584,20 +1752,31 @@ function obGoTo(n){obCurrent=n;document.getElementById('ob-slides').style.transf
 
 // TOUR
 const TOUR_STEPS=[
-  {selector:'.balance-card',title:'💰 Resumo do mês',desc:'Total gasto no mês, separado por crédito e débito/Pix.'},
-  {selector:'#nav-bills, #snav-bills',title:'📋 Contas a Pagar',desc:'Cadastre contas fixas e variáveis, acompanhe vencimentos e marque como pagas.'},
-  {selector:'.fab',title:'➕ Botão inteligente',desc:'Na aba Contas abre "Nova conta". Em qualquer outra aba abre "Novo lançamento".'},
-  {selector:'.report-type-filters',title:'🔍 Filtro por tipo',desc:'Filtre os relatórios por Crédito, Débito ou Pix separadamente.'},
-  {selector:'#nav-config, #snav-config',title:'⚙️ Configurações',desc:'Cadastre seus cartões, bancos, categorias e titulares personalizados.'},
+  {selector:'.balance-card',title:'💰 Resumo do mês',desc:'Total gasto no mês, separado por crédito e débito/Pix. Navegue entre meses pelas setas para ver o histórico.'},
+  {selector:'#nav-bills, #snav-bills',title:'📋 Contas a Pagar',desc:'Cadastre contas fixas (aluguel, internet, luz) e variáveis. Cada conta mostra status de vencimento e você marca como paga quando quitar. Contas fixas se repetem todo mês automaticamente.'},
+  {selector:'.bills-summary',title:'📊 Resumo das contas',desc:'Veja o total do mês, quanto já foi pago e quanto está em aberto. Navegue entre meses para ver o histórico de pagamentos.',page:'bills'},
+  {selector:'.fab',title:'➕ Botão inteligente',desc:'Na aba Contas abre o formulário de nova conta. Em qualquer outra aba abre o formulário de novo lançamento.'},
+  {selector:'.report-type-filters',title:'🔍 Filtros de relatório',desc:'Filtre por Crédito, Débito ou Pix e combine com filtro de período personalizado para análises detalhadas.',page:'report'},
+  {selector:'#nav-config, #snav-config',title:'⚙️ Configurações',desc:'Cadastre cartões, bancos, categorias e titulares. Em Ajuda você encontra o guia para instalar o FinTrack no seu celular.'},
 ];
 let tourStep=0;
 window.startTour=function(){showPage('home');setTimeout(()=>{tourStep=0;document.getElementById('tour-overlay').classList.add('active');renderTourStep();},300);};
 function renderTourStep(){
-  const step=TOUR_STEPS[tourStep];const el=document.querySelector(step.selector);if(!el){tourNext();return;}
+  const step=TOUR_STEPS[tourStep];
+  // Navega para a página certa se o passo especificar
+  if(step.page){
+    const active=document.querySelector('.page.active');
+    if(!active||active.id!=='page-'+step.page){
+      showPage(step.page);
+      setTimeout(()=>renderTourStep(),350);
+      return;
+    }
+  }
+  const el=document.querySelector(step.selector);if(!el){tourNext();return;}
   const rect=el.getBoundingClientRect();const pad=8;const spotlight=document.getElementById('tour-spotlight');
   spotlight.style.top=(rect.top-pad)+'px';spotlight.style.left=(rect.left-pad)+'px';spotlight.style.width=(rect.width+pad*2)+'px';spotlight.style.height=(rect.height+pad*2)+'px';
   document.getElementById('tour-tip-title').textContent=step.title;document.getElementById('tour-tip-desc').textContent=step.desc;document.getElementById('tour-counter').textContent=`${tourStep+1} de ${TOUR_STEPS.length}`;
-  const tooltip=document.getElementById('tour-tooltip');const vw=window.innerWidth,vh=window.innerHeight;const tw=280,th=160;
+  const tooltip=document.getElementById('tour-tooltip');const vw=window.innerWidth,vh=window.innerHeight;const tw=280,th=180;
   let top=rect.bottom+pad+12;let left=rect.left;
   if(top+th>vh-20)top=rect.top-th-12;if(left+tw>vw-16)left=vw-tw-16;if(left<16)left=16;if(top<16)top=16;
   tooltip.style.top=top+'px';tooltip.style.left=left+'px';
@@ -1606,7 +1785,16 @@ function renderTourStep(){
 window.tourNext=function(){tourStep++;if(tourStep>=TOUR_STEPS.length){endTour();return;}renderTourStep();};
 window.endTour=async function(){document.getElementById('tour-overlay').classList.remove('active');if(currentUser){try{await updateDoc(userRef(),{tourDone:true});}catch(e){}}};
 
-['modal','modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
+window.openInstallModal = function() { document.getElementById('modal-install').classList.add('open'); };
+window.closeInstallModal = function() { document.getElementById('modal-install').classList.remove('open'); };
+window.switchInstallOS = function(os, el) {
+  document.querySelectorAll('.install-os-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('install-ios').classList.toggle('active', os==='ios');
+  document.getElementById('install-android').classList.toggle('active', os==='android');
+};
+
+['modal','modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
 
 if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW falhou:',err));});}
 
