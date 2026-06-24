@@ -154,8 +154,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-label{font-size:15px;font-weight:500;color:var(--text2)}
 .empty-sub{font-size:13px;margin-top:6px}
-.fab{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);box-shadow:0 8px 32px rgba(108,99,255,.5);border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:100}
+.fab{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);box-shadow:0 8px 32px rgba(108,99,255,.5);border:none;color:#fff;font-size:24px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;z-index:100}
 .fab:active{transform:scale(.92)}
+#app.logged-in .fab{display:flex}
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:flex-end}
 .modal-overlay.open{display:flex}
 .modal-sheet{width:100%;max-width:430px;margin:0 auto;background:var(--surface);border-radius:24px 24px 0 0;padding:0 0 max(24px,env(safe-area-inset-bottom)) 0;max-height:95dvh;overflow-y:auto;animation:slideUp .35s cubic-bezier(.32,.72,0,1)}
@@ -1047,6 +1048,7 @@ function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('onboarding-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').classList.add('logged-in');
   setRealAppHeight();
   updateAvatar(); renderConfig(); updateSetupLock();
   if (isSetupIncomplete()) { showPage('config'); }
@@ -1133,7 +1135,7 @@ window.handleForgotPassword = async function() {
   catch(e) { const msgs={'auth/invalid-email':'E-mail inválido.','auth/user-not-found':'Conta não encontrada.'}; errEl.textContent=msgs[e.code]||'Não foi possível enviar.'; errEl.style.color=''; errEl.classList.add('show'); }
 };
 
-window.doLogout = async function() { await signOut(auth); currentUser=null; transactions=[]; bills=[]; userConfig=defaultUserConfig(); closeProfile(); };
+window.doLogout = async function() { await signOut(auth); currentUser=null; transactions=[]; bills=[]; userConfig=defaultUserConfig(); document.getElementById('app').classList.remove('logged-in'); closeProfile(); };
 
 function updateAvatar() {
   if (!currentUser) return;
@@ -1215,10 +1217,13 @@ function renderHome() {
 // ── CONTAS A PAGAR ──
 function getBillStatus(bill) {
   if (bill.paid) return 'paid';
-  const today=new Date().toISOString().split('T')[0];
-  const dueStr=`${bill.refYear}-${String(bill.refMonth+1).padStart(2,'0')}-${String(bill.dueDay||1).padStart(2,'0')}`;
-  if (dueStr<today) return 'overdue';
-  if (dueStr===today) return 'today';
+  // Usa data local para evitar bug de timezone (UTC vs horário de Brasília)
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const today = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const dueStr = `${bill.refYear}-${pad(bill.refMonth+1)}-${pad(bill.dueDay||1)}`;
+  if (dueStr < today) return 'overdue';
+  if (dueStr === today) return 'today';
   return 'pending';
 }
 
@@ -1860,9 +1865,11 @@ function checkBillsDue() {
   if (!bills || !bills.length) return;
 
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const pad = n => String(n).padStart(2,'0');
+  // Data local para evitar bug de timezone (UTC vs Brasília)
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
   const in3Days = new Date(now); in3Days.setDate(in3Days.getDate() + 3);
-  const in3Str = in3Days.toISOString().split('T')[0];
+  const in3Str = `${in3Days.getFullYear()}-${pad(in3Days.getMonth()+1)}-${pad(in3Days.getDate())}`;
   const m = now.getMonth(); const y = now.getFullYear();
   const payKey = `${y}-${String(m+1).padStart(2,'0')}`;
 
