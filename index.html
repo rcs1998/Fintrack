@@ -106,8 +106,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
   .content{padding:0}
   .page{padding:32px;max-width:900px;margin:0 auto}
   .bottom-nav{display:none}
-  .fab{display:none}
-  .sidebar-new-btn{margin:0 12px 20px;padding:13px 16px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s;box-shadow:0 4px 16px rgba(108,99,255,.35)}
+    .sidebar-new-btn{margin:0 12px 20px;padding:13px 16px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s;box-shadow:0 4px 16px rgba(108,99,255,.35)}
   .sidebar-new-btn:hover{opacity:.9;transform:translateY(-1px)}
   .modal-overlay{align-items:center;justify-content:center}
   .modal-sheet{border-radius:var(--radius)!important;max-width:480px!important;max-height:90vh!important;width:100%!important;animation:fadeScale .25s ease!important}
@@ -157,6 +156,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .fab{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);box-shadow:0 8px 32px rgba(108,99,255,.5);border:none;color:#fff;font-size:24px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;z-index:100}
 .fab:active{transform:scale(.92)}
 #app.logged-in.page-home .fab{display:flex}
+.fab.fab-locked{display:none!important}
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:flex-end}
 .modal-overlay.open{display:flex}
 .modal-sheet{width:100%;max-width:430px;margin:0 auto;background:var(--surface);border-radius:24px 24px 0 0;padding:0 0 max(24px,env(safe-area-inset-bottom)) 0;max-height:95dvh;overflow-y:auto;animation:slideUp .35s cubic-bezier(.32,.72,0,1)}
@@ -579,7 +579,7 @@ select.field-input option{background:#1A1D27}
             <button class="report-type-btn debit" style="padding:5px 10px;font-size:11px" data-etype="debitpix" onclick="setEvolutionType('debitpix',this)">Déb/Pix</button>
           </div>
         </div>
-        <div id="report-evolution" style="position:relative;height:140px"></div>
+        <div id="report-evolution" style="position:relative;height:160px;overflow:visible"></div>
       </div>
       <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
         <div class="report-card"><div class="report-card-title">👤 Por titular</div><div id="report-person"></div></div>
@@ -1078,7 +1078,12 @@ function updateSetupLock() {
   const locked = isSetupIncomplete();
   const banner = document.getElementById('setup-lock-banner');
   if (banner) banner.style.display = locked?'block':'none';
-  document.querySelectorAll('.fab,.sidebar-new-btn').forEach(el => el.style.display = locked?'none':'');
+  // FAB: usa classe para não conflitar com a lógica de display por página
+  document.querySelectorAll('.fab').forEach(el => {
+    if (locked) el.classList.add('fab-locked');
+    else el.classList.remove('fab-locked');
+  });
+  document.querySelectorAll('.sidebar-new-btn').forEach(el => el.style.display = locked?'none':'');
   ['nav-home','nav-bills','nav-report','snav-home','snav-bills','snav-report'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.opacity = locked?'.4':''; el.style.pointerEvents = locked?'none':''; }
@@ -1649,8 +1654,8 @@ function renderEvolution() {
 
   const maxVal = Math.max(...values, 1);
   const w = container.clientWidth || 300;
-  const h = 140;
-  const padL = 8, padR = 8, padT = 10, padB = 32;
+  const h = 160;
+  const padL = 8, padR = 8, padT = 28, padB = 32;
   const barW = Math.floor((w - padL - padR) / months.length);
   const gap = Math.max(2, Math.floor(barW * 0.18));
   const bw = barW - gap;
@@ -1662,7 +1667,7 @@ function renderEvolution() {
   const barColorLight = evolutionType === 'credit' ? 'rgba(108,99,255,0.15)'
     : evolutionType === 'debitpix' ? 'rgba(34,197,94,0.12)' : 'rgba(108,99,255,0.15)';
 
-  let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">`;
 
   // Linha de grade superior
   svg += `<line x1="${padL}" y1="${padT}" x2="${w-padR}" y2="${padT}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>`;
@@ -1911,10 +1916,20 @@ function renderTourStep(){
   const rect=el.getBoundingClientRect();const pad=8;const spotlight=document.getElementById('tour-spotlight');
   spotlight.style.top=(rect.top-pad)+'px';spotlight.style.left=(rect.left-pad)+'px';spotlight.style.width=(rect.width+pad*2)+'px';spotlight.style.height=(rect.height+pad*2)+'px';
   document.getElementById('tour-tip-title').textContent=step.title;document.getElementById('tour-tip-desc').textContent=step.desc;document.getElementById('tour-counter').textContent=`${tourStep+1} de ${TOUR_STEPS.length}`;
-  const tooltip=document.getElementById('tour-tooltip');const vw=window.innerWidth,vh=window.innerHeight;const tw=280,th=180;
-  let top=rect.bottom+pad+12;let left=rect.left;
-  if(top+th>vh-20)top=rect.top-th-12;if(left+tw>vw-16)left=vw-tw-16;if(left<16)left=16;if(top<16)top=16;
-  tooltip.style.top=top+'px';tooltip.style.left=left+'px';
+  const tooltip=document.getElementById('tour-tooltip');
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const tw=Math.min(280, vw-32), th=200;
+  // Tenta abaixo do elemento, senão acima, senão centralizado
+  let top = rect.bottom + pad + 12;
+  let left = Math.max(16, Math.min(rect.left, vw - tw - 16));
+  if (top + th > vh - 16) {
+    top = rect.top - th - 12;
+    if (top < 16) {
+      // Centraliza verticalmente se não cabe nem acima nem abaixo
+      top = Math.max(16, Math.round((vh - th) / 2));
+    }
+  }
+  tooltip.style.top=top+'px';tooltip.style.left=left+'px';tooltip.style.maxWidth=tw+'px';
   tooltip.querySelector('.tour-next-btn').textContent=tourStep===TOUR_STEPS.length-1?'Concluir ✓':'Próximo →';
 }
 window.tourNext=function(){
@@ -1936,7 +1951,65 @@ window.switchInstallOS = function(os, el) {
 
 ['modal','modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
 
-if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW falhou:',err));});}
+if('serviceWorker'in navigator){
+  window.addEventListener('load', async () => {
+    try {
+      // Injeta o Service Worker via Blob para não depender de arquivo externo
+      const swCode = `
+const CACHE = 'fintrack-v2';
+const ASSETS = [
+  '/',
+  '/index.html',
+  'https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js',
+];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{}))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+  // Só cacheia GET e não cacheia Firebase/Firestore (sempre fresco)
+  if (e.request.method !== 'GET') return;
+  const url = e.request.url;
+  if (url.includes('firestore.googleapis.com') || url.includes('identitytoolkit')) return;
+
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const fetchPromise = fetch(e.request).then(res => {
+        if (res && res.status === 200 && res.type !== 'opaque') {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => cached);
+      // Retorna cache imediatamente se disponível, atualiza em background
+      return cached || fetchPromise;
+    })
+  );
+});
+`;
+      const blob = new Blob([swCode], {type:'application/javascript'});
+      const swUrl = URL.createObjectURL(blob);
+      await navigator.serviceWorker.register(swUrl, {scope:'/'});
+    } catch(err) {
+      // Fallback para sw.js externo se blob falhar
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }
+  });
+}
 
 // ── TECLADO FÍSICO: permite digitar no numpad pelo teclado do computador ──
 document.addEventListener('keydown', function(e) {
