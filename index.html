@@ -62,7 +62,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .auth-google:active{background:var(--surface)}
 .auth-error{background:var(--red-soft);border:1px solid var(--red);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--red);display:none;text-align:center}
 .auth-error.show{display:block}
-#app{position:fixed;top:0;left:0;right:0;height:calc(var(--real-vh,1px)*100);display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;height:calc(var(--real-vh,1px)*100);display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
 .header{display:flex;align-items:center;justify-content:space-between;padding:calc(20px + env(safe-area-inset-top)) 20px 0;flex-shrink:0}
 .header-logo{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.5px}
 .header-logo span{color:var(--accent)}
@@ -1059,9 +1059,13 @@ function showApp() {
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('onboarding-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  document.getElementById('app').classList.add('logged-in');
-  setRealAppHeight();
+  const appEl2 = document.getElementById('app');
+  appEl2.style.display = 'flex';
+  appEl2.classList.add('logged-in');
+  // Força altura correta imediatamente após mostrar o app
+  setTimeout(setRealAppHeight, 0);
+  setTimeout(setRealAppHeight, 100);
+  setTimeout(setRealAppHeight, 300);
   updateAvatar(); renderConfig(); updateSetupLock();
   if (isSetupIncomplete()) { showPage('config'); }
   else {
@@ -1952,62 +1956,8 @@ window.switchInstallOS = function(os, el) {
 ['modal','modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
 
 if('serviceWorker'in navigator){
-  window.addEventListener('load', async () => {
-    try {
-      // Injeta o Service Worker via Blob para não depender de arquivo externo
-      const swCode = `
-const CACHE = 'fintrack-v2';
-const ASSETS = [
-  '/',
-  '/index.html',
-  'https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap',
-  'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js',
-];
-
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{}))
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', e => {
-  // Só cacheia GET e não cacheia Firebase/Firestore (sempre fresco)
-  if (e.request.method !== 'GET') return;
-  const url = e.request.url;
-  if (url.includes('firestore.googleapis.com') || url.includes('identitytoolkit')) return;
-
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetchPromise = fetch(e.request).then(res => {
-        if (res && res.status === 200 && res.type !== 'opaque') {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => cached);
-      // Retorna cache imediatamente se disponível, atualiza em background
-      return cached || fetchPromise;
-    })
-  );
-});
-`;
-      const blob = new Blob([swCode], {type:'application/javascript'});
-      const swUrl = URL.createObjectURL(blob);
-      await navigator.serviceWorker.register(swUrl, {scope:'/'});
-    } catch(err) {
-      // Fallback para sw.js externo se blob falhar
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
-    }
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW falhou:',err));
   });
 }
 
@@ -2111,13 +2061,20 @@ function checkBillsDueOnPageLoad() {
   }, 2000);
 }
 
-function setRealAppHeight(){const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;document.documentElement.style.setProperty('--real-vh',(h/100)+'px');}
+function setRealAppHeight(){
+  const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
+  const vh=h/100;
+  document.documentElement.style.setProperty('--real-vh', vh+'px');
+  // Força o #app a ter a altura correta via style direto também (iOS PWA fix)
+  const app=document.getElementById('app');
+  if(app&&app.style.display!=='none') app.style.height=h+'px';
+}
 setRealAppHeight();
 window.addEventListener('resize',setRealAppHeight);
-window.addEventListener('orientationchange',()=>setTimeout(setRealAppHeight,150));
+window.addEventListener('orientationchange',()=>{setTimeout(setRealAppHeight,100);setTimeout(setRealAppHeight,300);setTimeout(setRealAppHeight,600);});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',setRealAppHeight);window.visualViewport.addEventListener('scroll',setRealAppHeight);}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)setRealAppHeight();});
-[0,50,150,300,600,1000,2000].forEach(ms=>setTimeout(setRealAppHeight,ms));
+[0,50,100,200,300,500,800,1200,2000].forEach(ms=>setTimeout(setRealAppHeight,ms));
 </script>
 </body>
 </html>
