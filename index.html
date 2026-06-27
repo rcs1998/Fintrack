@@ -163,9 +163,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-label{font-size:15px;font-weight:500;color:var(--text2)}
 .empty-sub{font-size:13px;margin-top:6px}
-.fab{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.5);border:none;color:#fff;font-size:24px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;z-index:100}
+.fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.55);border:none;color:#fff;font-size:26px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;z-index:999}
 .fab:active{transform:scale(.92)}
 #app.logged-in.page-home .fab{display:flex!important}
+#app.logged-in .fab{display:flex!important}
+#app.logged-in.page-bills .fab{display:flex!important}
+#app.logged-in.page-report .fab{display:none!important}
+#app.logged-in.page-config .fab{display:none!important}
 .fab.fab-locked{display:none!important}
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:flex-end}
 .modal-overlay.open{display:flex}
@@ -665,7 +669,8 @@ select.field-input option{background:#03002A}
   </div>
 
   <!-- ✅ FIX 1: FAB inteligente -->
-  <button class="fab" onclick="smartOpen()">＋</button>
+  <!-- FAB movido para dentro da home -->
+  <button class="fab" id="main-fab" onclick="smartOpen()">＋</button>
   <div class="toast" id="toast"></div>
 </div>
 
@@ -712,6 +717,16 @@ select.field-input option{background:#03002A}
         <div class="field-group">
           <label class="field-label">Nota <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(opcional)</span></label>
           <input class="field-input" type="text" id="f-note" placeholder="Ex: Ida ao aeroporto com a família">
+        </div>
+        <!-- Toggle fatura fechada — só aparece no crédito -->
+        <div id="f-closed-wrap" style="display:none">
+          <div class="toggle-row" style="background:var(--orange-soft);border-color:var(--orange)">
+            <div>
+              <div class="toggle-label">🔒 Fatura já fechou?</div>
+              <div class="toggle-sub">Lança na próxima fatura</div>
+            </div>
+            <button class="toggle orange" id="f-closed-toggle" onclick="toggleFaturaClosed()"></button>
+          </div>
         </div>
       </div>
       <div class="cta-wrap">
@@ -1057,6 +1072,7 @@ let splitSelected = [];
 let instActive = false;
 let instCount = 2;
 let recurringActive = false;
+let faturaJaFechou = false;
 let editCardIdx = null;
 let billRecurringActive = false;
 let editBillId = null;
@@ -1433,7 +1449,7 @@ window.deleteBill = async function() {
 
 window.openModal = function() {
   if(isSetupIncomplete()){showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco antes de lançar',false);showPage('config');return;}
-  amountCents=0;amountRaw='';selectedType='credit';selectedBank='';splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
+  amountCents=0;amountRaw='';selectedType='credit';selectedBank='';faturaJaFechou=false;splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
   updateAmountDisplay();
   document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));
   document.querySelector('[data-type="credit"]').classList.add('selected');
@@ -1481,6 +1497,9 @@ function populateStep2() {
   selectedBank = bankSel.value;
   bankSel.onchange = () => { selectedBank = bankSel.value; };
   document.getElementById('f-cat').innerHTML=userConfig.categories.map(c=>`<option>${c}</option>`).join('');
+  // Mostra toggle fatura fechada só para crédito
+  document.getElementById('f-closed-wrap').style.display = isCredit ? '' : 'none';
+  if (!isCredit) { faturaJaFechou = false; document.getElementById('f-closed-toggle').classList.remove('on'); }
 }
 
 function populateStep3() {
@@ -1505,7 +1524,7 @@ function populateStep4() {
   const cardIdx=parseInt(document.getElementById('f-card').value);
   const card=!isNaN(cardIdx)?userConfig.cards[cardIdx]:null;
   const dateVal=document.getElementById('f-date').value;
-  let compDate=dateVal;if(selectedType==='credit'&&card)compDate=calcCompetence(dateVal,card.dueDay,card.interval);
+  let compDate=dateVal;if(selectedType==='credit'&&card)compDate=calcCompetence(dateVal,card.dueDay,card.interval,faturaJaFechou);
   const bankVal=selectedBank||document.getElementById('f-bank').value;
   let noteStr='';
   if(recurringActive)noteStr=`🔄 Recorrente — será lançado nos próximos 12 meses`;
@@ -1527,12 +1546,32 @@ function populateStep4() {
   document.getElementById('summary-content').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><div class="summary-key">${k}</div><div class="summary-val">${v}</div></div>`).join('');
 }
 
-function calcCompetence(dateStr,dueDay,interval) {
-  const d=new Date(dateStr+'T12:00:00');const closeDay=dueDay-parseInt(interval);
+function calcCompetence(dateStr,dueDay,interval,alreadyClosed=false) {
+  // Se o usuário marcou que a fatura já fechou, vai direto pro próximo mês
+  if (alreadyClosed) {
+    const d2=new Date(dateStr+'T12:00:00');
+    let m=d2.getMonth()+1, y=d2.getFullYear();
+    if(m>11){m=0;y++;}
+    return `${y}-${String(m+1).padStart(2,'0')}-01`;
+  }
+  const d=new Date(dateStr+'T12:00:00');
+  const intv=parseInt(interval);
   const month=d.getMonth(),year=d.getFullYear(),day=d.getDate();
+  // closeDay: dia em que a fatura fecha (pode ser negativo se vence cedo no mês)
+  let closeDay=dueDay-intv;
   let compMonth,compYear;
-  if(day<=closeDay){compMonth=month;compYear=year;}
-  else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}}
+  if(closeDay<=0){
+    // Fecha no mês anterior ao vencimento
+    // Ex: vence dia 5, intervalo 10 → fecha dia 25 do mês anterior
+    // Se lançamento é depois do dia (30+closeDay), vai pro mês do vencimento
+    // Senão, fica no mês atual
+    const adjustedClose = 30 + closeDay; // ex: -5 → 25
+    if(day<=adjustedClose){compMonth=month;compYear=year;}
+    else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}}
+  } else {
+    if(day<=closeDay){compMonth=month;compYear=year;}
+    else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}}
+  }
   return `${compYear}-${String(compMonth+1).padStart(2,'0')}-01`;
 }
 function formatCompetence(dateStr){const[y,m]=dateStr.split('-');return `${MONTHS[parseInt(m)-1]} / ${y}`;}
@@ -1554,7 +1593,7 @@ window.confirmLaunch = async function() {
   const category=document.getElementById('f-cat').value||userConfig.categories[0]||'Outros';
   const title=document.getElementById('f-title').value||'';
   const note=document.getElementById('f-note').value||'';
-  let compDate=dateVal;if(selectedType==='credit'&&card)compDate=calcCompetence(dateVal,card.dueDay,card.interval);
+  let compDate=dateVal;if(selectedType==='credit'&&card)compDate=calcCompetence(dateVal,card.dueDay,card.interval,faturaJaFechou);
   let myAmount=amount;if(splitActive&&splitSelected.length>0)myAmount=amount/(splitSelected.length+1);
   const base={type:selectedType,date:dateVal,competenceDate:compDate,amount,myAmount,category,description:title,title,note,person,card:card?card.name:null,bank:selectedType!=='credit'?bankVal:null,splitWith:splitActive?splitSelected:[],createdAt:new Date().toISOString()};
   try {
@@ -1603,6 +1642,11 @@ function updateAmountDisplay() {
 }
 function parseAmount() { return amountCents / 100; }
 window.selectType = function(el){document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));el.classList.add('selected');selectedType=el.dataset.type;};
+
+window.toggleFaturaClosed = function() {
+  faturaJaFechou = !faturaJaFechou;
+  document.getElementById('f-closed-toggle').classList.toggle('on', faturaJaFechou);
+};
 
 window.toggleRecurring = function(){recurringActive=!recurringActive;document.getElementById('recurring-toggle').classList.toggle('on',recurringActive);document.getElementById('recurring-panel').style.display=recurringActive?'block':'none';if(recurringActive&&instActive){instActive=false;document.getElementById('inst-toggle').classList.remove('on');document.getElementById('inst-panel').style.display='none';}};
 window.toggleSplit = function(){splitActive=!splitActive;document.getElementById('split-toggle').classList.toggle('on',splitActive);document.getElementById('split-panel').style.display=splitActive?'block':'none';if(!splitActive)splitSelected=[];updateSplitInfo();};
@@ -1875,23 +1919,54 @@ window.saveEdit=async function(){
   } catch(e){showToast('❌ Erro ao salvar.',false);}
 };
 
-window.initDelete=function(){if(!detailTx)return;document.getElementById('delete-btn').style.display='none';document.getElementById('delete-options').style.display='flex';document.getElementById('del-all-btn').style.display=detailTx.isRecurring?'block':'none';};
+window.initDelete=function(){
+  if(!detailTx)return;
+  document.getElementById('delete-btn').style.display='none';
+  document.getElementById('delete-options').style.display='flex';
+  // Mostra "excluir tudo" para recorrentes E parcelados
+  const showAll = detailTx.isRecurring || (detailTx.installmentOf && detailTx.installmentOf > 1);
+  document.getElementById('del-all-btn').style.display = showAll ? 'block' : 'none';
+  // Atualiza texto conforme o tipo
+  const allBtn = document.getElementById('del-all-btn');
+  if (detailTx.isRecurring) {
+    allBtn.innerHTML = '🔄 Cancelar recorrência futura<div class="del-opt-sub">Remove este e os próximos meses (histórico preservado)</div>';
+  } else if (detailTx.installmentOf) {
+    allBtn.innerHTML = `🗑 Excluir todas as ${detailTx.installmentOf} parcelas<div class="del-opt-sub">Remove todas as parcelas deste lançamento</div>`;
+  }
+};
 window.cancelDeleteOptions=function(){document.getElementById('delete-options').style.display='none';document.getElementById('delete-btn').style.display='block';};
 
 window.doDelete=async function(mode){
   if(!detailTx)return;
   try {
     if(mode==='all'&&detailTx.isRecurring&&detailTx.recurringId){
-      // ✅ FIX 3: Exclui só do mês atual em diante — preserva histórico
+      // Recorrente: exclui só do mês atual em diante — preserva histórico
       const now=new Date();
       const nowStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-      const toDelete=transactions.filter(t=>t.recurringId===detailTx.recurringId&&(t.competenceDate||t.date)>=nowStr);
+      const toDelete=transactions.filter(t=>
+        t.recurringId===detailTx.recurringId&&(t.competenceDate||t.date)>=nowStr
+      );
       const batch=writeBatch(db);
       toDelete.forEach(t=>batch.delete(doc(db,'users',currentUser.uid,'transactions',t.id)));
       await batch.commit();
       const ids=new Set(toDelete.map(t=>t.id));
       transactions=transactions.filter(t=>!ids.has(t.id));
       showToast(`✓ ${toDelete.length} lançamento(s) futuro(s) cancelado(s)!`,true);
+    } else if(mode==='all'&&detailTx.installmentOf&&detailTx.installmentOf>1){
+      // Parcelado: exclui TODAS as parcelas pelo título + cartão + pessoa
+      const refTitle=(detailTx.title||detailTx.description||'').trim();
+      const toDelete=transactions.filter(t=>
+        t.installmentOf===detailTx.installmentOf&&
+        (t.title||t.description||'').trim()===refTitle&&
+        t.card===detailTx.card&&
+        t.person===detailTx.person
+      );
+      const batch=writeBatch(db);
+      toDelete.forEach(t=>batch.delete(doc(db,'users',currentUser.uid,'transactions',t.id)));
+      await batch.commit();
+      const ids=new Set(toDelete.map(t=>t.id));
+      transactions=transactions.filter(t=>!ids.has(t.id));
+      showToast(`✓ Todas as ${toDelete.length} parcelas excluídas!`,true);
     } else {
       await deleteDoc(doc(db,'users',currentUser.uid,'transactions',detailTx.id));
       transactions=transactions.filter(x=>x.id!==detailTx.id);
@@ -1984,38 +2059,43 @@ const HIDDEN_TEXT = '••••••';
 
 window.toggleValues = function() {
   valuesHidden = !valuesHidden;
+  applyValuesVisibility();
+  localStorage.setItem('ft_values_hidden', valuesHidden ? '1' : '0');
+};
+
+function applyValuesVisibility() {
   const btn = document.getElementById('toggle-values-btn');
-  btn.textContent = valuesHidden ? '🙈' : '👁';
-  
+  if (btn) btn.textContent = valuesHidden ? '🙈' : '👁';
+
   const ids = ['home-total','home-credit','home-debit','home-count',
                 'bill-total','bill-paid-total','bill-open-total'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     if (valuesHidden) {
-      el.dataset.realValue = el.textContent;
+      if (!el.dataset.realValue) el.dataset.realValue = el.textContent;
       el.textContent = id === 'home-count' ? '—' : HIDDEN_TEXT;
     } else {
       if (el.dataset.realValue) el.textContent = el.dataset.realValue;
     }
   });
 
-  // Também oculta valores na lista de transações
   document.querySelectorAll('.tx-amount').forEach(el => {
     if (valuesHidden) {
-      el.dataset.realValue = el.textContent;
-      el.textContent = (el.classList.contains('out') ? '-' : '+') + HIDDEN_TEXT;
+      if (!el.dataset.realValue) el.dataset.realValue = el.textContent;
+      el.textContent = (el.classList.contains('out') ? '- ' : '+ ') + HIDDEN_TEXT;
     } else {
       if (el.dataset.realValue) el.textContent = el.dataset.realValue;
     }
   });
-  localStorage.setItem('ft_values_hidden', valuesHidden ? '1' : '0');
-};
+}
 
 // Restaura estado ao carregar
 (function(){
   if(localStorage.getItem('ft_values_hidden')==='1'){
-    setTimeout(()=>{ valuesHidden=false; window.toggleValues(); }, 800);
+    valuesHidden = true;
+    // Aplica após renderHome ter rodado
+    setTimeout(() => applyValuesVisibility(), 1000);
   }
 })();
 
