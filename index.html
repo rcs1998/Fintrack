@@ -165,7 +165,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .empty-sub{font-size:13px;margin-top:6px}
 .fab{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.5);border:none;color:#fff;font-size:24px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;z-index:100}
 .fab:active{transform:scale(.92)}
-#app.logged-in.page-home .fab{display:flex}
+#app.logged-in.page-home .fab{display:flex!important}
 .fab.fab-locked{display:none!important}
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:flex-end}
 .modal-overlay.open{display:flex}
@@ -509,7 +509,10 @@ select.field-input option{background:#03002A}
       <div class="page active" id="page-home">
         <div style="height:16px"></div>
         <div class="balance-card">
-          <div class="balance-label">Gastos do mês</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div class="balance-label" style="margin-bottom:0">Gastos do mês</div>
+            <button id="toggle-values-btn" onclick="toggleValues()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:20px;padding:4px 0 4px 8px;line-height:1">👁</button>
+          </div>
           <div class="balance-value" id="home-total">R$ 0,00</div>
           <div class="balance-meta">
             <div class="balance-stat"><div class="balance-stat-label">Crédito</div><div class="balance-stat-value" id="home-credit">R$ 0,00</div></div>
