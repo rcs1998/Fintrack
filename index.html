@@ -511,7 +511,7 @@ select.field-input option{background:#03002A}
         <div class="balance-card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="balance-label" style="margin-bottom:0">Gastos do mês</div>
-            <button id="toggle-values-btn" onclick="toggleValues()" style="background:none;border:none;color:rgba(255,255,255,0.55);cursor:pointer;padding:8px;line-height:1;display:flex;align-items:center;-webkit-tap-highlight-color:transparent" aria-label="Ocultar valores"><svg id="eye-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><svg id="eye-icon-closed" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;display:none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button>
+                        <div style="width:8px"></div>
           </div>
           <div class="balance-value" id="home-total">R$ 0,00</div>
           <div class="balance-meta">
@@ -1252,10 +1252,10 @@ function renderHome() {
   const total=outTxs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
   const credit=outTxs.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
   const debit=outTxs.filter(t=>t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-  document.getElementById('home-total').textContent=valuesHidden?HIDDEN_TEXT:fmt(total);
-  document.getElementById('home-credit').textContent=valuesHidden?HIDDEN_TEXT:fmt(credit);
-  document.getElementById('home-debit').textContent=valuesHidden?HIDDEN_TEXT:fmt(debit);
-  document.getElementById('home-count').textContent=valuesHidden?'—':outTxs.length;
+  document.getElementById('home-total').textContent=fmt(total);
+  document.getElementById('home-credit').textContent=fmt(credit);
+  document.getElementById('home-debit').textContent=fmt(debit);
+  document.getElementById('home-count').textContent=outTxs.length;
   const catMap={};
   outTxs.forEach(t=>{const c=t.category||'Outros';catMap[c]=(catMap[c]||0)+(t.myAmount??t.amount);});
   const catEntries=Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
@@ -1277,7 +1277,7 @@ function renderHome() {
       <div class="tx-info"><div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>${noteStr}
         <div class="tx-meta">${fmtDate(t.date)}${person}${bankInfo} <span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span>${recTag}</div>
       </div>
-      <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${valuesHidden?HIDDEN_TEXT:fmt(amt)}</div>
+      <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
     </div>`;
   }).join('');
 }
@@ -2113,43 +2113,15 @@ window.switchInstallOS = function(os, el) {
   document.getElementById('install-android').classList.toggle('active', os==='android');
 };
 
-['modal','modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
+['modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
+// Modal de lançamento usa closeModal() para restaurar o FAB
+const modalEl=document.getElementById('modal');if(modalEl)modalEl.addEventListener('click',function(e){if(e.target===this)closeModal();});
 
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW falhou:',err));
   });
 }
-
-// ── OCULTAR/MOSTRAR VALORES ──
-let valuesHidden = false;
-const HIDDEN_TEXT = '••••••';
-
-window.toggleValues = function() {
-  valuesHidden = !valuesHidden;
-  applyValuesVisibility();
-  localStorage.setItem('ft_values_hidden', valuesHidden ? '1' : '0');
-};
-
-function applyValuesVisibility() {
-  // Atualiza ícones do olho
-  const eyeOpen = document.getElementById('eye-icon-open');
-  const eyeClosed = document.getElementById('eye-icon-closed');
-  if (eyeOpen) eyeOpen.style.display = valuesHidden ? 'none' : '';
-  if (eyeClosed) eyeClosed.style.display = valuesHidden ? '' : 'none';
-  // Rerenderiza a home para aplicar/remover máscaras
-  const pageHome = document.getElementById('page-home');
-  if (pageHome && pageHome.classList.contains('active')) renderHome();
-}
-
-// Restaura estado ao carregar
-(function(){
-  if(localStorage.getItem('ft_values_hidden')==='1'){
-    valuesHidden = true;
-    // Aplica após renderHome ter rodado
-    setTimeout(() => applyValuesVisibility(), 1000);
-  }
-})();
 
 // ── CENTRAL DE NOTIFICAÇÕES ──
 window.openNotifCenter = function() {
