@@ -163,12 +163,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-label{font-size:15px;font-weight:500;color:var(--text2)}
 .empty-sub{font-size:13px;margin-top:6px}
-.fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.55);border:none;color:#fff;font-size:28px;font-weight:300;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;z-index:999;line-height:1}
+.fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.55);border:none;color:#fff;font-size:28px;font-weight:300;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform .2s;z-index:999;line-height:1}
 .fab:active{transform:scale(.92)}
-#app.logged-in.page-home .fab{display:flex!important}
-#app.logged-in.page-bills .fab{display:none!important}
-#app.logged-in.page-report .fab{display:none!important}
-#app.logged-in.page-config .fab{display:none!important}
+.fab.visible{display:flex}
 .fab.fab-locked{display:none!important}
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:flex-end}
 .modal-overlay.open{display:flex}
@@ -1102,6 +1099,9 @@ function showApp() {
   else {
     document.getElementById('app').classList.add('page-home');
     renderHome();
+    // Mostra FAB na home
+    const fab=document.getElementById('main-fab');
+    if(fab&&!fab.classList.contains('fab-locked'))fab.classList.add('visible');
     if (!userConfig.tourDone) { setTimeout(()=>startTour(),800); userConfig.tourDone=true; saveConfig(); }
   }
   checkBillsDueOnPageLoad();
@@ -1116,7 +1116,7 @@ function updateSetupLock() {
   if (banner) banner.style.display = locked?'block':'none';
   // FAB: usa classe para não conflitar com a lógica de display por página
   document.querySelectorAll('.fab').forEach(el => {
-    if (locked) el.classList.add('fab-locked');
+    if (locked) { el.classList.add('fab-locked'); el.classList.remove('visible'); }
     else el.classList.remove('fab-locked');
   });
   document.querySelectorAll('.sidebar-new-btn').forEach(el => el.style.display = locked?'none':'');
@@ -1225,6 +1225,8 @@ window.showPage = function(p) {
   const navEl=document.getElementById('nav-'+p); if(navEl) navEl.classList.add('active');
   const snav=document.getElementById('snav-'+p); if(snav) snav.classList.add('active');
   // FAB só aparece na home
+  const fab=document.getElementById('main-fab');
+  if(fab){if(p==='home'&&!fab.classList.contains('fab-locked'))fab.classList.add('visible');else fab.classList.remove('visible');}
   const appEl=document.getElementById('app');
   ['page-home','page-bills','page-report','page-config'].forEach(c=>appEl.classList.remove(c));
   appEl.classList.add('page-'+p);
@@ -1273,6 +1275,8 @@ function renderHome() {
       <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
     </div>`;
   }).join('');
+  // Aplica visibilidade dos valores após renderizar
+  applyValuesVisibility();
 }
 
 // ── CONTAS A PAGAR ──
@@ -1548,24 +1552,23 @@ function populateStep4() {
 function calcCompetence(dateStr,dueDay,interval,alreadyClosed=false) {
   const d=new Date(dateStr+'T12:00:00');
   const intv=parseInt(interval);
-  const month=d.getMonth(),year=d.getFullYear(),day=d.getDate();
-  // closeDay: dia em que a fatura fecha (pode ser negativo se vence cedo no mês)
-  let closeDay=dueDay-intv;
+  const day=d.getDate(),month=d.getMonth(),year=d.getFullYear();
+  const closeDay=dueDay-intv; // pode ser negativo: fecha no mês anterior ao vencimento
   let compMonth,compYear;
   if(closeDay<=0){
-    // Fecha no mês anterior ao vencimento
-    const adjustedClose = 30 + closeDay; // ex: -5 → 25
-    if(day<=adjustedClose){compMonth=month;compYear=year;}
-    else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}}
+    // Fechamento ocorre no mês anterior ao vencimento
+    // Ex: vence dia 7, intervalo 10 → closeDay=-3 → fecha dia 27 de junho (30-3)
+    const daysInMonth=new Date(year,month+1,0).getDate(); // dias reais do mês do lançamento
+    const closingDay=daysInMonth+closeDay; // ex: 30+(-3)=27
+    if(day<=closingDay){compMonth=month;compYear=year;} // fatura ainda aberta → mês atual
+    else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}} // fechou → próximo mês
   } else {
+    // Fechamento ocorre no mesmo mês do vencimento
     if(day<=closeDay){compMonth=month;compYear=year;}
     else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}}
   }
-  // Se o usuário marcou que a fatura já fechou, avança mais um mês
-  if (alreadyClosed) {
-    compMonth+=1;
-    if(compMonth>11){compMonth=0;compYear++;}
-  }
+  // Toggle "fatura já fechou" → avança mais 1 mês sobre o calculado
+  if(alreadyClosed){compMonth+=1;if(compMonth>11){compMonth=0;compYear++;}}
   return `${compYear}-${String(compMonth+1).padStart(2,'0')}-01`;
 }
 function formatCompetence(dateStr){const[y,m]=dateStr.split('-');return `${MONTHS[parseInt(m)-1]} / ${y}`;}
@@ -2087,19 +2090,22 @@ function applyValuesVisibility() {
     const el = document.getElementById(id);
     if (!el) return;
     if (valuesHidden) {
-      if (!el.dataset.realValue) el.dataset.realValue = el.textContent;
+      // Salva valor real só se ainda não foi ocultado
+      if (!el.dataset.hidden) { el.dataset.realValue = el.textContent; el.dataset.hidden = '1'; }
       el.textContent = id === 'home-count' ? '—' : HIDDEN_TEXT;
     } else {
       if (el.dataset.realValue) el.textContent = el.dataset.realValue;
+      delete el.dataset.hidden;
     }
   });
 
   document.querySelectorAll('.tx-amount').forEach(el => {
     if (valuesHidden) {
-      if (!el.dataset.realValue) el.dataset.realValue = el.textContent;
+      if (!el.dataset.hidden) { el.dataset.realValue = el.textContent; el.dataset.hidden = '1'; }
       el.textContent = (el.classList.contains('out') ? '- ' : '+ ') + HIDDEN_TEXT;
     } else {
       if (el.dataset.realValue) el.textContent = el.dataset.realValue;
+      delete el.dataset.hidden;
     }
   });
 }
