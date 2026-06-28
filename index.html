@@ -665,10 +665,11 @@ select.field-input option{background:#03002A}
   </div>
 
   <!-- ✅ FIX 1: FAB inteligente -->
-  <!-- FAB movido para dentro da home -->
-  <button class="fab" id="main-fab" onclick="openModal()" aria-label="Novo lançamento">+</button>
   <div class="toast" id="toast"></div>
 </div>
+
+<!-- FAB fora do #app para funcionar corretamente no iOS (position:fixed quebra dentro de overflow:hidden) -->
+<button class="fab" id="main-fab" onclick="openModal()" aria-label="Novo lançamento">+</button>
 
 <!-- MODAL LANÇAMENTO -->
 <div class="modal-overlay" id="modal">
@@ -1247,10 +1248,10 @@ function renderHome() {
   const total=outTxs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
   const credit=outTxs.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
   const debit=outTxs.filter(t=>t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-  document.getElementById('home-total').textContent=fmt(total);
-  document.getElementById('home-credit').textContent=fmt(credit);
-  document.getElementById('home-debit').textContent=fmt(debit);
-  document.getElementById('home-count').textContent=outTxs.length;
+  document.getElementById('home-total').textContent=valuesHidden?HIDDEN_TEXT:fmt(total);
+  document.getElementById('home-credit').textContent=valuesHidden?HIDDEN_TEXT:fmt(credit);
+  document.getElementById('home-debit').textContent=valuesHidden?HIDDEN_TEXT:fmt(debit);
+  document.getElementById('home-count').textContent=valuesHidden?'—':outTxs.length;
   const catMap={};
   outTxs.forEach(t=>{const c=t.category||'Outros';catMap[c]=(catMap[c]||0)+(t.myAmount??t.amount);});
   const catEntries=Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
@@ -1272,11 +1273,9 @@ function renderHome() {
       <div class="tx-info"><div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>${noteStr}
         <div class="tx-meta">${fmtDate(t.date)}${person}${bankInfo} <span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span>${recTag}</div>
       </div>
-      <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
+      <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${valuesHidden?HIDDEN_TEXT:fmt(amt)}</div>
     </div>`;
   }).join('');
-  // Aplica visibilidade dos valores após renderizar
-  applyValuesVisibility();
 }
 
 // ── CONTAS A PAGAR ──
@@ -1550,26 +1549,73 @@ function populateStep4() {
 }
 
 function calcCompetence(dateStr,dueDay,interval,alreadyClosed=false) {
-  const d=new Date(dateStr+'T12:00:00');
-  const intv=parseInt(interval);
-  const day=d.getDate(),month=d.getMonth(),year=d.getFullYear();
-  const closeDay=dueDay-intv; // pode ser negativo: fecha no mês anterior ao vencimento
-  let compMonth,compYear;
-  if(closeDay<=0){
-    // Fechamento ocorre no mês anterior ao vencimento
-    // Ex: vence dia 7, intervalo 10 → closeDay=-3 → fecha dia 27 de junho (30-3)
-    const daysInMonth=new Date(year,month+1,0).getDate(); // dias reais do mês do lançamento
-    const closingDay=daysInMonth+closeDay; // ex: 30+(-3)=27
-    if(day<=closingDay){compMonth=month;compYear=year;} // fatura ainda aberta → mês atual
-    else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}} // fechou → próximo mês
+  // REGRA: competenceDate = mês em que a fatura VENCE (é cobrada)
+  // Cartão vence dia D, fecha D-interval dias antes
+  // Ex: vence dia 7, intervalo 10 → fecha dia 27 do mês anterior
+  //
+  // Lançamento em 27/jun (dia do fechamento):
+  //   - fatura que fecha 27/jun vence 07/jul → competência = JULHO
+  //   - "já fechou" ativado → próxima fatura vence 07/ago → competência = AGOSTO
+  //
+  // Lançamento em 26/jun (antes do fechamento):
+  //   - fatura ainda aberta, vence 07/jul → competência = JULHO
+  //
+  // Lançamento em 28/jun (após o fechamento):
+  //   - fatura fechou, próxima vence 07/ago → competência = AGOSTO
+  //   - "já fechou" ativado → vence 07/set → competência = SETEMBRO
+
+  const d = new Date(dateStr + 'T12:00:00');
+  const intv = parseInt(interval);
+  const day = d.getDate(), month = d.getMonth(), year = d.getFullYear();
+
+  // Dia de fechamento da fatura dentro do mês
+  // closeDay <= 0 significa que o fechamento ocorre no mês anterior ao vencimento
+  const closeDay = dueDay - intv;
+
+  // Determina se a fatura atual (que vence no próximo mês relativo ao fechamento) já fechou
+  let faturaFechou;
+  if (closeDay <= 0) {
+    // Fechamento ocorre no mês ANTERIOR ao vencimento
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const closingDay = daysInMonth + closeDay; // ex: 30 + (-3) = 27
+    faturaFechou = (day > closingDay); // dia 28+ → fechou; dia 27- → ainda aberta
   } else {
-    // Fechamento ocorre no mesmo mês do vencimento
-    if(day<=closeDay){compMonth=month;compYear=year;}
-    else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}}
+    // Fechamento no mesmo mês do vencimento
+    faturaFechou = (day > closeDay);
   }
-  // Toggle "fatura já fechou" → avança mais 1 mês sobre o calculado
-  if(alreadyClosed){compMonth+=1;if(compMonth>11){compMonth=0;compYear++;}}
-  return `${compYear}-${String(compMonth+1).padStart(2,'0')}-01`;
+
+  // Se usuário marcou manualmente que já fechou, força como fechada
+  if (alreadyClosed) faturaFechou = true;
+
+  // A fatura que está ABERTA vence no próximo mês após o fechamento
+  // Se ainda aberta: vence mês+1 (se closeDay<=0) ou mesmo mês+1 (sempre 1 mês à frente do lançamento pois vence depois)
+  // Mais simples: a fatura aberta vence no mês M onde M é o próximo mês que tem dia dueDay após o fechamento
+
+  // Mês da competência = mês em que a fatura vai vencer
+  // - Fatura aberta: vence no mês seguinte ao mês do lançamento (se closeDay<=0) ou no próprio mês de vencimento
+  // Abordagem direta: calcular o mês de vencimento da fatura atual
+
+  let dueMonth, dueYear;
+  if (closeDay <= 0) {
+    // Fatura fecha no mês anterior ao vencimento → vence no mês SEGUINTE ao mês do fechamento
+    // Mês do fechamento = month (mês do lançamento), portanto vence em month+1
+    dueMonth = month + 1;
+    dueYear = year;
+    if (dueMonth > 11) { dueMonth = 0; dueYear++; }
+  } else {
+    // Fatura fecha e vence no mesmo mês
+    dueMonth = month;
+    dueYear = year;
+    // Se o lançamento é após o fechamento, a fatura que irá conter este gasto vence no mês seguinte
+  }
+
+  if (faturaFechou) {
+    // Avança para a próxima fatura
+    dueMonth += 1;
+    if (dueMonth > 11) { dueMonth = 0; dueYear++; }
+  }
+
+  return `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}-01`;
 }
 function formatCompetence(dateStr){const[y,m]=dateStr.split('-');return `${MONTHS[parseInt(m)-1]} / ${y}`;}
 
@@ -2079,35 +2125,14 @@ window.toggleValues = function() {
 };
 
 function applyValuesVisibility() {
+  // Atualiza ícones do olho
   const eyeOpen = document.getElementById('eye-icon-open');
   const eyeClosed = document.getElementById('eye-icon-closed');
   if (eyeOpen) eyeOpen.style.display = valuesHidden ? 'none' : '';
   if (eyeClosed) eyeClosed.style.display = valuesHidden ? '' : 'none';
-
-  const ids = ['home-total','home-credit','home-debit','home-count',
-                'bill-total','bill-paid-total','bill-open-total'];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (valuesHidden) {
-      // Salva valor real só se ainda não foi ocultado
-      if (!el.dataset.hidden) { el.dataset.realValue = el.textContent; el.dataset.hidden = '1'; }
-      el.textContent = id === 'home-count' ? '—' : HIDDEN_TEXT;
-    } else {
-      if (el.dataset.realValue) el.textContent = el.dataset.realValue;
-      delete el.dataset.hidden;
-    }
-  });
-
-  document.querySelectorAll('.tx-amount').forEach(el => {
-    if (valuesHidden) {
-      if (!el.dataset.hidden) { el.dataset.realValue = el.textContent; el.dataset.hidden = '1'; }
-      el.textContent = (el.classList.contains('out') ? '- ' : '+ ') + HIDDEN_TEXT;
-    } else {
-      if (el.dataset.realValue) el.textContent = el.dataset.realValue;
-      delete el.dataset.hidden;
-    }
-  });
+  // Rerenderiza a home para aplicar/remover máscaras
+  const pageHome = document.getElementById('page-home');
+  if (pageHome && pageHome.classList.contains('active')) renderHome();
 }
 
 // Restaura estado ao carregar
