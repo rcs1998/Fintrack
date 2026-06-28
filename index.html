@@ -163,7 +163,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-label{font-size:15px;font-weight:500;color:var(--text2)}
 .empty-sub{font-size:13px;margin-top:6px}
-.fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.55);border:none;color:#fff;font-size:28px;font-weight:300;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform .2s;z-index:999;line-height:1}
+.fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.55);border:none;color:#fff;font-size:28px;font-weight:300;cursor:pointer;display:none;align-items:center;justify-content:center;transition:transform .2s;z-index:100;line-height:1}
 .fab:active{transform:scale(.92)}
 .fab.visible{display:flex}
 .fab.fab-locked{display:none!important}
@@ -1128,7 +1128,10 @@ function updateSetupLock() {
   });
 }
 
-function showAuth() { localStorage.setItem('ft_ob_seen','1'); document.getElementById('loading-screen').style.display='none'; document.getElementById('onboarding-screen').style.display='none'; document.getElementById('auth-screen').style.display='flex'; document.getElementById('app').style.display='none'; }
+function showAuth() { localStorage.setItem('ft_ob_seen','1'); document.getElementById('loading-screen').style.display='none'; document.getElementById('onboarding-screen').style.display='none'; document.getElementById('auth-screen').style.display='flex'; document.getElementById('app').style.display='none'; const fab=document.getElementById('main-fab');if(fab)fab.classList.remove('visible'); }
+
+function fabHide(){const f=document.getElementById('main-fab');if(f)f.classList.remove('visible');}
+function fabShowIfHome(){const f=document.getElementById('main-fab');if(!f||f.classList.contains('fab-locked'))return;const ph=document.getElementById('page-home');if(ph&&ph.classList.contains('active'))f.classList.add('visible');}
 
 function userRef() { return doc(db,'users',currentUser.uid); }
 function txCol() { return collection(db,'users',currentUser.uid,'transactions'); }
@@ -1452,6 +1455,7 @@ window.deleteBill = async function() {
 
 window.openModal = function() {
   if(isSetupIncomplete()){showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco antes de lançar',false);showPage('config');return;}
+  fabHide();
   amountCents=0;amountRaw='';selectedType='credit';selectedBank='';selectedCardIdx=-1;faturaJaFechou=false;splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
   updateAmountDisplay();
   document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));
@@ -1469,7 +1473,7 @@ window.openModal = function() {
   goStep(1);
   document.getElementById('modal').classList.add('open');
 };
-window.closeModal = function() { document.getElementById('modal').classList.remove('open'); };
+window.closeModal = function() { document.getElementById('modal').classList.remove('open'); fabShowIfHome(); };
 
 window.goStep = function(n) {
   [1,2,3,4].forEach(i=>{
