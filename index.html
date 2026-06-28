@@ -1064,6 +1064,7 @@ let amountCents = 0; // valor em centavos (inteiro)
 let amountRaw = ''; // mantido para compatibilidade
 let selectedType = 'credit';
 let selectedBank = '';
+let selectedCardIdx = -1;
 let splitActive = false;
 let splitSelected = [];
 let instActive = false;
@@ -1451,7 +1452,7 @@ window.deleteBill = async function() {
 
 window.openModal = function() {
   if(isSetupIncomplete()){showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco antes de lançar',false);showPage('config');return;}
-  amountCents=0;amountRaw='';selectedType='credit';selectedBank='';faturaJaFechou=false;splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
+  amountCents=0;amountRaw='';selectedType='credit';selectedBank='';selectedCardIdx=-1;faturaJaFechou=false;splitActive=false;splitSelected=[];instActive=false;instCount=2;recurringActive=false;
   updateAmountDisplay();
   document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));
   document.querySelector('[data-type="credit"]').classList.add('selected');
@@ -1490,6 +1491,9 @@ function populateStep2() {
   document.getElementById('f-card').innerHTML=userConfig.cards.length
     ?userConfig.cards.map((c,i)=>`<option value="${i}">${c.name} (vence dia ${c.dueDay})</option>`).join('')
     :'<option value="">— Nenhum cartão cadastrado —</option>';
+  // Salva índice do cartão em variável JS (evita perda em display:none no iOS)
+  selectedCardIdx = userConfig.cards.length ? 0 : -1;
+  document.getElementById('f-card').onchange = () => { selectedCardIdx = parseInt(document.getElementById('f-card').value); };
   // ✅ FIX banco: popula select com values explícitos E salva em variável JS
   const bankSel=document.getElementById('f-bank');
   bankSel.innerHTML=userConfig.banks.length
@@ -1523,8 +1527,8 @@ function populateStep4() {
   document.getElementById('sum-amount').className='summary-amount'+(isIn?' in':'');
   document.getElementById('sum-amount').textContent=(isIn?'+ ':'-  ')+fmt(amount);
   let myAmt=amount;if(splitActive&&splitSelected.length>0)myAmt=amount/(splitSelected.length+1);
-  const cardIdx=parseInt(document.getElementById('f-card').value);
-  const card=!isNaN(cardIdx)?userConfig.cards[cardIdx]:null;
+  const cardIdx = selectedCardIdx >= 0 ? selectedCardIdx : parseInt(document.getElementById('f-card').value);
+  const card=(!isNaN(cardIdx)&&cardIdx>=0)?userConfig.cards[cardIdx]:null;
   const dateVal=document.getElementById('f-date').value;
   let compDate=dateVal;if(selectedType==='credit'&&card)compDate=calcCompetence(dateVal,card.dueDay,card.interval,faturaJaFechou);
   const bankVal=selectedBank||document.getElementById('f-bank').value;
@@ -1622,16 +1626,15 @@ function formatCompetence(dateStr){const[y,m]=dateStr.split('-');return `${MONTH
 window.confirmLaunch = async function() {
   const amount=parseAmount();
   if(!amount){showToast('⚠️ Informe o valor',false);return;}
-  const cardIdxRaw=document.getElementById('f-card').value;
-  const cardChosen=cardIdxRaw!==''&&!isNaN(parseInt(cardIdxRaw));
-  // ✅ FIX banco: usa variável JS, não lê do DOM (select pode estar oculto em iOS)
+  // Usa variável JS para cartão (evita perda em display:none no iOS)
+  const cardIdx = selectedCardIdx >= 0 ? selectedCardIdx : parseInt(document.getElementById('f-card').value);
+  const cardChosen = !isNaN(cardIdx) && cardIdx >= 0 && userConfig.cards[cardIdx];
   const bankVal=selectedBank||document.getElementById('f-bank').value;
   if(selectedType==='credit'&&(!userConfig.cards.length||!cardChosen)){showToast('⚠️ Cadastre e selecione um cartão para Crédito',false);return;}
   if(selectedType!=='credit'&&(!userConfig.banks.length||!bankVal)){showToast('⚠️ Cadastre e selecione um banco para Débito/Pix/Entrada',false);return;}
   const btn=document.getElementById('confirm-btn');btn.disabled=true;btn.textContent='Salvando...';
   const dateVal=document.getElementById('f-date').value||new Date().toISOString().split('T')[0];
-  const cardIdx=cardIdxRaw!==''&&!isNaN(parseInt(cardIdxRaw))?parseInt(cardIdxRaw):-1;
-  const card=cardIdx>=0?userConfig.cards[cardIdx]:null;
+  const card=cardChosen?userConfig.cards[cardIdx]:null;
   const person=document.getElementById('f-person').value||userConfig.persons[0]||'Eu';
   const category=document.getElementById('f-cat').value||userConfig.categories[0]||'Outros';
   const title=document.getElementById('f-title').value||'';
