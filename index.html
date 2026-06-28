@@ -163,11 +163,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-label{font-size:15px;font-weight:500;color:var(--text2)}
 .empty-sub{font-size:13px;margin-top:6px}
-.fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.55);border:none;color:#fff;font-size:26px;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;z-index:999}
+.fab{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary-gradient);box-shadow:0 8px 32px rgba(108,99,255,.55);border:none;color:#fff;font-size:28px;font-weight:300;cursor:pointer;display:none;align-items:center;justify-content:center;transition:all .2s;z-index:999;line-height:1}
 .fab:active{transform:scale(.92)}
 #app.logged-in.page-home .fab{display:flex!important}
-#app.logged-in .fab{display:flex!important}
-#app.logged-in.page-bills .fab{display:flex!important}
+#app.logged-in.page-bills .fab{display:none!important}
 #app.logged-in.page-report .fab{display:none!important}
 #app.logged-in.page-config .fab{display:none!important}
 .fab.fab-locked{display:none!important}
@@ -515,7 +514,7 @@ select.field-input option{background:#03002A}
         <div class="balance-card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="balance-label" style="margin-bottom:0">Gastos do mês</div>
-            <button id="toggle-values-btn" onclick="toggleValues()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:20px;padding:4px 0 4px 8px;line-height:1">👁</button>
+            <button id="toggle-values-btn" onclick="toggleValues()" style="background:none;border:none;color:rgba(255,255,255,0.55);cursor:pointer;padding:4px 0 4px 8px;line-height:1;display:flex;align-items:center;transition:opacity .2s" aria-label="Ocultar valores"><svg id="eye-icon-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><svg id="eye-icon-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button>
           </div>
           <div class="balance-value" id="home-total">R$ 0,00</div>
           <div class="balance-meta">
@@ -670,7 +669,7 @@ select.field-input option{background:#03002A}
 
   <!-- ✅ FIX 1: FAB inteligente -->
   <!-- FAB movido para dentro da home -->
-  <button class="fab" id="main-fab" onclick="smartOpen()">＋</button>
+  <button class="fab" id="main-fab" onclick="openModal()" aria-label="Novo lançamento">+</button>
   <div class="toast" id="toast"></div>
 </div>
 
@@ -1547,13 +1546,6 @@ function populateStep4() {
 }
 
 function calcCompetence(dateStr,dueDay,interval,alreadyClosed=false) {
-  // Se o usuário marcou que a fatura já fechou, vai direto pro próximo mês
-  if (alreadyClosed) {
-    const d2=new Date(dateStr+'T12:00:00');
-    let m=d2.getMonth()+1, y=d2.getFullYear();
-    if(m>11){m=0;y++;}
-    return `${y}-${String(m+1).padStart(2,'0')}-01`;
-  }
   const d=new Date(dateStr+'T12:00:00');
   const intv=parseInt(interval);
   const month=d.getMonth(),year=d.getFullYear(),day=d.getDate();
@@ -1562,15 +1554,17 @@ function calcCompetence(dateStr,dueDay,interval,alreadyClosed=false) {
   let compMonth,compYear;
   if(closeDay<=0){
     // Fecha no mês anterior ao vencimento
-    // Ex: vence dia 5, intervalo 10 → fecha dia 25 do mês anterior
-    // Se lançamento é depois do dia (30+closeDay), vai pro mês do vencimento
-    // Senão, fica no mês atual
     const adjustedClose = 30 + closeDay; // ex: -5 → 25
     if(day<=adjustedClose){compMonth=month;compYear=year;}
     else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}}
   } else {
     if(day<=closeDay){compMonth=month;compYear=year;}
     else{compMonth=month+1;compYear=year;if(compMonth>11){compMonth=0;compYear++;}}
+  }
+  // Se o usuário marcou que a fatura já fechou, avança mais um mês
+  if (alreadyClosed) {
+    compMonth+=1;
+    if(compMonth>11){compMonth=0;compYear++;}
   }
   return `${compYear}-${String(compMonth+1).padStart(2,'0')}-01`;
 }
@@ -1646,6 +1640,24 @@ window.selectType = function(el){document.querySelectorAll('.pill').forEach(p=>p
 window.toggleFaturaClosed = function() {
   faturaJaFechou = !faturaJaFechou;
   document.getElementById('f-closed-toggle').classList.toggle('on', faturaJaFechou);
+  // Atualiza sub-label dinamicamente com o mês alvo
+  const sub = document.querySelector('#f-closed-wrap .toggle-sub');
+  if (sub) {
+    if (faturaJaFechou) {
+      // Calcula qual mês ficaria
+      const cardIdx = parseInt(document.getElementById('f-card').value);
+      const card = !isNaN(cardIdx) ? userConfig.cards[cardIdx] : null;
+      const dateVal = document.getElementById('f-date').value;
+      if (card && dateVal) {
+        const comp = calcCompetence(dateVal, card.dueDay, card.interval, true);
+        sub.textContent = '→ Lançará em ' + formatCompetence(comp);
+      } else {
+        sub.textContent = 'Lança na fatura do mês seguinte';
+      }
+    } else {
+      sub.textContent = 'Lança na fatura do mês seguinte';
+    }
+  }
 };
 
 window.toggleRecurring = function(){recurringActive=!recurringActive;document.getElementById('recurring-toggle').classList.toggle('on',recurringActive);document.getElementById('recurring-panel').style.display=recurringActive?'block':'none';if(recurringActive&&instActive){instActive=false;document.getElementById('inst-toggle').classList.remove('on');document.getElementById('inst-panel').style.display='none';}};
@@ -2064,8 +2076,10 @@ window.toggleValues = function() {
 };
 
 function applyValuesVisibility() {
-  const btn = document.getElementById('toggle-values-btn');
-  if (btn) btn.textContent = valuesHidden ? '🙈' : '👁';
+  const eyeOpen = document.getElementById('eye-icon-open');
+  const eyeClosed = document.getElementById('eye-icon-closed');
+  if (eyeOpen) eyeOpen.style.display = valuesHidden ? 'none' : '';
+  if (eyeClosed) eyeClosed.style.display = valuesHidden ? '' : 'none';
 
   const ids = ['home-total','home-credit','home-debit','home-count',
                 'bill-total','bill-paid-total','bill-open-total'];
