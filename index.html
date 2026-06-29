@@ -935,6 +935,24 @@ select.field-input option{background:#03002A}
   </div>
 </div>
 
+<!-- MODAL DETALHE DE GRUPO (categoria / titular / cartão) -->
+<div class="modal-overlay" id="modal-group">
+  <div class="modal-sheet" style="max-height:85vh;display:flex;flex-direction:column">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-group-title">—</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px" id="modal-group-count"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:18px;font-weight:700;color:var(--accent)" id="modal-group-total">—</div>
+        <button class="modal-close" onclick="document.getElementById('modal-group').classList.remove('open')">✕</button>
+      </div>
+    </div>
+    <div id="modal-group-list" style="overflow-y:auto;flex:1;padding:0 16px 24px"></div>
+  </div>
+</div>
+
 <!-- MODAL DETALHES LANÇAMENTO -->
 <div class="modal-overlay" id="modal-detail">
   <div class="modal-sheet">
@@ -1995,21 +2013,68 @@ function renderEvolution() {
 function renderReport(){
   renderEvolution();
   const txs=getFilteredTxs();const total=txs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
-  function renderBreakdown(id,keyFn,clickable=false){
-    const map={};txs.forEach(t=>{const k=keyFn(t)||'Outros';map[k]=(map[k]||0)+(t.myAmount??t.amount);});
+  function renderBreakdown(id,keyFn,groupType){
+    const map={};
+    const txMap={};
+    txs.forEach(t=>{
+      const k=keyFn(t)||'Outros';
+      map[k]=(map[k]||0)+(t.myAmount??t.amount);
+      if(!txMap[k])txMap[k]=[];
+      txMap[k].push(t);
+    });
     const entries=Object.entries(map).sort((a,b)=>b[1]-a[1]);
     if(!entries.length){document.getElementById(id).innerHTML='<div style="padding:12px;color:var(--text3);font-size:13px">Sem dados</div>';return;}
     document.getElementById(id).innerHTML=entries.map(([k,v])=>{
       const pct=total>0?v/total:0;
-      const clickAttr=clickable?`onclick="openPersonModal('${k}')" `:'';
-      const arrow=clickable?`<span style="color:var(--accent);font-size:14px;margin-left:4px">›</span>`:'';
-      return `<div class="report-row${clickable?' clickable':''}" ${clickAttr}><div style="font-size:13px;min-width:80px">${k}${arrow}</div><div class="report-bar-wrap"><div class="report-bar" style="width:${Math.round(pct*100)}%"></div></div><div class="report-val">${fmt(v)}</div></div>`;
+      const safeKey=encodeURIComponent(k);
+      const clickAttr=`onclick="openGroupModal('${groupType}','${safeKey}')" `;
+      return `<div class="report-row clickable" ${clickAttr}>
+        <div style="font-size:13px;min-width:80px;display:flex;align-items:center;gap:4px">${k}<span style="color:var(--accent);font-size:14px">›</span></div>
+        <div class="report-bar-wrap"><div class="report-bar" style="width:${Math.round(pct*100)}%"></div></div>
+        <div class="report-val">${fmt(v)}</div>
+      </div>`;
     }).join('');
   }
-  renderBreakdown('report-cat',t=>t.category);
-  renderBreakdown('report-person',t=>t.person,true);
-  renderBreakdown('report-card-data',t=>t.type==='credit'?(t.card||'—'):(t.bank||t.card||'—'));
+  renderBreakdown('report-cat',t=>t.category,'cat');
+  renderBreakdown('report-person',t=>t.person,'person');
+  renderBreakdown('report-card-data',t=>t.type==='credit'?(t.card||'—'):(t.bank||t.card||'—'),'card');
 }
+
+// Modal genérico de detalhe de grupo
+window.openGroupModal = function(groupType, safeKey) {
+  const key = decodeURIComponent(safeKey);
+  const txs = getFilteredTxs();
+  let filtered;
+  if (groupType === 'cat') filtered = txs.filter(t => (t.category||'Outros') === key);
+  else if (groupType === 'person') filtered = txs.filter(t => (t.person||'') === key);
+  else filtered = txs.filter(t => (t.type==='credit'?(t.card||'—'):(t.bank||t.card||'—')) === key);
+
+  filtered.sort((a,b) => (b.competenceDate||b.date).localeCompare(a.competenceDate||a.date));
+  const total = filtered.reduce((s,t)=>s+(t.myAmount??t.amount),0);
+
+  const typeTag={credit:'tag-credit',debit:'tag-debit',pix:'tag-pix',transfer_out:'tag-debit',transfer_in:'tag-green'};
+  const typeLabel={credit:'Crédito',debit:'Débito',pix:'Pix',transfer_out:'Transf.',transfer_in:'Entrada'};
+
+  const rows = filtered.map(t=>{
+    const isOut = t.type !== 'transfer_in';
+    const amt = t.myAmount ?? t.amount;
+    const inst = t.installmentOf ? ` (${t.installmentNum}/${t.installmentOf}x)` : '';
+    return `<div class="transaction-item" onclick="openDetailModal('${t.id}');document.getElementById('modal-group').classList.remove('open')">
+      <div class="tx-icon" style="background:${isOut?'var(--red-soft)':'var(--green-soft)'}">${CAT_ICONS[t.category]||'📦'}</div>
+      <div class="tx-info">
+        <div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
+        <div class="tx-meta">${fmtDate(t.date)} · <span class="tag ${typeTag[t.type]||''}">${typeLabel[t.type]||t.type}</span></div>
+      </div>
+      <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
+    </div>`;
+  }).join('') || '<div style="padding:20px;text-align:center;color:var(--text3)">Nenhum lançamento</div>';
+
+  document.getElementById('modal-group-title').textContent = key;
+  document.getElementById('modal-group-total').textContent = fmt(total);
+  document.getElementById('modal-group-count').textContent = `${filtered.length} lançamento${filtered.length!==1?'s':''}`;
+  document.getElementById('modal-group-list').innerHTML = rows;
+  document.getElementById('modal-group').classList.add('open');
+};
 
 function renderConfig(){renderCardsList();renderChips('cat-chips',userConfig.categories,'removeCategory');renderChips('person-chips',userConfig.persons,'removePerson');renderChips('bank-chips',userConfig.banks,'removeBank');}
 function renderChips(id,arr,fn){document.getElementById(id).innerHTML=arr.map((item,i)=>`<div class="config-chip">${item} <span class="remove" onclick="window['${fn}'](${i})">✕</span></div>`).join('');}
@@ -2269,7 +2334,7 @@ window.switchInstallOS = function(os, el) {
   document.getElementById('install-android').classList.toggle('active', os==='android');
 };
 
-['modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
+['modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install','modal-group'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
 // Modal de lançamento usa closeModal() para restaurar o FAB
 const modalEl=document.getElementById('modal');if(modalEl)modalEl.addEventListener('click',function(e){if(e.target===this)closeModal();});
 
