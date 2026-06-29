@@ -1,26 +1,25 @@
-const CACHE = 'fintrack-v4';
+const CACHE = 'fintrack-v5';
 
+// Só cacheia fontes — nunca o app em si
 const STATIC_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap',
   'https://fonts.gstatic.com/s/sora/v12/xMQOuFFYT72X5wkB_18qmnndmSfSnCSud4Rvzd1K_A.woff2',
 ];
 
 self.addEventListener('install', e => {
-  self.skipWaiting();
+  self.skipWaiting(); // assume controle imediatamente
   e.waitUntil(
     caches.open(CACHE).then(c =>
-      Promise.allSettled(STATIC_ASSETS.map(url =>
-        c.add(url).catch(() => {})
-      ))
+      Promise.allSettled(STATIC_ASSETS.map(url => c.add(url).catch(() => {})))
     )
   );
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
@@ -32,7 +31,15 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = e.request.url;
 
-  // Nunca cacheia Firebase/Firestore/Auth
+  // NUNCA intercepta o index.html — deixa o browser buscar sempre da rede
+  if (
+    url.endsWith('/') ||
+    url.endsWith('/index.html') ||
+    url.includes('index.html') ||
+    url === self.location.origin + '/'
+  ) return;
+
+  // NUNCA intercepta Firebase
   if (
     url.includes('firestore.googleapis.com') ||
     url.includes('identitytoolkit.googleapis.com') ||
@@ -41,31 +48,16 @@ self.addEventListener('fetch', e => {
     url.includes('/__/auth/')
   ) return;
 
-  // index.html e o próprio app: Network First — sempre busca versão nova
-  // Se offline, usa cache como fallback
-  if (url.endsWith('/') || url.endsWith('index.html') || url.endsWith('sw.js')) {
+  // Fontes: Cache First
+  if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com')) {
     e.respondWith(
-      fetch(e.request).then(response => {
-        const clone = response.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-        return response;
-      }).catch(() => caches.match(e.request))
+      caches.open(CACHE).then(cache =>
+        cache.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+          cache.put(e.request, res.clone());
+          return res;
+        }))
+      )
     );
-    return;
   }
-
-  // Fontes e assets estáticos: Cache First com atualização em background
-  e.respondWith(
-    caches.open(CACHE).then(cache =>
-      cache.match(e.request).then(cached => {
-        const networkFetch = fetch(e.request).then(response => {
-          if (response && response.status === 200) {
-            cache.put(e.request, response.clone());
-          }
-          return response;
-        }).catch(() => cached);
-        return cached || networkFetch;
-      })
-    )
-  );
+  // Todo o resto: sem interceptação, vai direto para a rede
 });
