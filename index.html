@@ -594,13 +594,33 @@ select.field-input option{background:#03002A}
         </div>
         <!-- Gráfico de evolução mensal -->
       <div class="report-card" id="report-evolution-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div class="report-card-title" style="margin-bottom:0">📈 Evolução mensal</div>
           <div style="display:flex;gap:6px" id="evolution-type-btns">
-            <button class="report-type-btn active" style="padding:5px 10px;font-size:11px" data-etype="all" onclick="setEvolutionType('all',this)">Todos</button>
+            <button class="report-type-btn active" style="padding:5px 10px;font-size:11px" data-etype="all" onclick="setEvolutionType('all',this)">Gastos</button>
             <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="credit" onclick="setEvolutionType('credit',this)">Crédito</button>
             <button class="report-type-btn debit" style="padding:5px 10px;font-size:11px" data-etype="debitpix" onclick="setEvolutionType('debitpix',this)">Déb/Pix</button>
+            <button class="report-type-btn" style="padding:5px 10px;font-size:11px;background:rgba(34,197,94,.12);color:#22C55E;border-color:#22C55E" data-etype="bills" onclick="setEvolutionType('bills',this)">Contas</button>
           </div>
+        </div>
+        <!-- Seletor de período -->
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="display:flex;gap:4px">
+            <button class="report-type-btn active" id="evo-per-3" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(3,this)">3m</button>
+            <button class="report-type-btn" id="evo-per-6" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(6,this)">6m</button>
+            <button class="report-type-btn" id="evo-per-12" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(12,this)">12m</button>
+            <button class="report-type-btn" id="evo-per-custom" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod('custom',this)">Período</button>
+          </div>
+          <div id="evo-custom-dates" style="display:none;display:none;gap:6px;align-items:center;flex-wrap:wrap">
+            <input type="month" id="evo-from" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
+            <span style="color:var(--text3);font-size:12px">até</span>
+            <input type="month" id="evo-to" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
+          </div>
+        </div>
+        <!-- Legenda -->
+        <div id="evo-legend" style="display:flex;gap:14px;margin-bottom:8px;font-size:11px;color:var(--text2)">
+          <span id="evo-leg-tx" style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#6C63FF;display:inline-block"></span>Gastos</span>
+          <span id="evo-leg-bills" style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#22C55E;display:inline-block"></span>Contas pagas</span>
         </div>
         <div id="report-evolution" style="position:relative;height:160px;overflow:visible"></div>
       </div>
@@ -1821,6 +1841,9 @@ function getFilteredTxs(){
 }
 
 let evolutionType = 'all';
+let evoPeriodMonths = 3;
+let evoPeriodCustom = false;
+
 window.setEvolutionType = function(type, el) {
   evolutionType = type;
   document.querySelectorAll('#evolution-type-btns .report-type-btn').forEach(b=>b.classList.remove('active'));
@@ -1828,76 +1851,141 @@ window.setEvolutionType = function(type, el) {
   renderEvolution();
 };
 
+window.setEvoPeriod = function(val, el) {
+  document.querySelectorAll('#evo-per-3,#evo-per-6,#evo-per-12,#evo-per-custom').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const customDates = document.getElementById('evo-custom-dates');
+  if (val === 'custom') {
+    evoPeriodCustom = true;
+    customDates.style.display = 'flex';
+    // Preenche com o último mês como padrão se vazio
+    const now = new Date();
+    const toDefault = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const fromDefault = `${now.getFullYear()}-${String(now.getMonth()-5+1 < 1 ? now.getMonth()-5+13 : now.getMonth()-5+1).padStart(2,'0')}`;
+    if (!document.getElementById('evo-from').value) document.getElementById('evo-from').value = fromDefault;
+    if (!document.getElementById('evo-to').value) document.getElementById('evo-to').value = toDefault;
+  } else {
+    evoPeriodCustom = false;
+    evoPeriodMonths = val;
+    customDates.style.display = 'none';
+  }
+  renderEvolution();
+};
+
+function getEvolutionMonths() {
+  const now = new Date();
+  const MLABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const months = [];
+  if (evoPeriodCustom) {
+    const fromVal = document.getElementById('evo-from')?.value;
+    const toVal = document.getElementById('evo-to')?.value;
+    if (!fromVal || !toVal) return [];
+    const [fy, fm] = fromVal.split('-').map(Number);
+    const [ty, tm] = toVal.split('-').map(Number);
+    let cy = fy, cm = fm - 1;
+    while (cy < ty || (cy === ty && cm <= tm - 1)) {
+      months.push({ year: cy, month: cm, label: MLABELS[cm] });
+      cm++; if (cm > 11) { cm = 0; cy++; }
+    }
+  } else {
+    for (let i = evoPeriodMonths - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ year: d.getFullYear(), month: d.getMonth(), label: MLABELS[d.getMonth()] });
+    }
+  }
+  return months;
+}
+
+function getBillsPaidForMonth(year, month) {
+  const pad = n => String(n).padStart(2,'0');
+  const payKey = `${year}-${pad(month+1)}`;
+  let total = 0;
+  (bills||[]).forEach(b => {
+    if (b.isRecurring) {
+      const info = (b.payments||{})[payKey];
+      if (info) total += info.value ?? b.value ?? 0;
+    } else {
+      if (b.refMonth === month && b.refYear === year && b.paid) {
+        total += b.paidValue ?? b.value ?? 0;
+      }
+    }
+  });
+  return total;
+}
+
 function renderEvolution() {
   const container = document.getElementById('report-evolution');
   if (!container) return;
-
-  // Últimos 6 meses
   const now = new Date();
-  const months = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ year: d.getFullYear(), month: d.getMonth(),
-      label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()] });
-  }
+  const months = getEvolutionMonths();
+  if (!months.length) { container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Selecione um período válido</div>'; return; }
 
-  const values = months.map(({year, month}) => {
-    return transactions
-      .filter(t => {
-        if (t.type === 'transfer_in') return false;
-        if (evolutionType === 'credit' && t.type !== 'credit') return false;
-        if (evolutionType === 'debitpix' && t.type === 'credit') return false;
-        const d = new Date((t.competenceDate||t.date)+'T12:00:00');
-        return d.getMonth()===month && d.getFullYear()===year;
-      })
-      .reduce((s,t) => s+(t.myAmount??t.amount), 0);
-  });
+  // Modo "só contas" — mostra apenas barra verde
+  const billsOnly = evolutionType === 'bills';
+  // Legenda
+  const legTx = document.getElementById('evo-leg-tx');
+  const legBills = document.getElementById('evo-leg-bills');
+  if (legTx) legTx.style.display = billsOnly ? 'none' : '';
+  if (legBills) legBills.style.display = '';
 
-  const maxVal = Math.max(...values, 1);
+  const txValues = months.map(({year, month}) =>
+    transactions.filter(t => {
+      if (t.type === 'transfer_in') return false;
+      if (evolutionType === 'credit' && t.type !== 'credit') return false;
+      if (evolutionType === 'debitpix' && t.type === 'credit') return false;
+      if (evolutionType === 'bills') return false; // sem gastos neste modo
+      const d = new Date((t.competenceDate||t.date)+'T12:00:00');
+      return d.getMonth()===month && d.getFullYear()===year;
+    }).reduce((s,t) => s+(t.myAmount??t.amount), 0)
+  );
+
+  const billValues = months.map(({year, month}) => getBillsPaidForMonth(year, month));
+
+  const maxVal = Math.max(...txValues, ...billValues, 1);
   const w = container.clientWidth || 300;
   const h = 160;
   const padL = 8, padR = 8, padT = 28, padB = 32;
-  const barW = Math.floor((w - padL - padR) / months.length);
-  const gap = Math.max(2, Math.floor(barW * 0.18));
-  const bw = barW - gap;
+  // Cada mês ocupa barW pixels; dentro tem 2 barras (ou 1 se billsOnly)
+  const barGroupW = Math.floor((w - padL - padR) / months.length);
+  const groupGap = Math.max(2, Math.floor(barGroupW * 0.15));
+  const usableW = barGroupW - groupGap;
+  const barsPerGroup = billsOnly ? 1 : 2;
+  const barGap = 2;
+  const bw = Math.floor((usableW - barGap * (barsPerGroup - 1)) / barsPerGroup);
   const chartH = h - padT - padB;
 
-  // Cor por tipo
-  const barColor = evolutionType === 'credit' ? '#6C63FF'
-    : evolutionType === 'debitpix' ? '#22C55E' : '#6C63FF';
-  const barColorLight = evolutionType === 'credit' ? 'rgba(108,99,255,0.15)'
-    : evolutionType === 'debitpix' ? 'rgba(34,197,94,0.12)' : 'rgba(108,99,255,0.15)';
+  const PURPLE = '#6C63FF', PURPLEL = 'rgba(108,99,255,0.18)';
+  const GREEN = '#22C55E', GREENL = 'rgba(34,197,94,0.15)';
 
   let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">`;
-
-  // Linha de grade superior
   svg += `<line x1="${padL}" y1="${padT}" x2="${w-padR}" y2="${padT}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>`;
 
-  values.forEach((val, i) => {
-    const x = padL + i * barW + gap/2;
-    const barH = val > 0 ? Math.max(4, Math.round((val / maxVal) * chartH)) : 4;
-    const y = padT + chartH - barH;
-    const isCurrentMonth = months[i].month === now.getMonth() && months[i].year === now.getFullYear();
+  months.forEach((mo, i) => {
+    const isCurrent = mo.month === now.getMonth() && mo.year === now.getFullYear();
+    const gx = padL + i * barGroupW + groupGap / 2;
 
-    // Barra
-    svg += `<rect x="${x}" y="${y}" width="${bw}" height="${barH}" rx="5" ry="5"
-      fill="${isCurrentMonth ? barColor : barColorLight}"
-      stroke="${isCurrentMonth ? barColor : 'none'}" stroke-width="1"/>`;
+    const drawBar = (val, barIdx, color, colorLight, showLabel) => {
+      const x = gx + barIdx * (bw + barGap);
+      const bh = val > 0 ? Math.max(4, Math.round((val / maxVal) * chartH)) : 4;
+      const y = padT + chartH - bh;
+      const fill = isCurrent ? color : colorLight;
+      svg += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="4" ry="4" fill="${fill}"/>`;
+      if (val > 0 && showLabel) {
+        const label = val >= 1000 ? 'R$'+(val/1000).toFixed(1).replace('.',',')+'k' : 'R$'+val.toFixed(0);
+        svg += `<text x="${x+bw/2}" y="${y-4}" text-anchor="middle" font-size="9" font-family="Sora,sans-serif" font-weight="600" fill="${isCurrent?color:'var(--text3)'}">${label}</text>`;
+      }
+    };
 
-    // Valor acima da barra (só se > 0)
-    if (val > 0) {
-      const label = val >= 1000
-        ? 'R$' + (val/1000).toFixed(1).replace('.',',') + 'k'
-        : 'R$' + val.toFixed(0);
-      svg += `<text x="${x + bw/2}" y="${y - 4}" text-anchor="middle"
-        font-size="9" font-family="Sora,sans-serif" font-weight="600"
-        fill="${isCurrentMonth ? barColor : 'var(--text3)'}">${label}</text>`;
+    if (billsOnly) {
+      drawBar(billValues[i], 0, GREEN, GREENL, true);
+    } else {
+      drawBar(txValues[i], 0, PURPLE, PURPLEL, months.length <= 8);
+      drawBar(billValues[i], 1, GREEN, GREENL, months.length <= 8);
     }
 
     // Label do mês
-    svg += `<text x="${x + bw/2}" y="${h - 6}" text-anchor="middle"
-      font-size="10" font-family="Sora,sans-serif" font-weight="${isCurrentMonth?'700':'500'}"
-      fill="${isCurrentMonth ? 'var(--text)' : 'var(--text3)'}">${months[i].label}</text>`;
+    const groupCenterX = gx + usableW / 2;
+    svg += `<text x="${groupCenterX}" y="${h-6}" text-anchor="middle" font-size="${months.length > 9 ? 8 : 10}" font-family="Sora,sans-serif" font-weight="${isCurrent?'700':'500'}" fill="${isCurrent?'var(--text)':'var(--text3)'}">${mo.label}${months.length > 9 ? ' '+String(mo.year).slice(2) : ''}</text>`;
   });
 
   svg += '</svg>';
