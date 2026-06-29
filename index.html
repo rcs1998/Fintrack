@@ -2421,7 +2421,26 @@ const modalEl=document.getElementById('modal');if(modalEl)modalEl.addEventListen
 
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW falhou:',err));
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      // Verifica atualização imediatamente e a cada 60s
+      reg.update();
+      setInterval(()=>reg.update(), 60000);
+      // Quando há novo SW aguardando, força ele a assumir imediatamente
+      reg.addEventListener('updatefound',()=>{
+        const newSW=reg.installing;
+        if(!newSW)return;
+        newSW.addEventListener('statechange',()=>{
+          if(newSW.state==='installed'&&navigator.serviceWorker.controller){
+            newSW.postMessage({type:'SKIP_WAITING'});
+          }
+        });
+      });
+    }).catch(err=>console.error('SW falhou:',err));
+    // Quando o SW assume o controle, recarrega a página uma vez
+    let refreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(!refreshing){refreshing=true;window.location.reload();}
+    });
   });
 }
 
