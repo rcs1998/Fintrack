@@ -253,7 +253,18 @@ select.field-input option{background:#03002A}
 .report-type-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .report-type-btn.debit.active{border-color:var(--green);color:var(--green);background:var(--green-soft)}
 .report-type-btn.pix.active{border-color:#4ade80;color:#4ade80;background:rgba(74,222,128,.1)}
-.report-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.fatura-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .2s}
+.fatura-card:hover{border-color:var(--accent)}
+.fatura-card.paga{border-color:var(--green);opacity:.75}
+.fatura-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.fatura-card-name{font-weight:700;font-size:15px}
+.fatura-card-ref{font-size:11px;color:var(--text3);margin-top:2px}
+.fatura-card-value{font-size:20px;font-weight:700;color:var(--accent)}
+.fatura-card.paga .fatura-card-value{color:var(--green)}
+.fatura-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.fatura-card-due{font-size:12px;color:var(--text3)}
+.fatura-pagar-btn{padding:7px 16px;border-radius:20px;border:none;background:var(--primary-gradient);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.fatura-pagar-btn.pago{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
 .report-card-title{font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
 .report-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
 .report-row:last-child{border-bottom:none}
@@ -565,6 +576,12 @@ select.field-input option{background:#03002A}
         </div>
         <div id="bills-list">
           <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-label">Nenhuma conta</div><div class="empty-sub">Toque em "+ Nova conta" para começar</div></div>
+        </div>
+
+        <!-- FATURAS DOS CARTÕES -->
+        <div style="margin-top:24px">
+          <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;margin-bottom:12px">💳 Faturas dos cartões</div>
+          <div id="faturas-list"></div>
         </div>
       </div>
 
@@ -1389,9 +1406,78 @@ function renderBills() {
       </div>
     </div>`;
   }).join('');
+  renderFaturas();
 }
 
-window.openBillModal = function(billId=null) {
+// ── FATURAS DOS CARTÕES ──
+// Guarda estado de pago por cartão+mês em localStorage (sem criar conta duplicada)
+function getFaturaKey(cardName, year, month) {
+  return `fatura_paga_${cardName}_${year}_${String(month+1).padStart(2,'0')}`;
+}
+
+function renderFaturas() {
+  const container = document.getElementById('faturas-list');
+  if (!container) return;
+  if (!userConfig.cards || !userConfig.cards.length) {
+    container.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">Nenhum cartão cadastrado.</div>';
+    return;
+  }
+  const m = billMonth, y = billYear;
+  const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  const cards = userConfig.cards.map(card => {
+    const intv = parseInt(card.interval) || 10;
+    const closeDay = card.dueDay - intv;
+    // Competência desta fatura: quando closeDay<=0 a fatura que VENCE em (m) tem competência (m-1)
+    // O seletor de mês mostra o mês de VENCIMENTO
+    // Então os lançamentos que caem nesta fatura têm competenceDate = y-m-01
+    const compKey = `${y}-${String(m+1).padStart(2,'0')}-01`;
+    const total = transactions
+      .filter(t => t.type === 'credit' && t.card === card.name && t.competenceDate === compKey)
+      .reduce((s, t) => s + (t.myAmount ?? t.amount), 0);
+
+    // Mês de referência para exibição = mês anterior ao vencimento quando closeDay<=0
+    let refM = closeDay <= 0 ? m - 1 : m;
+    let refY = y;
+    if (refM < 0) { refM = 11; refY--; }
+    const refLabel = `${MONTHS_PT[refM]}/${refY}`;
+
+    const pago = localStorage.getItem(getFaturaKey(card.name, y, m)) === '1';
+    return { card, total, compKey, refLabel, pago };
+  }).filter(f => f.total > 0);
+
+  if (!cards.length) {
+    container.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">Nenhum lançamento de crédito neste mês.</div>';
+    return;
+  }
+
+  container.innerHTML = cards.map(({card, total, refLabel, pago}) => `
+    <div class="fatura-card ${pago?'paga':''}">
+      <div class="fatura-card-header">
+        <div>
+          <div class="fatura-card-name">💳 ${card.name}</div>
+          <div class="fatura-card-ref">Ref. ${refLabel} · Vence dia ${card.dueDay}</div>
+        </div>
+        <div class="fatura-card-value">${fmt(total)}</div>
+      </div>
+      <div class="fatura-card-footer">
+        <div class="fatura-card-due">${pago ? '✓ Fatura paga' : 'Fatura em aberto'}</div>
+        <button class="fatura-pagar-btn ${pago?'pago':''}"
+          onclick="toggleFaturaPaga('${card.name}',${y},${m},${pago})">
+          ${pago ? 'Desfazer' : 'Marcar como paga'}
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.toggleFaturaPaga = function(cardName, y, m, isPago) {
+  const key = getFaturaKey(cardName, y, m);
+  if (isPago) localStorage.removeItem(key);
+  else localStorage.setItem(key, '1');
+  renderFaturas();
+  showToast(isPago ? 'Pagamento desfeito' : '✓ Fatura marcada como paga!', !isPago);
+}; = function(billId=null) {
   editBillId=billId; billRecurringActive=false;
   document.getElementById('bill-modal-title').textContent=billId?'Editar conta':'Nova conta';
   document.getElementById('bill-recurring-toggle').classList.remove('on');
