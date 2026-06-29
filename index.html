@@ -1477,7 +1477,9 @@ window.toggleFaturaPaga = function(cardName, y, m, isPago) {
   else localStorage.setItem(key, '1');
   renderFaturas();
   showToast(isPago ? 'Pagamento desfeito' : '✓ Fatura marcada como paga!', !isPago);
-}; = function(billId=null) {
+};
+
+window.openBillModal = function(billId=null) {
   editBillId=billId; billRecurringActive=false;
   document.getElementById('bill-modal-title').textContent=billId?'Editar conta':'Nova conta';
   document.getElementById('bill-recurring-toggle').classList.remove('on');
