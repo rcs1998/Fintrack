@@ -209,9 +209,10 @@ select.field-input option{background:#03002A}
 .toggle.on::after{transform:translateX(20px)}
 .toggle.green.on{background:var(--green)}
 .toggle.orange.on{background:var(--orange)}
-.installments-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:16px}
+.installments-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}
 .inst-btn{padding:10px 4px;border-radius:8px;text-align:center;font-size:13px;font-weight:700;font-family:'Sora',sans-serif;background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);cursor:pointer;transition:all .2s}
 .inst-btn.selected{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.inst-btn-custom{font-weight:500;font-size:12px;color:var(--text3)}
 .split-people{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .split-chip{padding:8px 14px;border-radius:20px;font-size:13px;font-weight:500;background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
 .split-chip.selected{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
@@ -763,9 +764,21 @@ select.field-input option{background:#03002A}
               <div class="inst-btn selected" onclick="selectInst(this)">2x</div>
               <div class="inst-btn" onclick="selectInst(this)">3x</div>
               <div class="inst-btn" onclick="selectInst(this)">4x</div>
+              <div class="inst-btn" onclick="selectInst(this)">5x</div>
               <div class="inst-btn" onclick="selectInst(this)">6x</div>
+              <div class="inst-btn" onclick="selectInst(this)">7x</div>
+              <div class="inst-btn" onclick="selectInst(this)">8x</div>
+              <div class="inst-btn" onclick="selectInst(this)">9x</div>
               <div class="inst-btn" onclick="selectInst(this)">10x</div>
+              <div class="inst-btn" onclick="selectInst(this)">11x</div>
               <div class="inst-btn" onclick="selectInst(this)">12x</div>
+              <div class="inst-btn" onclick="selectInst(this)">18x</div>
+              <div class="inst-btn" onclick="selectInst(this)">24x</div>
+              <div class="inst-btn inst-btn-custom" id="inst-btn-custom" onclick="selectInstCustom(this)">outro</div>
+            </div>
+            <div id="inst-custom-wrap" style="display:none;margin-top:10px">
+              <input type="number" id="inst-custom-input" class="field-input" min="2" max="99" placeholder="Quantas parcelas?" inputmode="numeric"
+                oninput="applyInstCustom(this.value)" style="text-align:center;font-size:16px;font-weight:600">
             </div>
           </div>
         </div>
@@ -1644,19 +1657,34 @@ window.confirmLaunch = async function() {
   const title=document.getElementById('f-title').value||'';
   const note=document.getElementById('f-note').value||'';
   let compDate=dateVal;if(selectedType==='credit'&&card)compDate=calcCompetence(dateVal,card.dueDay,card.interval,faturaJaFechou);
-  let myAmount=amount;if(splitActive&&splitSelected.length>0)myAmount=amount/(splitSelected.length+1);
-  const base={type:selectedType,date:dateVal,competenceDate:compDate,amount,myAmount,category,description:title,title,note,person,card:card?card.name:null,bank:selectedType!=='credit'?bankVal:null,splitWith:splitActive?splitSelected:[],createdAt:new Date().toISOString()};
+  const splitPeople=splitActive?splitSelected:[];
+  const totalParts=splitPeople.length+1;
+  let myAmount=amount;if(splitPeople.length>0)myAmount=amount/totalParts;
+  const splitAmt=splitPeople.length>0?amount/totalParts:0;
+  const base={type:selectedType,date:dateVal,competenceDate:compDate,amount,myAmount,category,description:title,title,note,person,card:card?card.name:null,bank:selectedType!=='credit'?bankVal:null,splitWith:splitPeople,createdAt:new Date().toISOString()};
+
+  // Função auxiliar: salva transações para cada pessoa do split
+  async function saveSplitTxs(baseTx, overrides={}) {
+    for(const p of splitPeople) {
+      const tx={...baseTx,...overrides,person:p,amount:splitAmt,myAmount:splitAmt,splitWith:[],splitOrigin:true};
+      if(overrides.installmentOf){tx.amount=overrides.amount;tx.myAmount=overrides.amount;}
+      const newId=await saveTx(tx);transactions.unshift({id:newId,...tx});
+    }
+  }
+
   try {
     if(recurringActive&&selectedType==='credit'){
       const recurringId=genUUID();const[cy,cm]=compDate.split('-').map(Number);
-      for(let i=0;i<12;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i};const newId=await saveTx(tx);transactions.unshift({id:newId,...tx});}
+      for(let i=0;i<12;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i};const newId=await saveTx(tx);transactions.unshift({id:newId,...tx});await saveSplitTxs(tx,{competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i});}
       closeModal();showToast('✓ Recorrência criada para 12 meses!',true);
     } else if(instActive&&selectedType==='credit'&&instCount>1){
-      const perInst=amount/instCount;const myPerInst=myAmount/instCount;const[cy,cm]=compDate.split('-').map(Number);
-      for(let i=0;i<instCount;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,amount:perInst,myAmount:myPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1};const newId=await saveTx(tx);transactions.unshift({id:newId,...tx});}
+      const perInst=amount/instCount;const myPerInst=myAmount/instCount;const splitPerInst=splitAmt/instCount;const[cy,cm]=compDate.split('-').map(Number);
+      for(let i=0;i<instCount;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,amount:perInst,myAmount:myPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1};const newId=await saveTx(tx);transactions.unshift({id:newId,...tx});await saveSplitTxs(tx,{amount:splitPerInst,myAmount:splitPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1});}
       closeModal();showToast('✓ Lançamento parcelado salvo!',true);
     } else {
-      const newId=await saveTx(base);transactions.unshift({id:newId,...base});closeModal();showToast('✓ Lançamento salvo!',true);
+      const newId=await saveTx(base);transactions.unshift({id:newId,...base});
+      await saveSplitTxs(base);
+      closeModal();showToast('✓ Lançamento salvo!',true);
     }
     renderHome();
   } catch(e){showToast('❌ Erro ao salvar. Tente novamente.',false);}
@@ -1720,8 +1748,42 @@ window.toggleRecurring = function(){recurringActive=!recurringActive;document.ge
 window.toggleSplit = function(){splitActive=!splitActive;document.getElementById('split-toggle').classList.toggle('on',splitActive);document.getElementById('split-panel').style.display=splitActive?'block':'none';if(!splitActive)splitSelected=[];updateSplitInfo();};
 window.toggleSplitPerson = function(el,name){if(splitSelected.includes(name)){splitSelected=splitSelected.filter(n=>n!==name);el.classList.remove('selected');}else{splitSelected.push(name);el.classList.add('selected');}updateSplitInfo();};
 function updateSplitInfo(){const amount=parseAmount();const total=splitSelected.length+1;const per=total>0?amount/total:0;document.getElementById('split-sub').textContent=splitSelected.length>0?`Você paga: ${fmt(per)} de ${fmt(amount)}`:'Valor individual: —';document.getElementById('split-info').innerHTML=splitSelected.length>0?`<strong>Cada pessoa paga:</strong> ${fmt(per)} · Total ${fmt(amount)} ÷ ${total}`:'Selecione as pessoas que dividem este gasto';}
-window.toggleInstallments = function(){instActive=!instActive;document.getElementById('inst-toggle').classList.toggle('on',instActive);document.getElementById('inst-panel').style.display=instActive?'block':'none';if(instActive&&recurringActive){recurringActive=false;document.getElementById('recurring-toggle').classList.remove('on');document.getElementById('recurring-panel').style.display='none';}const rtr=document.getElementById('recurring-toggle-row');rtr.style.opacity=instActive?'.4':'';rtr.style.pointerEvents=instActive?'none':'';};
-window.selectInst = function(el){document.querySelectorAll('.inst-btn').forEach(b=>b.classList.remove('selected'));el.classList.add('selected');instCount=parseInt(el.textContent);};
+window.toggleInstallments = function(){
+  instActive=!instActive;
+  document.getElementById('inst-toggle').classList.toggle('on',instActive);
+  document.getElementById('inst-panel').style.display=instActive?'block':'none';
+  if(instActive){
+    // reseta seleção para 2x e esconde campo custom
+    instCount=2;
+    document.querySelectorAll('.inst-btn').forEach(b=>b.classList.remove('selected'));
+    const first=document.querySelector('.inst-btn');if(first)first.classList.add('selected');
+    document.getElementById('inst-custom-wrap').style.display='none';
+    document.getElementById('inst-custom-input').value='';
+  }
+  if(instActive&&recurringActive){recurringActive=false;document.getElementById('recurring-toggle').classList.remove('on');document.getElementById('recurring-panel').style.display='none';}
+  const rtr=document.getElementById('recurring-toggle-row');rtr.style.opacity=instActive?'.4':'';rtr.style.pointerEvents=instActive?'none':'';
+};
+window.selectInst = function(el){
+  document.querySelectorAll('.inst-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  instCount=parseInt(el.textContent);
+  document.getElementById('inst-custom-wrap').style.display='none';
+};
+
+window.selectInstCustom = function(el){
+  document.querySelectorAll('.inst-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  const wrap=document.getElementById('inst-custom-wrap');
+  wrap.style.display='block';
+  const input=document.getElementById('inst-custom-input');
+  input.value='';
+  input.focus();
+};
+
+window.applyInstCustom = function(val){
+  const n=parseInt(val);
+  if(n>=2&&n<=99)instCount=n;
+};
 
 window.setReportFilter = function(f,el){
   reportFilter=f;document.querySelectorAll('.report-filter').forEach(x=>x.classList.remove('active'));el.classList.add('active');
