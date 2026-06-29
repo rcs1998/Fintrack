@@ -2180,6 +2180,8 @@ async function checkFaturaAuto() {
     } catch(e) { console.error('checkFaturaAuto error', e); }
   }
 }
+
+function renderReport(){
   renderEvolution();
   const txs=getFilteredTxs();const total=txs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
   function renderBreakdown(id,keyFn,groupType){
