@@ -1853,13 +1853,18 @@ function getFilteredTxs(){
     const dY=d.getFullYear(), dM=d.getMonth();
     if(reportFilter==='month') return dY===nowY&&dM===nowM;
     if(reportFilter==='1m'){
-      // Mês anterior: dY/dM >= nowY/nowM-1
       const prevY=nowM===0?nowY-1:nowY, prevM=nowM===0?11:nowM-1;
-      return (dY>prevY)||(dY===prevY&&dM>=prevM);
+      return (dY===prevY&&dM===prevM)||(dY===nowY&&dM===nowM);
     }
-    if(reportFilter==='3m') return d>=new Date(nowY,nowM-2,1);
-    if(reportFilter==='6m') return d>=new Date(nowY,nowM-5,1);
-    if(reportFilter==='year') return dY===nowY;
+    if(reportFilter==='3m'){
+      const from=new Date(nowY,nowM-2,1);
+      return d>=from&&(dY<nowY||(dY===nowY&&dM<=nowM));
+    }
+    if(reportFilter==='6m'){
+      const from=new Date(nowY,nowM-5,1);
+      return d>=from&&(dY<nowY||(dY===nowY&&dM<=nowM));
+    }
+    if(reportFilter==='year') return dY===nowY&&dM<=nowM;
     if(reportFilter==='custom'&&customDateFrom&&customDateTo){const txDate=(t.competenceDate||t.date);return txDate>=customDateFrom&&txDate<=customDateTo;}
     return true;
   });
