@@ -1205,6 +1205,7 @@ async function loadUserData() {
     const txSnap = await getDocs(query(txCol(),orderBy('createdAt','desc')));
     transactions = txSnap.docs.map(d=>({id:d.id,...d.data()}));
     try { const bSnap = await getDocs(query(billsCol(),orderBy('createdAt','desc'))); bills = bSnap.docs.map(d=>({id:d.id,...d.data()})); } catch(e){bills=[];}
+    await checkFaturaAuto();
   } catch(e) { console.error(e); }
 }
 
@@ -1844,15 +1845,21 @@ window.applyCustomFilter = function(){customDateFrom=document.getElementById('re
 
 function getFilteredTxs(){
   const now=new Date();
+  const nowY=now.getFullYear(), nowM=now.getMonth();
   return transactions.filter(t=>{
     if(t.type==='transfer_in')return false;
     if(reportTypeFilter!=='all'&&t.type!==reportTypeFilter)return false;
     const d=new Date((t.competenceDate||t.date)+'T12:00:00');
-    if(reportFilter==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-    if(reportFilter==='1m'){const from=new Date(now.getFullYear(),now.getMonth()-1,now.getDate());return d>=from;}
-    if(reportFilter==='3m')return d>=new Date(now.getFullYear(),now.getMonth()-2,1);
-    if(reportFilter==='6m')return d>=new Date(now.getFullYear(),now.getMonth()-5,1);
-    if(reportFilter==='year')return d.getFullYear()===now.getFullYear();
+    const dY=d.getFullYear(), dM=d.getMonth();
+    if(reportFilter==='month') return dY===nowY&&dM===nowM;
+    if(reportFilter==='1m'){
+      // Mês anterior: dY/dM >= nowY/nowM-1
+      const prevY=nowM===0?nowY-1:nowY, prevM=nowM===0?11:nowM-1;
+      return (dY>prevY)||(dY===prevY&&dM>=prevM);
+    }
+    if(reportFilter==='3m') return d>=new Date(nowY,nowM-2,1);
+    if(reportFilter==='6m') return d>=new Date(nowY,nowM-5,1);
+    if(reportFilter==='year') return dY===nowY;
     if(reportFilter==='custom'&&customDateFrom&&customDateTo){const txDate=(t.competenceDate||t.date);return txDate>=customDateFrom&&txDate<=customDateTo;}
     return true;
   });
@@ -1919,6 +1926,7 @@ function getBillsPaidForMonth(year, month) {
   const payKey = `${year}-${pad(month+1)}`;
   let total = 0;
   (bills||[]).forEach(b => {
+    if (b.isFaturaAuto) return; // evita duplicata com barras de gastos
     if (b.isRecurring) {
       const info = (b.payments||{})[payKey];
       if (info) total += info.value ?? b.value ?? 0;
@@ -2010,7 +2018,75 @@ function renderEvolution() {
   container.innerHTML = svg;
 }
 
-function renderReport(){
+// ── FATURA AUTOMÁTICA ──
+// Cria uma conta na aba Contas quando a fatura de um cartão fecha
+async function checkFaturaAuto() {
+  if (!userConfig.cards || !userConfig.cards.length) return;
+  const today = new Date();
+  const todayY = today.getFullYear();
+  const todayM = today.getMonth(); // 0-11
+  const todayD = today.getDate();
+
+  for (const card of userConfig.cards) {
+    const intv = parseInt(card.interval) || 10;
+    const dueDay = parseInt(card.dueDay);
+    const closeDay = dueDay - intv; // pode ser negativo
+
+    // Dia de fechamento real no mês atual
+    let closingDay, closingMonth, closingYear;
+    if (closeDay <= 0) {
+      const daysInMonth = new Date(todayY, todayM + 1, 0).getDate();
+      closingDay = daysInMonth + closeDay; // ex: 30 + (-3) = 27
+      closingMonth = todayM;
+      closingYear = todayY;
+    } else {
+      closingDay = closeDay;
+      closingMonth = todayM;
+      closingYear = todayY;
+    }
+
+    // Só age se hoje é o dia do fechamento
+    if (todayD !== closingDay || todayM !== closingMonth || todayY !== closingYear) continue;
+
+    // Competência desta fatura = mês em que ela vence
+    let compM = closeDay <= 0 ? todayM + 1 : todayM;
+    let compY = todayY;
+    if (compM > 11) { compM = 0; compY++; }
+    const compKey = `${compY}-${String(compM + 1).padStart(2,'0')}-01`;
+    const faturaKey = `fatura_${card.name}_${compKey}`;
+
+    // Verifica se já existe conta automática para este cartão/mês
+    const jaExiste = bills.some(b => b.faturaKey === faturaKey);
+    if (jaExiste) continue;
+
+    // Soma todos os lançamentos de crédito deste cartão com competência neste mês
+    const total = transactions
+      .filter(t => t.type === 'credit' && t.card === card.name && t.competenceDate === compKey && !t.splitOrigin)
+      .reduce((s, t) => s + (t.myAmount ?? t.amount), 0);
+
+    if (total <= 0) continue;
+
+    // Cria a conta automática
+    const billData = {
+      name: `Fatura Cartão ${card.name}`,
+      value: total,
+      dueDay: dueDay,
+      category: 'Cartão de Crédito',
+      isRecurring: false,
+      refMonth: compM,
+      refYear: compY,
+      paid: false,
+      isFaturaAuto: true,
+      faturaKey,
+      createdAt: new Date().toISOString()
+    };
+    try {
+      const ref = await addDoc(billsCol(), billData);
+      bills.unshift({ id: ref.id, ...billData });
+      showToast(`💳 Fatura ${card.name} criada: ${fmt(total)}`, true);
+    } catch(e) { console.error('checkFaturaAuto error', e); }
+  }
+}
   renderEvolution();
   const txs=getFilteredTxs();const total=txs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
   function renderBreakdown(id,keyFn,groupType){
