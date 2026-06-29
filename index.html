@@ -2422,24 +2422,23 @@ const modalEl=document.getElementById('modal');if(modalEl)modalEl.addEventListen
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
-      // Verifica atualização imediatamente e a cada 60s
+      // Força verificação de atualização imediata
       reg.update();
-      setInterval(()=>reg.update(), 60000);
-      // Quando há novo SW aguardando, força ele a assumir imediatamente
+      // Se há um SW novo instalado aguardando, manda ele assumir agora
+      const awaitingSW = reg.waiting || reg.installing;
+      if(awaitingSW) awaitingSW.postMessage({type:'SKIP_WAITING'});
       reg.addEventListener('updatefound',()=>{
         const newSW=reg.installing;
         if(!newSW)return;
         newSW.addEventListener('statechange',()=>{
-          if(newSW.state==='installed'&&navigator.serviceWorker.controller){
-            newSW.postMessage({type:'SKIP_WAITING'});
-          }
+          if(newSW.state==='installed') newSW.postMessage({type:'SKIP_WAITING'});
         });
       });
-    }).catch(err=>console.error('SW falhou:',err));
-    // Quando o SW assume o controle, recarrega a página uma vez
-    let refreshing=false;
+    }).catch(err=>console.error('SW erro:',err));
+    // Quando SW novo assume controle, recarrega uma vez
+    let reloading=false;
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
-      if(!refreshing){refreshing=true;window.location.reload();}
+      if(!reloading){reloading=true;window.location.reload();}
     });
   });
 }
