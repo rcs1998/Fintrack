@@ -556,7 +556,7 @@ select.field-input option{background:#03002A}
         <div style="height:16px"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Contas a Pagar</div>
-          <button class="cta-btn" onclick="openBillModal()" style="width:auto;padding:10px 16px;font-size:13px">+ Nova conta</button>
+          <button class="cta-btn" onclick="openBillModal()" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:13px">+ Nova conta</button>
         </div>
         <!-- Banner permissão de notificação -->
         <div class="notif-banner" id="notif-banner" onclick="requestNotifPermission()">
@@ -1451,8 +1451,8 @@ function renderFaturas() {
     return;
   }
 
-  container.innerHTML = cards.map(({card, total, refLabel, pago}) => `
-    <div class="fatura-card ${pago?'paga':''}">
+  container.innerHTML = cards.map(({card, total, compKey, refLabel, pago}) => `
+    <div class="fatura-card ${pago?'paga':''}" onclick="openFaturaDetail('${encodeURIComponent(card.name)}','${compKey}')">
       <div class="fatura-card-header">
         <div>
           <div class="fatura-card-name">💳 ${card.name}</div>
@@ -1463,13 +1463,44 @@ function renderFaturas() {
       <div class="fatura-card-footer">
         <div class="fatura-card-due">${pago ? '✓ Fatura paga' : 'Fatura em aberto'}</div>
         <button class="fatura-pagar-btn ${pago?'pago':''}"
-          onclick="toggleFaturaPaga('${card.name}',${y},${m},${pago})">
+          onclick="event.stopPropagation();toggleFaturaPaga('${card.name}',${y},${m},${pago})">
           ${pago ? 'Desfazer' : 'Marcar como paga'}
         </button>
       </div>
     </div>
   `).join('');
 }
+
+// Abre o detalhe de todos os lançamentos daquela fatura (cartão + mês de competência)
+window.openFaturaDetail = function(safeCardName, compKey) {
+  const cardName = decodeURIComponent(safeCardName);
+  const filtered = transactions
+    .filter(t => t.type === 'credit' && t.card === cardName && t.competenceDate === compKey)
+    .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+  const total = filtered.reduce((s,t)=>s+(t.myAmount??t.amount),0);
+  const typeTag={credit:'tag-credit',debit:'tag-debit',pix:'tag-pix'};
+  const typeLabel={credit:'Crédito'};
+
+  const rows = filtered.map(t=>{
+    const amt = t.myAmount ?? t.amount;
+    const inst = t.installmentOf ? ` (${t.installmentNum}/${t.installmentOf}x)` : '';
+    return `<div class="transaction-item" onclick="openDetailModal('${t.id}');document.getElementById('modal-group').classList.remove('open')">
+      <div class="tx-icon" style="background:var(--red-soft)">${CAT_ICONS[t.category]||'📦'}</div>
+      <div class="tx-info">
+        <div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
+        <div class="tx-meta">${fmtDate(t.date)} · ${t.person||'Eu'} · <span class="tag ${typeTag[t.type]||''}">${typeLabel[t.type]||t.type}</span></div>
+      </div>
+      <div class="tx-amount out">-${fmt(amt)}</div>
+    </div>`;
+  }).join('') || '<div style="padding:20px;text-align:center;color:var(--text3)">Nenhum lançamento</div>';
+
+  document.getElementById('modal-group-title').textContent = `💳 ${cardName}`;
+  document.getElementById('modal-group-total').textContent = fmt(total);
+  document.getElementById('modal-group-count').textContent = `${filtered.length} lançamento${filtered.length!==1?'s':''}`;
+  document.getElementById('modal-group-list').innerHTML = rows;
+  document.getElementById('modal-group').classList.add('open');
+};
 
 window.toggleFaturaPaga = function(cardName, y, m, isPago) {
   const key = getFaturaKey(cardName, y, m);
@@ -1937,7 +1968,8 @@ function getFilteredTxs(){
   return transactions.filter(t=>{
     if(t.type==='transfer_in')return false;
     if(reportTypeFilter!=='all'&&t.type!==reportTypeFilter)return false;
-    const d=new Date((t.competenceDate||t.date)+'T12:00:00');
+    let d=new Date((t.competenceDate||t.date)+'T12:00:00');
+    if(isNaN(d.getTime())) d=new Date(t.date||t.createdAt||Date.now());
     const dY=d.getFullYear(), dM=d.getMonth();
     if(reportFilter==='month') return dY===nowY&&dM===nowM;
     if(reportFilter==='1m'){
