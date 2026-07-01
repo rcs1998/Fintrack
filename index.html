@@ -162,7 +162,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .tag-pix{background:rgba(34,197,94,.1);color:#4ade80}
 .tag-recurring{background:var(--orange-soft);color:var(--orange)}
 .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
-.cat-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.cat-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .2s,background .2s}
+.cat-item:hover{border-color:var(--accent)}
+.cat-item-active{border-color:var(--accent)!important;background:var(--accent-soft)!important}
 .cat-item-icon{font-size:20px}
 .cat-item-label{font-size:10px;color:var(--text2);font-weight:500;text-align:center}
 .cat-item-value{font-size:12px;font-weight:700;font-family:'Sora',sans-serif}
@@ -547,7 +549,10 @@ select.field-input option{background:#03002A}
         </div>
         <div class="section-title">Por categoria</div>
         <div class="cat-grid" id="cat-grid"></div>
-        <div class="section-title">Últimos lançamentos</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
+          <div class="section-title" style="margin:0" id="tx-list-title">Últimos lançamentos</div>
+          <button id="show-all-btn" onclick="toggleShowAll()" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;padding:4px 0">Ver todos</button>
+        </div>
         <div class="transaction-list" id="tx-list">
           <div class="empty-state"><div class="empty-icon">💸</div><div class="empty-label">Nenhum lançamento</div><div class="empty-sub">Toque em + para registrar</div></div>
         </div>
@@ -614,36 +619,33 @@ select.field-input option{background:#03002A}
         </div>
         <!-- Gráfico de evolução mensal -->
       <div class="report-card" id="report-evolution-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div class="report-card-title" style="margin-bottom:0">📈 Evolução mensal</div>
-          <div style="display:flex;gap:6px" id="evolution-type-btns">
-            <button class="report-type-btn active" style="padding:5px 10px;font-size:11px" data-etype="all" onclick="setEvolutionType('all',this)">Gastos</button>
-            <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="credit" onclick="setEvolutionType('credit',this)">Crédito</button>
-            <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="debitpix" onclick="setEvolutionType('debitpix',this)">Déb/Pix</button>
-            <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="cash" onclick="setEvolutionType('cash',this)">Dinheiro</button>
-            <button class="report-type-btn" style="padding:5px 10px;font-size:11px;background:rgba(34,197,94,.12);color:#22C55E;border-color:#22C55E" data-etype="bills" onclick="setEvolutionType('bills',this)">Contas</button>
-          </div>
+        <div class="report-card-title">📈 Evolução mensal</div>
+        <!-- Filtros de tipo -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="evolution-type-btns">
+          <button class="report-type-btn active" style="padding:5px 10px;font-size:11px" data-etype="all" onclick="setEvolutionType('all',this)">Gastos</button>
+          <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="credit" onclick="setEvolutionType('credit',this)">Crédito</button>
+          <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="debitpix" onclick="setEvolutionType('debitpix',this)">Déb/Pix</button>
+          <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="cash" onclick="setEvolutionType('cash',this)">Dinheiro</button>
+          <button class="report-type-btn" style="padding:5px 10px;font-size:11px;background:rgba(34,197,94,.12);color:#22C55E;border-color:#22C55E" data-etype="bills" onclick="setEvolutionType('bills',this)">Contas</button>
         </div>
         <!-- Seletor de período -->
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-          <div style="display:flex;gap:4px">
-            <button class="report-type-btn" id="evo-per-3" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(3,this)">3m</button>
-            <button class="report-type-btn active" id="evo-per-6" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(6,this)">6m</button>
-            <button class="report-type-btn" id="evo-per-12" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(12,this)">12m</button>
-            <button class="report-type-btn" id="evo-per-custom" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod('custom',this)">Período</button>
-          </div>
-          <div id="evo-custom-dates" style="display:none;display:none;gap:6px;align-items:center;flex-wrap:wrap">
-            <input type="month" id="evo-from" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
-            <span style="color:var(--text3);font-size:12px">até</span>
-            <input type="month" id="evo-to" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
-          </div>
+        <div style="display:flex;gap:4px;margin-bottom:10px">
+          <button class="report-type-btn" id="evo-per-3" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(3,this)">3m</button>
+          <button class="report-type-btn active" id="evo-per-6" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(6,this)">6m</button>
+          <button class="report-type-btn" id="evo-per-12" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(12,this)">12m</button>
+          <button class="report-type-btn" id="evo-per-custom" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod('custom',this)">Período</button>
+        </div>
+        <div id="evo-custom-dates" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <input type="month" id="evo-from" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
+          <span style="color:var(--text3);font-size:12px">até</span>
+          <input type="month" id="evo-to" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
         </div>
         <!-- Legenda -->
         <div id="evo-legend" style="display:flex;gap:14px;margin-bottom:8px;font-size:11px;color:var(--text2)">
           <span id="evo-leg-tx" style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#6C63FF;display:inline-block"></span>Gastos</span>
           <span id="evo-leg-bills" style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#22C55E;display:inline-block"></span>Contas pagas</span>
         </div>
-        <div id="report-evolution" style="position:relative;height:160px;overflow:visible"></div>
+        <div id="report-evolution" style="position:relative;height:180px;overflow:visible"></div>
       </div>
       <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
         <div class="report-card"><div class="report-card-title">👤 Por titular</div><div id="report-person"></div></div>
@@ -1132,6 +1134,8 @@ let transactions = [];
 let bills = [];
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
+let showAllTx = false;
+let homeCatFilter = null; // null = todos
 let billMonth = new Date().getMonth();
 let billYear = new Date().getFullYear();
 let reportFilter = 'month';
@@ -1321,7 +1325,7 @@ window.showPage = function(p) {
   if(p==='config') renderConfig();
 };
 
-window.changeMonth = function(dir) { currentMonth+=dir; if(currentMonth>11){currentMonth=0;currentYear++;} if(currentMonth<0){currentMonth=11;currentYear--;} renderHome(); };
+window.changeMonth = function(dir) { currentMonth+=dir; if(currentMonth>11){currentMonth=0;currentYear++;} if(currentMonth<0){currentMonth=11;currentYear--;} homeCatFilter=null; showAllTx=false; renderHome(); };
 window.changeBillMonth = function(dir) { billMonth+=dir; if(billMonth>11){billMonth=0;billYear++;} if(billMonth<0){billMonth=11;billYear--;} renderBills(); };
 
 function renderHome() {
@@ -1336,11 +1340,33 @@ function renderHome() {
   document.getElementById('home-credit').textContent=fmt(credit);
   document.getElementById('home-debit').textContent=fmt(debit);
   document.getElementById('home-count').textContent=outTxs.length;
+
+  // Cat grid — clicável para filtrar
   const catMap={};
   outTxs.forEach(t=>{const c=t.category||'Outros';catMap[c]=(catMap[c]||0)+(t.myAmount??t.amount);});
   const catEntries=Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  document.getElementById('cat-grid').innerHTML=catEntries.map(([c,v])=>`<div class="cat-item"><div class="cat-item-icon">${CAT_ICONS[c]||'📦'}</div><div class="cat-item-label">${c}</div><div class="cat-item-value" style="color:var(--accent)">${fmt(v)}</div></div>`).join('');
-  const sorted=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,15);
+  document.getElementById('cat-grid').innerHTML=catEntries.map(([c,v])=>{
+    const isActive=homeCatFilter===c;
+    return `<div class="cat-item${isActive?' cat-item-active':''}" onclick="setCatFilter('${c.replace(/'/g,"\\'")}')">
+      <div class="cat-item-icon">${CAT_ICONS[c]||'📦'}</div>
+      <div class="cat-item-label">${c}</div>
+      <div class="cat-item-value" style="color:${isActive?'var(--accent)':'var(--accent)'}">${fmt(v)}</div>
+    </div>`;
+  }).join('');
+
+  // Lista de transações — aplicar filtro de categoria e limite
+  let filtered=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(homeCatFilter) filtered=filtered.filter(t=>(t.category||'Outros')===homeCatFilter);
+  const limit=showAllTx?filtered.length:15;
+  const sorted=filtered.slice(0,limit);
+  const total2=filtered.reduce((s,t)=>s+(t.myAmount??t.amount),0);
+
+  // Atualiza título da seção
+  const titleEl=document.getElementById('tx-list-title');
+  const btnEl=document.getElementById('show-all-btn');
+  if(titleEl) titleEl.textContent=homeCatFilter?`${homeCatFilter} (${filtered.length})`:`Últimos lançamentos`;
+  if(btnEl) btnEl.textContent=showAllTx?'Ver menos':'Ver todos';
+
   const typeLabel={credit:'💳 Crédito',debit:'💸 Débito',pix:'⚡ Pix',cash:'💵 Dinheiro',transfer_in:'⬆ Entrada'};
   const typeTag={credit:'tag-credit',debit:'tag-debit',pix:'tag-pix',cash:'tag-debit',transfer_in:'tag-debit'};
   const list=document.getElementById('tx-list');
@@ -1361,6 +1387,16 @@ function renderHome() {
     </div>`;
   }).join('');
 }
+
+window.setCatFilter = function(cat) {
+  homeCatFilter = homeCatFilter === cat ? null : cat; // toggle
+  showAllTx = false;
+  renderHome();
+};
+window.toggleShowAll = function() {
+  showAllTx = !showAllTx;
+  renderHome();
+};
 
 // ── CONTAS A PAGAR ──
 function getBillStatus(bill) {
@@ -2131,9 +2167,11 @@ function renderEvolution() {
       const y = padT + chartH - bh;
       const fill = isCurrent ? color : colorLight;
       svg += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="4" ry="4" fill="${fill}"/>`;
-      if (val > 0 && showLabel) {
-        const label = val >= 1000 ? 'R$'+(val/1000).toFixed(1).replace('.',',')+'k' : 'R$'+val.toFixed(0);
-        svg += `<text x="${x+bw/2}" y="${y-4}" text-anchor="middle" font-size="9" font-family="Sora,sans-serif" font-weight="600" fill="${isCurrent?color:'var(--text3)'}">${label}</text>`;
+      if (val > 0 && showLabel && months.length <= 6) {
+        const label = val >= 1000 ? 'R$'+(val/1000).toFixed(1).replace('.',',')+'k' : 'R$'+Math.round(val);
+        // stagger: first bar label above, second bar label higher to avoid overlap
+        const labelY = barIdx === 0 ? y - 14 : y - 4;
+        svg += `<text x="${x+bw/2}" y="${labelY}" text-anchor="middle" font-size="8" font-family="Sora,sans-serif" font-weight="600" fill="${isCurrent?color:'var(--text3)'}">${label}</text>`;
       }
     };
 
