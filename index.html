@@ -609,46 +609,49 @@ select.field-input option{background:#03002A}
         <div style="height:16px"></div>
         <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:16px">Relatórios</div>
 
-        <!-- GRÁFICOS LADO A LADO (desktop) / EMPILHADOS (mobile) -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px" class="charts-grid">
+        <!-- GRÁFICOS EMPILHADOS LARGURA TOTAL -->
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px">
 
-          <!-- Gráfico 1: Evolução de gastos -->
           <div class="report-card" id="report-evolution-card" style="margin-bottom:0">
             <div class="report-card-title" style="margin-bottom:8px">📈 Evolução de gastos</div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="evolution-type-btns">
-              <button class="report-type-btn active" style="padding:4px 8px;font-size:10px" data-etype="all" onclick="setEvolutionType('all',this)">Todos</button>
-              <button class="report-type-btn credit" style="padding:4px 8px;font-size:10px" data-etype="credit" onclick="setEvolutionType('credit',this)">Crédito</button>
-              <button class="report-type-btn credit" style="padding:4px 8px;font-size:10px" data-etype="debitpix" onclick="setEvolutionType('debitpix',this)">Déb/Pix</button>
-              <button class="report-type-btn credit" style="padding:4px 8px;font-size:10px" data-etype="cash" onclick="setEvolutionType('cash',this)">Dinheiro</button>
-              <button class="report-type-btn" style="padding:4px 8px;font-size:10px;background:rgba(34,197,94,.12);color:#22C55E;border-color:#22C55E" data-etype="bills" onclick="setEvolutionType('bills',this)">Contas</button>
-            </div>
-            <div style="display:flex;gap:4px;margin-bottom:8px">
-              <button class="report-type-btn" id="evo-per-3" style="padding:3px 8px;font-size:10px" onclick="setEvoPeriod(3,this)">3m</button>
-              <button class="report-type-btn active" id="evo-per-6" style="padding:3px 8px;font-size:10px" onclick="setEvoPeriod(6,this)">6m</button>
-              <button class="report-type-btn" id="evo-per-12" style="padding:3px 8px;font-size:10px" onclick="setEvoPeriod(12,this)">12m</button>
-              <button class="report-type-btn" id="evo-per-custom" style="padding:3px 8px;font-size:10px" onclick="setEvoPeriod('custom',this)">Período</button>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+              <div style="display:flex;gap:5px;flex-wrap:wrap" id="evolution-type-btns">
+                <button class="report-type-btn active" style="padding:5px 10px;font-size:11px" data-etype="all" onclick="setEvolutionType('all',this)">Todos</button>
+                <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="credit" onclick="setEvolutionType('credit',this)">Crédito</button>
+                <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="debitpix" onclick="setEvolutionType('debitpix',this)">Déb/Pix</button>
+                <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="cash" onclick="setEvolutionType('cash',this)">Dinheiro</button>
+                <button class="report-type-btn" id="evo-btn-bills" style="padding:5px 10px;font-size:11px;background:rgba(34,197,94,.12);color:#22C55E;border-color:#22C55E" data-etype="bills" onclick="setEvolutionType('bills',this)">Contas</button>
+              </div>
+              <div style="display:flex;gap:4px">
+                <button class="report-type-btn" id="evo-per-3" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(3,this)">3m</button>
+                <button class="report-type-btn active" id="evo-per-6" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(6,this)">6m</button>
+                <button class="report-type-btn" id="evo-per-12" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(12,this)">12m</button>
+                <button class="report-type-btn" id="evo-per-custom" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod('custom',this)">Período</button>
+              </div>
             </div>
             <div id="evo-custom-dates" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-              <input type="month" id="evo-from" class="field-input" style="padding:4px 8px;font-size:11px;width:120px" onchange="renderEvolution()">
-              <span style="color:var(--text3);font-size:11px">até</span>
-              <input type="month" id="evo-to" class="field-input" style="padding:4px 8px;font-size:11px;width:120px" onchange="renderEvolution()">
+              <input type="month" id="evo-from" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
+              <span style="color:var(--text3);font-size:12px">até</span>
+              <input type="month" id="evo-to" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
             </div>
-            <div id="evo-legend" style="display:flex;gap:10px;margin-bottom:6px;font-size:10px;color:var(--text2)">
-              <span id="evo-leg-tx" style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#6C63FF;display:inline-block"></span>Gastos</span>
-              <span id="evo-leg-bills" style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#22C55E;display:inline-block"></span>Contas pagas</span>
+            <div id="evo-legend" style="display:flex;gap:14px;margin-bottom:8px;font-size:11px;color:var(--text2)">
+              <span id="evo-leg-tx" style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#6C63FF;display:inline-block"></span>Gastos</span>
+              <span id="evo-leg-bills" style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#22C55E;display:inline-block"></span>Contas pagas</span>
             </div>
-            <div id="report-evolution" style="position:relative;height:160px;overflow:visible"></div>
+            <div id="report-evolution" style="position:relative;height:200px;overflow:visible"></div>
           </div>
 
           <!-- Gráfico 2: Balanço mensal -->
           <div class="report-card" id="report-saldo-card" style="margin-bottom:0">
-            <div class="report-card-title" style="margin-bottom:8px">⚖️ Balanço mensal</div>
-            <div style="display:flex;gap:10px;margin-bottom:8px;font-size:10px;color:var(--text2)">
-              <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#4ade80;display:inline-block"></span>Entradas</span>
-              <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#f87171;display:inline-block"></span>Saídas</span>
-              <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#6C63FF;display:inline-block"></span>Saldo</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div class="report-card-title" style="margin-bottom:0">⚖️ Balanço mensal</div>
+              <div style="display:flex;gap:10px;font-size:11px;color:var(--text2)">
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#4ade80;display:inline-block"></span>Entradas</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#f87171;display:inline-block"></span>Saídas</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#6C63FF;display:inline-block"></span>Saldo</span>
+              </div>
             </div>
-            <div id="report-saldo" style="position:relative;height:160px;overflow:visible"></div>
+            <div id="report-saldo" style="position:relative;height:200px;overflow:hidden"></div>
           </div>
 
         </div>
@@ -2093,10 +2096,18 @@ let evoPeriodMonths = 6;
 let evoPeriodCustom = false;
 
 window.setEvolutionType = function(type, el) {
-  evolutionType = type;
-  document.querySelectorAll('#evolution-type-btns .report-type-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
+  // "Contas" pode ser desmarcado clicando de novo (toggle)
+  if (type === 'bills' && evolutionType === 'bills') {
+    evolutionType = 'all';
+    document.querySelectorAll('#evolution-type-btns .report-type-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('#evolution-type-btns [data-etype="all"]').classList.add('active');
+  } else {
+    evolutionType = type;
+    document.querySelectorAll('#evolution-type-btns .report-type-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+  }
   renderEvolution();
+  renderSaldo();
 };
 
 window.setEvoPeriod = function(val, el) {
@@ -2118,6 +2129,7 @@ window.setEvoPeriod = function(val, el) {
     customDates.style.display = 'none';
   }
   renderEvolution();
+  renderSaldo();
 };
 
 function getEvolutionMonths() {
