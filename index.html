@@ -533,13 +533,24 @@ select.field-input option{background:#03002A}
         <div class="balance-card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div class="balance-label" style="margin-bottom:0">Gastos do mês</div>
-                        <div style="width:8px"></div>
+            <div style="width:8px"></div>
           </div>
           <div class="balance-value" id="home-total">R$ 0,00</div>
           <div class="balance-meta">
             <div class="balance-stat"><div class="balance-stat-label">Crédito</div><div class="balance-stat-value" id="home-credit">R$ 0,00</div></div>
-            <div class="balance-stat"><div class="balance-stat-label">Débito/Pix</div><div class="balance-stat-value" id="home-debit">R$ 0,00</div></div>
+            <div class="balance-stat"><div class="balance-stat-label">Déb/Pix/Din</div><div class="balance-stat-value" id="home-debit">R$ 0,00</div></div>
             <div class="balance-stat"><div class="balance-stat-label">Lançamentos</div><div class="balance-stat-value" id="home-count">0</div></div>
+          </div>
+          <!-- Segunda linha: Entradas e Saldo -->
+          <div style="border-top:1px solid rgba(255,255,255,.15);margin-top:12px;padding-top:12px;display:flex;gap:16px">
+            <div class="balance-stat" style="flex:1">
+              <div class="balance-stat-label">↑ Entradas</div>
+              <div class="balance-stat-value" id="home-income" style="color:#4ade80">R$ 0,00</div>
+            </div>
+            <div class="balance-stat" style="flex:1">
+              <div class="balance-stat-label">= Saldo</div>
+              <div class="balance-stat-value" id="home-balance" style="color:#fff">R$ 0,00</div>
+            </div>
           </div>
         </div>
         <div class="month-selector">
@@ -619,7 +630,6 @@ select.field-input option{background:#03002A}
         </div>
         <!-- Gráfico de evolução mensal -->
       <div class="report-card" id="report-evolution-card">
-        <div class="report-card-title">📈 Evolução mensal</div>
         <!-- Filtros de tipo -->
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="evolution-type-btns">
           <button class="report-type-btn active" style="padding:5px 10px;font-size:11px" data-etype="all" onclick="setEvolutionType('all',this)">Gastos</button>
@@ -648,6 +658,16 @@ select.field-input option{background:#03002A}
         <div id="report-evolution" style="position:relative;height:180px;overflow:visible"></div>
       </div>
       <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
+        <!-- Gráfico de Saldo -->
+        <div class="report-card" id="report-saldo-card">
+          <div class="report-card-title">⚖️ Balanço mensal</div>
+          <div style="display:flex;gap:14px;margin-bottom:8px;font-size:11px;color:var(--text2)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#4ade80;display:inline-block"></span>Entradas</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#f87171;display:inline-block"></span>Saídas</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#6C63FF;display:inline-block"></span>Saldo</span>
+          </div>
+          <div id="report-saldo" style="position:relative;height:180px;overflow:visible"></div>
+        </div>
         <div class="report-card"><div class="report-card-title">👤 Por titular</div><div id="report-person"></div></div>
         <div class="report-card"><div class="report-card-title">💳 Por cartão / banco</div><div id="report-card-data"></div></div>
         <div style="padding-bottom:8px">
@@ -1333,13 +1353,21 @@ function renderHome() {
   document.getElementById('month-display').textContent=`${MONTHS[m]} ${y}`;
   const txs=transactions.filter(t=>{const d=new Date((t.competenceDate||t.date)+'T12:00:00');return d.getMonth()===m&&d.getFullYear()===y;});
   const outTxs=txs.filter(t=>t.type!=='transfer_in');
+  const inTxs=txs.filter(t=>t.type==='transfer_in');
   const total=outTxs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
   const credit=outTxs.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
   const debit=outTxs.filter(t=>t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+  const income=inTxs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
+  const nonCreditOut=debit; // débito+pix+dinheiro
+  const balance=income-nonCreditOut;
   document.getElementById('home-total').textContent=fmt(total);
   document.getElementById('home-credit').textContent=fmt(credit);
   document.getElementById('home-debit').textContent=fmt(debit);
   document.getElementById('home-count').textContent=outTxs.length;
+  const incEl=document.getElementById('home-income');
+  const balEl=document.getElementById('home-balance');
+  if(incEl)incEl.textContent=fmt(income);
+  if(balEl){balEl.textContent=(balance>=0?'':'-')+fmt(Math.abs(balance));balEl.style.color=balance>=0?'#4ade80':'#f87171';}
 
   // Cat grid — clicável para filtrar
   const catMap={};
@@ -1466,25 +1494,36 @@ function renderFaturas() {
   const m = billMonth, y = billYear;
   const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+  const today = new Date();
+  const todayD = today.getDate(), todayM = today.getMonth(), todayY = today.getFullYear();
+
   const cards = userConfig.cards.map(card => {
     const intv = parseInt(card.interval) || 10;
     const closeDay = card.dueDay - intv;
-    // Competência desta fatura: quando closeDay<=0 a fatura que VENCE em (m) tem competência (m-1)
-    // O seletor de mês mostra o mês de VENCIMENTO
-    // Então os lançamentos que caem nesta fatura têm competenceDate = y-m-01
     const compKey = `${y}-${String(m+1).padStart(2,'0')}-01`;
     const total = transactions
       .filter(t => t.type === 'credit' && t.card === card.name && t.competenceDate === compKey)
       .reduce((s, t) => s + (t.myAmount ?? t.amount), 0);
 
-    // Mês de referência para exibição = mês anterior ao vencimento quando closeDay<=0
+    // Calcula se esta fatura já fechou (considerando mês/ano atual vs mês exibido)
+    let isClosed = false;
+    if (y < todayY || (y === todayY && m < todayM)) {
+      // Mês passado → sempre fechada
+      isClosed = true;
+    } else if (y === todayY && m === todayM) {
+      // Mês atual → fecha quando todayD > closingDay
+      const daysInMonth = new Date(todayY, todayM + 1, 0).getDate();
+      const closingDay = closeDay <= 0 ? daysInMonth + closeDay : closeDay;
+      isClosed = todayD > closingDay;
+    }
+    // Mês futuro → nunca fechada
+
     let refM = closeDay <= 0 ? m - 1 : m;
     let refY = y;
     if (refM < 0) { refM = 11; refY--; }
     const refLabel = `${MONTHS_PT[refM]}/${refY}`;
-
     const pago = localStorage.getItem(getFaturaKey(card.name, y, m)) === '1';
-    return { card, total, compKey, refLabel, pago };
+    return { card, total, compKey, refLabel, pago, isClosed };
   }).filter(f => f.total > 0);
 
   if (!cards.length) {
@@ -1492,17 +1531,19 @@ function renderFaturas() {
     return;
   }
 
-  container.innerHTML = cards.map(({card, total, compKey, refLabel, pago}) => `
+  container.innerHTML = cards.map(({card, total, compKey, refLabel, pago, isClosed}) => `
     <div class="fatura-card ${pago?'paga':''}" onclick="openFaturaDetail('${encodeURIComponent(card.name)}','${compKey}')">
       <div class="fatura-card-header">
         <div>
-          <div class="fatura-card-name">💳 ${card.name}</div>
+          <div class="fatura-card-name">💳 ${card.name}
+            ${isClosed ? '<span style="font-size:10px;background:rgba(239,68,68,.15);color:#EF4444;border-radius:20px;padding:2px 8px;margin-left:6px;font-weight:600">🔒 Fechada</span>' : '<span style="font-size:10px;background:rgba(34,197,94,.12);color:#22C55E;border-radius:20px;padding:2px 8px;margin-left:6px;font-weight:600">🟢 Aberta</span>'}
+          </div>
           <div class="fatura-card-ref">Ref. ${refLabel} · Vence dia ${card.dueDay}</div>
         </div>
         <div class="fatura-card-value">${fmt(total)}</div>
       </div>
       <div class="fatura-card-footer">
-        <div class="fatura-card-due">${pago ? '✓ Fatura paga' : 'Fatura em aberto'}</div>
+        <div class="fatura-card-due">${pago ? '✓ Fatura paga' : isClosed ? '⚠️ Aguardando pagamento' : 'Fatura em aberto'}</div>
         <button class="fatura-pagar-btn ${pago?'pago':''}"
           onclick="event.stopPropagation();toggleFaturaPaga('${card.name}',${y},${m},${pago})">
           ${pago ? 'Desfazer' : 'Marcar como paga'}
@@ -2261,8 +2302,95 @@ async function checkFaturaAuto() {
   }
 }
 
+function renderSaldo() {
+  const container = document.getElementById('report-saldo');
+  if (!container) return;
+  const now = new Date();
+  const months = getEvolutionMonths();
+  if (!months.length) { container.innerHTML=''; return; }
+
+  const GREEN='#4ade80', GREEN_L='rgba(74,222,128,.15)';
+  const RED='#f87171', RED_L='rgba(248,113,113,.15)';
+  const PURPLE='#6C63FF', PURPLE_L='rgba(108,99,255,.18)';
+
+  const data = months.map(({year, month}) => {
+    const pad = n => String(n).padStart(2,'0');
+    const payKey = `${year}-${pad(month+1)}`;
+    // Entradas
+    const income = transactions
+      .filter(t => t.type==='transfer_in' && new Date((t.competenceDate||t.date)+'T12:00:00').getMonth()===month && new Date((t.competenceDate||t.date)+'T12:00:00').getFullYear()===year)
+      .reduce((s,t)=>s+(t.myAmount??t.amount),0);
+    // Saídas: débito+pix+dinheiro + contas pagas + fatura se paga
+    const nonCredit = transactions
+      .filter(t => t.type!=='transfer_in' && t.type!=='credit' && new Date((t.competenceDate||t.date)+'T12:00:00').getMonth()===month && new Date((t.competenceDate||t.date)+'T12:00:00').getFullYear()===year)
+      .reduce((s,t)=>s+(t.myAmount??t.amount),0);
+    const billsPaid = getBillsPaidForMonth(year, month);
+    // Fatura paga no mês
+    const faturasPagas = (userConfig.cards||[]).reduce((s,card) => {
+      const k = getFaturaKey(card.name, year, month);
+      if (localStorage.getItem(k)==='1') {
+        const compKey = `${year}-${pad(month+1)}-01`;
+        return s + transactions.filter(t=>t.type==='credit'&&t.card===card.name&&t.competenceDate===compKey).reduce((ss,t)=>ss+(t.myAmount??t.amount),0);
+      }
+      return s;
+    }, 0);
+    const totalOut = nonCredit + billsPaid + faturasPagas;
+    const saldo = income - totalOut;
+    return { income, totalOut, saldo };
+  });
+
+  const maxVal = Math.max(...data.map(d=>Math.max(d.income,d.totalOut)), 1);
+  const w = container.clientWidth || 300;
+  const h = 180, padL=8, padR=8, padT=30, padB=32;
+  const chartH = h - padT - padB;
+  const barGroupW = Math.floor((w-padL-padR)/months.length);
+  const groupGap = Math.max(2, Math.floor(barGroupW*0.15));
+  const usableW = barGroupW - groupGap;
+  const bw = Math.floor((usableW - 4) / 2);
+  const MLABELS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">`;
+  svg += `<line x1="${padL}" y1="${padT}" x2="${w-padR}" y2="${padT}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>`;
+
+  data.forEach((d, i) => {
+    const isCurrent = months[i].month===now.getMonth()&&months[i].year===now.getFullYear();
+    const gx = padL + i*barGroupW + groupGap/2;
+    const centerX = gx + usableW/2;
+
+    // Barra entrada (verde)
+    const bh1 = d.income>0?Math.max(4,Math.round((d.income/maxVal)*chartH)):4;
+    const y1 = padT+chartH-bh1;
+    svg += `<rect x="${gx}" y="${y1}" width="${bw}" height="${bh1}" rx="3" fill="${isCurrent?GREEN:GREEN_L}"/>`;
+
+    // Barra saída (vermelho)
+    const bh2 = d.totalOut>0?Math.max(4,Math.round((d.totalOut/maxVal)*chartH)):4;
+    const y2 = padT+chartH-bh2;
+    svg += `<rect x="${gx+bw+4}" y="${y2}" width="${bw}" height="${bh2}" rx="3" fill="${isCurrent?RED:RED_L}"/>`;
+
+    // Linha de saldo (roxo)
+    if (i < data.length-1) {
+      const saldoH = d.saldo!==0 ? Math.round((Math.abs(d.saldo)/maxVal)*chartH) : 0;
+      const saldoY = padT + chartH - (d.saldo>=0 ? saldoH : 0) - (d.saldo<0 ? saldoH : 0);
+      const saldoH2 = data[i+1].saldo!==0 ? Math.round((Math.abs(data[i+1].saldo)/maxVal)*chartH) : 0;
+      const saldoY2 = padT + chartH - (data[i+1].saldo>=0 ? saldoH2 : 0);
+      const nextCX = padL + (i+1)*barGroupW + groupGap/2 + usableW/2;
+      svg += `<line x1="${centerX}" y1="${padT+chartH - Math.round(((d.saldo)/maxVal)*chartH)}" x2="${nextCX}" y2="${padT+chartH - Math.round(((data[i+1].saldo)/maxVal)*chartH)}" stroke="${PURPLE}" stroke-width="2"/>`;
+    }
+    // Ponto saldo
+    const syDot = padT+chartH - Math.round((d.saldo/maxVal)*chartH);
+    svg += `<circle cx="${centerX}" cy="${syDot}" r="3" fill="${d.saldo>=0?PURPLE:RED}"/>`;
+
+    // Label mês
+    svg += `<text x="${centerX}" y="${h-4}" text-anchor="middle" font-size="${months.length>9?8:10}" font-family="Sora,sans-serif" font-weight="${isCurrent?'700':'500'}" fill="${isCurrent?'var(--text)':'var(--text3)'}">${MLABELS[months[i].month]}</text>`;
+  });
+
+  svg += '</svg>';
+  container.innerHTML = svg;
+}
+
 function renderReport(){
   renderEvolution();
+  renderSaldo();
   const txs=getFilteredTxs();const total=txs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
   function renderBreakdown(id,keyFn,groupType){
     const map={};
