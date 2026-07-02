@@ -133,6 +133,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
   .balance-value{font-size:42px}
   .cat-grid{grid-template-columns:repeat(4,1fr)}
   .report-card{margin-bottom:16px}
+  .charts-grid{grid-template-columns:1fr!important}
 }
 .balance-card{background:var(--primary-gradient);box-shadow:0 10px 30px rgba(0,0,0,0.3);border-radius:var(--radius);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
 .balance-card::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:rgba(255,255,255,.07);border-radius:50%}
@@ -607,67 +608,78 @@ select.field-input option{background:#03002A}
       <div class="page" id="page-report">
         <div style="height:16px"></div>
         <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:16px">Relatórios</div>
-        <div class="report-header">
-          <div class="report-filter active" onclick="setReportFilter('month',this)">Este mês</div>
-          <div class="report-filter" onclick="setReportFilter('1m',this)">Próx. mês</div>
-          <div class="report-filter" onclick="setReportFilter('3m',this)">Próx. 3m</div>
-          <div class="report-filter" onclick="setReportFilter('6m',this)">Próx. 6m</div>
-          <div class="report-filter" onclick="setReportFilter('year',this)">Este ano</div>
-          <div class="report-filter" onclick="setReportFilter('all',this)">Tudo</div>
-          <div class="report-filter" onclick="setReportFilter('custom',this)">📅 Personalizado</div>
-        </div>
-        <div class="custom-date-range" id="custom-date-range">
-          <label>De</label><input type="date" class="field-input" id="report-date-from">
-          <label>até</label><input type="date" class="field-input" id="report-date-to">
-          <button class="custom-date-apply" onclick="applyCustomFilter()">Aplicar</button>
-        </div>
-        <div class="report-type-filters">
-          <button class="report-type-btn active" data-rtype="all" onclick="setReportTypeFilter('all',this)">Todos</button>
-          <button class="report-type-btn credit" data-rtype="credit" onclick="setReportTypeFilter('credit',this)">💳 Crédito</button>
-          <button class="report-type-btn debit" data-rtype="debit" onclick="setReportTypeFilter('debit',this)">💸 Débito</button>
-          <button class="report-type-btn pix" data-rtype="pix" onclick="setReportTypeFilter('pix',this)">⚡ Pix</button>
-          <button class="report-type-btn debit" data-rtype="cash" onclick="setReportTypeFilter('cash',this)">💵 Dinheiro</button>
-        </div>
-        <!-- Gráfico de evolução mensal -->
-      <div class="report-card" id="report-evolution-card">
-        <!-- Filtros de tipo -->
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="evolution-type-btns">
-          <button class="report-type-btn active" style="padding:5px 10px;font-size:11px" data-etype="all" onclick="setEvolutionType('all',this)">Gastos</button>
-          <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="credit" onclick="setEvolutionType('credit',this)">Crédito</button>
-          <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="debitpix" onclick="setEvolutionType('debitpix',this)">Déb/Pix</button>
-          <button class="report-type-btn credit" style="padding:5px 10px;font-size:11px" data-etype="cash" onclick="setEvolutionType('cash',this)">Dinheiro</button>
-          <button class="report-type-btn" style="padding:5px 10px;font-size:11px;background:rgba(34,197,94,.12);color:#22C55E;border-color:#22C55E" data-etype="bills" onclick="setEvolutionType('bills',this)">Contas</button>
-        </div>
-        <!-- Seletor de período -->
-        <div style="display:flex;gap:4px;margin-bottom:10px">
-          <button class="report-type-btn" id="evo-per-3" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(3,this)">3m</button>
-          <button class="report-type-btn active" id="evo-per-6" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(6,this)">6m</button>
-          <button class="report-type-btn" id="evo-per-12" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod(12,this)">12m</button>
-          <button class="report-type-btn" id="evo-per-custom" style="padding:4px 10px;font-size:11px" onclick="setEvoPeriod('custom',this)">Período</button>
-        </div>
-        <div id="evo-custom-dates" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-          <input type="month" id="evo-from" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
-          <span style="color:var(--text3);font-size:12px">até</span>
-          <input type="month" id="evo-to" class="field-input" style="padding:4px 8px;font-size:12px;width:130px" onchange="renderEvolution()">
-        </div>
-        <!-- Legenda -->
-        <div id="evo-legend" style="display:flex;gap:14px;margin-bottom:8px;font-size:11px;color:var(--text2)">
-          <span id="evo-leg-tx" style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#6C63FF;display:inline-block"></span>Gastos</span>
-          <span id="evo-leg-bills" style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#22C55E;display:inline-block"></span>Contas pagas</span>
-        </div>
-        <div id="report-evolution" style="position:relative;height:180px;overflow:visible"></div>
-      </div>
-      <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
-        <!-- Gráfico de Saldo -->
-        <div class="report-card" id="report-saldo-card">
-          <div class="report-card-title">⚖️ Balanço mensal</div>
-          <div style="display:flex;gap:14px;margin-bottom:8px;font-size:11px;color:var(--text2)">
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#4ade80;display:inline-block"></span>Entradas</span>
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#f87171;display:inline-block"></span>Saídas</span>
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#6C63FF;display:inline-block"></span>Saldo</span>
+
+        <!-- GRÁFICOS LADO A LADO (desktop) / EMPILHADOS (mobile) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px" class="charts-grid">
+
+          <!-- Gráfico 1: Evolução de gastos -->
+          <div class="report-card" id="report-evolution-card" style="margin-bottom:0">
+            <div class="report-card-title" style="margin-bottom:8px">📈 Evolução de gastos</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="evolution-type-btns">
+              <button class="report-type-btn active" style="padding:4px 8px;font-size:10px" data-etype="all" onclick="setEvolutionType('all',this)">Todos</button>
+              <button class="report-type-btn credit" style="padding:4px 8px;font-size:10px" data-etype="credit" onclick="setEvolutionType('credit',this)">Crédito</button>
+              <button class="report-type-btn credit" style="padding:4px 8px;font-size:10px" data-etype="debitpix" onclick="setEvolutionType('debitpix',this)">Déb/Pix</button>
+              <button class="report-type-btn credit" style="padding:4px 8px;font-size:10px" data-etype="cash" onclick="setEvolutionType('cash',this)">Dinheiro</button>
+              <button class="report-type-btn" style="padding:4px 8px;font-size:10px;background:rgba(34,197,94,.12);color:#22C55E;border-color:#22C55E" data-etype="bills" onclick="setEvolutionType('bills',this)">Contas</button>
+            </div>
+            <div style="display:flex;gap:4px;margin-bottom:8px">
+              <button class="report-type-btn" id="evo-per-3" style="padding:3px 8px;font-size:10px" onclick="setEvoPeriod(3,this)">3m</button>
+              <button class="report-type-btn active" id="evo-per-6" style="padding:3px 8px;font-size:10px" onclick="setEvoPeriod(6,this)">6m</button>
+              <button class="report-type-btn" id="evo-per-12" style="padding:3px 8px;font-size:10px" onclick="setEvoPeriod(12,this)">12m</button>
+              <button class="report-type-btn" id="evo-per-custom" style="padding:3px 8px;font-size:10px" onclick="setEvoPeriod('custom',this)">Período</button>
+            </div>
+            <div id="evo-custom-dates" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+              <input type="month" id="evo-from" class="field-input" style="padding:4px 8px;font-size:11px;width:120px" onchange="renderEvolution()">
+              <span style="color:var(--text3);font-size:11px">até</span>
+              <input type="month" id="evo-to" class="field-input" style="padding:4px 8px;font-size:11px;width:120px" onchange="renderEvolution()">
+            </div>
+            <div id="evo-legend" style="display:flex;gap:10px;margin-bottom:6px;font-size:10px;color:var(--text2)">
+              <span id="evo-leg-tx" style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#6C63FF;display:inline-block"></span>Gastos</span>
+              <span id="evo-leg-bills" style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#22C55E;display:inline-block"></span>Contas pagas</span>
+            </div>
+            <div id="report-evolution" style="position:relative;height:160px;overflow:visible"></div>
           </div>
-          <div id="report-saldo" style="position:relative;height:180px;overflow:visible"></div>
+
+          <!-- Gráfico 2: Balanço mensal -->
+          <div class="report-card" id="report-saldo-card" style="margin-bottom:0">
+            <div class="report-card-title" style="margin-bottom:8px">⚖️ Balanço mensal</div>
+            <div style="display:flex;gap:10px;margin-bottom:8px;font-size:10px;color:var(--text2)">
+              <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#4ade80;display:inline-block"></span>Entradas</span>
+              <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#f87171;display:inline-block"></span>Saídas</span>
+              <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#6C63FF;display:inline-block"></span>Saldo</span>
+            </div>
+            <div id="report-saldo" style="position:relative;height:160px;overflow:visible"></div>
+          </div>
+
         </div>
+
+        <!-- FILTROS GLOBAIS (para as seções por categoria/titular/cartão) -->
+        <div class="report-card" style="padding:12px 16px;margin-bottom:12px">
+          <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Filtrar lançamentos</div>
+          <div class="report-header" style="margin-bottom:8px">
+            <div class="report-filter active" onclick="setReportFilter('month',this)">Este mês</div>
+            <div class="report-filter" onclick="setReportFilter('1m',this)">Próx. mês</div>
+            <div class="report-filter" onclick="setReportFilter('3m',this)">Próx. 3m</div>
+            <div class="report-filter" onclick="setReportFilter('6m',this)">Próx. 6m</div>
+            <div class="report-filter" onclick="setReportFilter('year',this)">Este ano</div>
+            <div class="report-filter" onclick="setReportFilter('all',this)">Tudo</div>
+            <div class="report-filter" onclick="setReportFilter('custom',this)">📅 Período</div>
+          </div>
+          <div class="custom-date-range" id="custom-date-range">
+            <label>De</label><input type="date" class="field-input" id="report-date-from">
+            <label>até</label><input type="date" class="field-input" id="report-date-to">
+            <button class="custom-date-apply" onclick="applyCustomFilter()">Aplicar</button>
+          </div>
+          <div class="report-type-filters" style="margin-top:0">
+            <button class="report-type-btn active" data-rtype="all" onclick="setReportTypeFilter('all',this)">Todos</button>
+            <button class="report-type-btn credit" data-rtype="credit" onclick="setReportTypeFilter('credit',this)">💳 Crédito</button>
+            <button class="report-type-btn debit" data-rtype="debit" onclick="setReportTypeFilter('debit',this)">💸 Débito</button>
+            <button class="report-type-btn pix" data-rtype="pix" onclick="setReportTypeFilter('pix',this)">⚡ Pix</button>
+            <button class="report-type-btn debit" data-rtype="cash" onclick="setReportTypeFilter('cash',this)">💵 Dinheiro</button>
+          </div>
+        </div>
+
+      <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
         <div class="report-card"><div class="report-card-title">👤 Por titular</div><div id="report-person"></div></div>
         <div class="report-card"><div class="report-card-title">💳 Por cartão / banco</div><div id="report-card-data"></div></div>
         <div style="padding-bottom:8px">
@@ -2196,7 +2208,6 @@ function renderEvolution() {
   const GREEN = '#22C55E', GREENL = 'rgba(34,197,94,0.15)';
 
   let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">`;
-  svg += `<line x1="${padL}" y1="${padT}" x2="${w-padR}" y2="${padT}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>`;
 
   months.forEach((mo, i) => {
     const isCurrent = mo.month === now.getMonth() && mo.year === now.getFullYear();
