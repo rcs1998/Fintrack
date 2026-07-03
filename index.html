@@ -118,8 +118,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
   .sidebar-user-email{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sidebar-new-btn{display:none!important}
   .main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;height:100%}
-  .header{padding:24px 32px 0;border-bottom:1px solid var(--border);padding-bottom:20px;justify-content:flex-end}
-  .header-logo{display:none}
+  .header{padding:20px 32px;border-bottom:1px solid var(--border);justify-content:space-between;align-items:center}
+  .header-title{font-family:'Sora',sans-serif;font-size:22px;font-weight:700;color:var(--text)}
   .content{padding:0}
   .page{padding:32px;max-width:900px;margin:0 auto}
   .bottom-nav{display:none}
@@ -518,7 +518,12 @@ select.field-input option{background:#03002A}
 
   <div class="main-area">
     <div class="header">
+      <div class="header-title" id="header-page-title">Início</div>
       <div class="header-actions">
+        <div id="header-export-btns" style="display:none;gap:6px">
+          <button class="icon-btn" onclick="exportCSV()" style="font-size:11px;padding:6px 10px;gap:4px;display:flex;align-items:center" title="Exportar CSV">📄 CSV</button>
+          <button class="icon-btn" onclick="exportXLSX()" style="font-size:11px;padding:6px 10px;gap:4px;display:flex;align-items:center" title="Exportar Excel">📊 XLSX</button>
+        </div>
         <button class="icon-btn" id="notif-bell-btn" onclick="openNotifCenter()" style="position:relative" title="Notificações">
           🔔
           <span id="notif-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--red);border-radius:50%;border:1.5px solid var(--bg)"></span>
@@ -685,9 +690,6 @@ select.field-input option{background:#03002A}
       <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
         <div class="report-card"><div class="report-card-title">👤 Por titular</div><div id="report-person"></div></div>
         <div class="report-card"><div class="report-card-title">💳 Por cartão / banco</div><div id="report-card-data"></div></div>
-        <div style="padding-bottom:8px">
-          <button class="cta-btn" onclick="exportCSV()" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border)">⬇ Exportar CSV</button>
-        </div>
       </div>
 
       <!-- CONFIG -->
@@ -1147,7 +1149,7 @@ select.field-input option{background:#03002A}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyByoauTX_Pap5cSzTpP43yjJspE5uBx2-c",
@@ -1267,6 +1269,17 @@ async function loadUserData() {
     transactions = txSnap.docs.map(d=>({id:d.id,...d.data()}));
     try { const bSnap = await getDocs(query(billsCol(),orderBy('createdAt','desc'))); bills = bSnap.docs.map(d=>({id:d.id,...d.data()})); } catch(e){bills=[];}
     await checkFaturaAuto();
+    // Listeners em tempo real — atualiza automaticamente quando outro dispositivo lança
+    onSnapshot(query(txCol(),orderBy('createdAt','desc')), snap=>{
+      transactions = snap.docs.map(d=>({id:d.id,...d.data()}));
+      const active=document.querySelector('.page.active');
+      if(active){const pid=active.id.replace('page-','');if(pid==='home')renderHome();else if(pid==='report')renderReport();}
+    });
+    onSnapshot(query(billsCol(),orderBy('createdAt','desc')), snap=>{
+      bills = snap.docs.map(d=>({id:d.id,...d.data()}));
+      const active=document.querySelector('.page.active');
+      if(active&&active.id==='page-bills')renderBills();
+    });
   } catch(e) { console.error(e); }
 }
 
@@ -1348,6 +1361,11 @@ window.showPage = function(p) {
   document.getElementById('page-'+p).classList.add('active');
   const navEl=document.getElementById('nav-'+p); if(navEl) navEl.classList.add('active');
   const snav=document.getElementById('snav-'+p); if(snav) snav.classList.add('active');
+  const pageTitles = {home:'Início', bills:'Contas a Pagar', report:'Relatórios', config:'Configurações'};
+  const titleEl = document.getElementById('header-page-title');
+  if(titleEl) titleEl.textContent = pageTitles[p]||'';
+  const exportBtns = document.getElementById('header-export-btns');
+  if(exportBtns) exportBtns.style.display = p==='report' ? 'flex' : 'none';
   // FAB só aparece na home
   const fab=document.getElementById('main-fab');
   if(fab){if(p==='home'&&!fab.classList.contains('fab-locked'))fab.classList.add('visible');else fab.classList.remove('visible');}
@@ -2396,11 +2414,13 @@ function renderSaldo() {
     if (d.income > 0) {
       const bh = Math.max(3, Math.round((d.income/maxVal)*chartH));
       svg += `<rect x="${gx}" y="${zeroY-bh}" width="${bw}" height="${bh}" rx="3" fill="${isCurrent?GREEN:GREEN_L}"/>`;
+      if(months.length<=8&&bh>14){const lbl=d.income>=1000?'R$'+(d.income/1000).toFixed(1)+'k':'R$'+Math.round(d.income);svg+=`<text x="${gx+bw/2}" y="${zeroY-bh-4}" text-anchor="middle" font-size="8" font-family="Sora,sans-serif" fill="${isCurrent?GREEN:'var(--text3)'}">${lbl}</text>`;}
     }
     // Barra saída (vermelho)
     if (d.totalOut > 0) {
       const bh = Math.max(3, Math.round((d.totalOut/maxVal)*chartH));
       svg += `<rect x="${gx+bw+4}" y="${zeroY-bh}" width="${bw}" height="${bh}" rx="3" fill="${isCurrent?RED:RED_L}"/>`;
+      if(months.length<=8&&bh>14){const lbl=d.totalOut>=1000?'R$'+(d.totalOut/1000).toFixed(1)+'k':'R$'+Math.round(d.totalOut);svg+=`<text x="${gx+bw+4+bw/2}" y="${zeroY-bh-4}" text-anchor="middle" font-size="8" font-family="Sora,sans-serif" fill="${isCurrent?RED:'var(--text3)'}">${lbl}</text>`;}
     }
     // Label mês
     svg += `<text x="${centerX}" y="${h-4}" text-anchor="middle" font-size="${months.length>9?8:10}" font-family="Sora,sans-serif" font-weight="${isCurrent?'700':'500'}" fill="${isCurrent?'var(--text)':'var(--text3)'}">${MLABELS[months[i].month]}</text>`;
@@ -2419,9 +2439,14 @@ function renderSaldo() {
     const color = saldoPoints[i].negative ? RED : PURPLE;
     svg += `<line x1="${saldoPoints[i].x}" y1="${saldoPoints[i].y}" x2="${saldoPoints[i+1].x}" y2="${saldoPoints[i+1].y}" stroke="${color}" stroke-width="2" stroke-linecap="round"/>`;
   }
-  // Pontos
-  saldoPoints.forEach(p => {
+  // Pontos e rótulos de saldo
+  saldoPoints.forEach((p,i) => {
     svg += `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${p.negative?RED:PURPLE}"/>`;
+    if(months.length<=8){
+      const sv=data[i].saldo;
+      const lbl=(sv>=0?'':'-')+'R$'+(Math.abs(sv)>=1000?(Math.abs(sv)/1000).toFixed(1)+'k':Math.round(Math.abs(sv)));
+      svg+=`<text x="${p.x}" y="${p.y-6}" text-anchor="middle" font-size="8" font-family="Sora,sans-serif" font-weight="600" fill="${p.negative?RED:PURPLE}">${lbl}</text>`;
+    }
   });
 
   svg += '</svg>';
@@ -2446,8 +2471,11 @@ function renderReport(){
     document.getElementById(id).innerHTML=entries.map(([k,v])=>{
       const pct=total>0?v/total:0;
       const safeKey=encodeURIComponent(k);
-      const clickAttr=`onclick="openGroupModal('${groupType}','${safeKey}')" `;
-      return `<div class="report-row clickable" ${clickAttr}>
+      // Titular usa modal dedicado com WhatsApp; cat e card usam modal genérico
+      const clickFn = groupType==='person'
+        ? `openPersonModal('${k.replace(/'/g,"\\'")}')`
+        : `openGroupModal('${groupType}','${safeKey}')`;
+      return `<div class="report-row clickable" onclick="${clickFn}">
         <div style="font-size:13px;min-width:80px;display:flex;align-items:center;gap:4px">${k}<span style="color:var(--accent);font-size:14px">›</span></div>
         <div class="report-bar-wrap"><div class="report-bar" style="width:${Math.round(pct*100)}%"></div></div>
         <div class="report-val">${fmt(v)}</div>
@@ -2525,6 +2553,29 @@ window.saveCard=function(){
 };
 
 function csvField(val){const s=String(val??'');if(/[;"\n]/.test(s))return '"'+s.replace(/"/g,'""')+'"';return s;}
+window.exportXLSX=function(){
+  const txs=getFilteredTxs();
+  if(!txs.length){showToast('⚠️ Nenhum dado para exportar',false);return;}
+  // Cria CSV e converte para blob XLSX via SheetJS (se disponível) ou fallback CSV
+  try {
+    const rows=[['Data','Competência','Tipo','Cartão/Banco','Descrição','Categoria','Titular','Valor Total','Meu Valor','Parcela']];
+    txs.forEach(t=>{rows.push([t.date||'',t.competenceDate||'',t.type||'',t.card||t.bank||'',t.title||t.description||'',t.category||'',t.person||'',t.amount,t.myAmount??t.amount,t.installmentOf?`${t.installmentNum}/${t.installmentOf}`:'' ]);});
+    // Tenta usar SheetJS se disponível
+    if(window.XLSX){
+      const ws=window.XLSX.utils.aoa_to_sheet(rows);
+      const wb=window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(wb,ws,'Lançamentos');
+      window.XLSX.writeFile(wb,'fintrack_lancamentos.xlsx');
+    } else {
+      // Fallback: CSV com extensão xlsx
+      const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+      const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='fintrack_lancamentos.csv';a.click();
+    }
+    showToast('✓ Exportado com sucesso!',true);
+  } catch(e){showToast('⚠️ Erro ao exportar',false);}
+};
+
 window.exportCSV=function(){
   if(!transactions.length){showToast('⚠️ Nenhum dado para exportar',false);return;}
   const header=['Data','Competência','Tipo','Cartão/Banco','Descrição','Categoria','Titular','Divide com','Valor Total','Meu Valor','Parcela','Recorrente'].map(csvField).join(';')+'\n';
