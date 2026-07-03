@@ -1397,27 +1397,32 @@ function renderHome() {
   document.getElementById('home-credit').textContent=fmt(credit);
   document.getElementById('home-debit').textContent=fmt(debit);
   document.getElementById('home-count').textContent=outTxs.length;
-  // Saldo acumulado: soma todos os meses até o atual
+  // Saldo acumulado: soma todos os meses até o atual (inclui contas pagas e faturas)
   function calcSaldoAcumulado(upToYear, upToMonth) {
     let saldo = 0;
-    // Percorre todos os meses desde o mais antigo até o mês solicitado
-    const allMonths = new Set(transactions.map(t => (t.competenceDate||t.date||'').slice(0,7)));
-    allMonths.forEach(ym => {
-      if (!ym) return;
-      const [y, m] = ym.split('-').map(Number);
-      const mo = m - 1; // 0-based
-      if (y > upToYear || (y === upToYear && mo > upToMonth)) return;
-      // Entradas
-      const inc = transactions.filter(t => {
-        const d = (t.competenceDate||t.date||'').slice(0,7);
-        return t.type==='transfer_in' && d===ym;
-      }).reduce((s,t)=>s+(t.myAmount??t.amount),0);
-      // Saídas não-crédito
-      const out = transactions.filter(t => {
-        const d = (t.competenceDate||t.date||'').slice(0,7);
-        return t.type!=='transfer_in' && t.type!=='credit' && d===ym;
-      }).reduce((s,t)=>s+(t.myAmount??t.amount),0);
-      saldo += inc - out;
+    const pad = n => String(n).padStart(2,'0');
+    const allYMs = new Set(transactions.map(t=>(t.competenceDate||t.date||'').slice(0,7)));
+    // Garante que todos os meses até o atual sejam considerados (para contas pagas)
+    for(let y=2020;y<=upToYear;y++){
+      const maxM = y===upToYear ? upToMonth : 11;
+      for(let mo=0;mo<=maxM;mo++) allYMs.add(`${y}-${pad(mo+1)}`);
+    }
+    allYMs.forEach(ym => {
+      if(!ym||ym.length<7) return;
+      const [y,ms] = ym.split('-').map(Number); const mo=ms-1;
+      if(y>upToYear||(y===upToYear&&mo>upToMonth)) return;
+      const inc = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type==='transfer_in').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+      const out = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+      const billsPaid = getBillsPaidForMonth(y, mo);
+      const faturasPagas = (userConfig.cards||[]).reduce((s,card)=>{
+        const k=getFaturaKey(card.name,y,mo);
+        if(localStorage.getItem(k)==='1'){
+          const compKey=`${y}-${pad(mo+1)}-01`;
+          return s+transactions.filter(t=>t.type==='credit'&&t.card===card.name&&t.competenceDate===compKey).reduce((ss,t)=>ss+(t.myAmount??t.amount),0);
+        }
+        return s;
+      },0);
+      saldo += inc - out - billsPaid - faturasPagas;
     });
     return saldo;
   }
@@ -2377,19 +2382,26 @@ function renderSaldo() {
   const RED='#f87171', RED_L='rgba(248,113,113,.15)';
   const PURPLE='#6C63FF';
 
-  // Calcula saldo acumulado — carrega do mês anterior
+  // Calcula saldo acumulado de todos os meses ANTES do primeiro mês do gráfico
   let runningBalance = 0;
-  // Pega saldo de todos os meses ANTES do primeiro mês do gráfico
   const firstMonth = months[0];
-  const allMonthsSet = new Set(transactions.map(t=>(t.competenceDate||t.date||'').slice(0,7)));
-  allMonthsSet.forEach(ym => {
-    if (!ym) return;
-    const [y,m] = ym.split('-').map(Number); const mo=m-1;
-    if (y > firstMonth.year || (y===firstMonth.year && mo >= firstMonth.month)) return;
-    const inc = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type==='transfer_in').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-    const out = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-    runningBalance += inc - out;
-  });
+  const pad0 = n => String(n).padStart(2,'0');
+  // Itera meses desde 2020 até o mês anterior ao início do gráfico
+  for(let y=2020;y<=firstMonth.year;y++){
+    const maxM = y===firstMonth.year ? firstMonth.month-1 : 11;
+    for(let mo=0;mo<=maxM;mo++){
+      const ym=`${y}-${pad0(mo+1)}`;
+      const inc=transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type==='transfer_in').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+      const out=transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+      const bp=getBillsPaidForMonth(y,mo);
+      const fp=(userConfig.cards||[]).reduce((s,card)=>{
+        const k=getFaturaKey(card.name,y,mo);
+        if(localStorage.getItem(k)==='1'){const ck=`${y}-${pad0(mo+1)}-01`;return s+transactions.filter(t=>t.type==='credit'&&t.card===card.name&&t.competenceDate===ck).reduce((ss,t)=>ss+(t.myAmount??t.amount),0);}
+        return s;
+      },0);
+      runningBalance += inc - out - bp - fp;
+    }
+  }
 
   const data = months.map(({year, month}) => {
     const pad = n => String(n).padStart(2,'0');
@@ -2636,10 +2648,18 @@ function renderPersonModal(){
 window.personChangeMonth=function(dir){personMonth+=dir;if(personMonth>11){personMonth=0;personYear++;}if(personMonth<0){personMonth=11;personYear--;}renderPersonModal();};
 window.closePersonModal=function(){document.getElementById('modal-person').classList.remove('open');};
 function buildPersonMessage(){
-  const{name,txs,total}=personModalData;const sorted=[...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const lines=sorted.map(t=>{const inst=t.installmentOf?` (${t.installmentNum}/${t.installmentOf}x)`:'';const note=t.note?` — _${t.note}_`:'';return `• ${fmtDate(t.date)} — ${t.title||t.description||'Sem título'}${inst}: *${fmt(t.myAmount??t.amount)}*${note}`;});
-  const mes=`${MONTHS[personMonth]} ${personYear}`;
-  return `💳 *Resumo FinTrack — ${name}*\n\nOlá, ${name}! Segue o resumo dos seus gastos em *${mes}*:\n\n${lines.join('\n')}\n\n*Total: ${fmt(total)}*\n\n_Enviado pelo FinTrack_ 📊`;
+  const{name,txs,total}=personModalData;
+  const sorted=[...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const lines=sorted.map(t=>{
+    const inst=t.installmentOf?` (${t.installmentNum}/${t.installmentOf}x)`:'';
+    const note=t.note?` — _${t.note}_`:'';
+    return `• ${fmtDate(t.date)} — ${t.title||t.description||'Sem título'}${inst}: *${fmt(t.myAmount??t.amount)}*${note}`;
+  });
+  // Mês de referência = mês anterior ao vencimento (fatura de julho = ref. junho)
+  let refM = personMonth - 1, refY = personYear;
+  if(refM < 0){ refM = 11; refY--; }
+  const periodoRef = `${MONTHS[refM]} ${refY}`;
+  return `💳 *Resumo FinTrack — ${name}*\n\nOlá, ${name}! Segue o resumo dos seus gastos em *${periodoRef}*:\n\n${lines.join('\n')}\n\n*Total: ${fmt(total)}*\n\n_Enviado pelo FinTrack_ 📊`;
 }
 window.shareWhatsApp=function(){window.open(`https://wa.me/?text=${encodeURIComponent(buildPersonMessage())}`,'_blank');};
 window.copyToClipboard=function(){const msg=buildPersonMessage();if(navigator.clipboard){navigator.clipboard.writeText(msg).then(()=>showToast('✓ Texto copiado!',true));}else{const el=document.createElement('textarea');el.value=msg;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);showToast('✓ Texto copiado!',true);}};
