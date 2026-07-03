@@ -1718,7 +1718,6 @@ window.saveBill = async function() {
       if (idx >= 0) bills[idx] = { ...bills[idx], ...billData };
     } else {
       const ref = await addDoc(billsCol(), billData);
-      bills.unshift({ id: ref.id, ...billData });
     }
     closeBillModal(); renderBills(); showToast('✓ Conta salva!', true);
   } catch(e) {
@@ -1975,25 +1974,25 @@ window.confirmLaunch = async function() {
     for(const p of splitPeople) {
       const tx={...baseTx,...overrides,person:p,amount:splitAmt,myAmount:splitAmt,splitWith:[],splitOrigin:true};
       if(overrides.installmentOf){tx.amount=overrides.amount;tx.myAmount=overrides.amount;}
-      const newId=await saveTx(tx);transactions.unshift({id:newId,...tx});
+      await saveTx(tx);
     }
   }
 
   try {
     if(recurringActive&&selectedType==='credit'){
       const recurringId=genUUID();const[cy,cm]=compDate.split('-').map(Number);
-      for(let i=0;i<12;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i};const newId=await saveTx(tx);transactions.unshift({id:newId,...tx});await saveSplitTxs(tx,{competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i});}
+      for(let i=0;i<12;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i};await saveTx(tx);await saveSplitTxs(tx,{competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i});}
       closeModal();showToast('✓ Recorrência criada para 12 meses!',true);
     } else if(instActive&&selectedType==='credit'&&instCount>1){
       const perInst=amount/instCount;const myPerInst=myAmount/instCount;const splitPerInst=splitAmt/instCount;const[cy,cm]=compDate.split('-').map(Number);
-      for(let i=0;i<instCount;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,amount:perInst,myAmount:myPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1};const newId=await saveTx(tx);transactions.unshift({id:newId,...tx});await saveSplitTxs(tx,{amount:splitPerInst,myAmount:splitPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1});}
+      for(let i=0;i<instCount;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,amount:perInst,myAmount:myPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1};await saveTx(tx);await saveSplitTxs(tx,{amount:splitPerInst,myAmount:splitPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1});}
       closeModal();showToast('✓ Lançamento parcelado salvo!',true);
     } else {
-      const newId=await saveTx(base);transactions.unshift({id:newId,...base});
+      await saveTx(base);
       await saveSplitTxs(base);
       closeModal();showToast('✓ Lançamento salvo!',true);
     }
-    renderHome();
+    // onSnapshot atualiza transactions automaticamente — não precisa de renderHome() aqui
   } catch(e){showToast('❌ Erro ao salvar. Tente novamente.',false);}
   finally{btn.disabled=false;btn.textContent='✓ Confirmar lançamento';}
 };
@@ -2360,8 +2359,7 @@ async function checkFaturaAuto() {
       createdAt: new Date().toISOString()
     };
     try {
-      const ref = await addDoc(billsCol(), billData);
-      bills.unshift({ id: ref.id, ...billData });
+      await addDoc(billsCol(), billData);
       showToast(`💳 Fatura ${card.name} criada: ${fmt(total)}`, true);
     } catch(e) { console.error('checkFaturaAuto error', e); }
   }
@@ -2782,43 +2780,49 @@ function obGoTo(n){obCurrent=n;document.getElementById('ob-slides').style.transf
 
 // TOUR
 const TOUR_STEPS=[
-  {selector:'.balance-card',title:'💰 Resumo do mês',desc:'Total gasto no mês, separado por crédito e débito/Pix. Navegue entre meses pelas setas para ver o histórico.'},
-  {selector:'#nav-bills, #snav-bills',title:'📋 Contas a Pagar',desc:'Cadastre contas fixas (aluguel, internet, luz) e variáveis. Cada conta mostra status de vencimento e você marca como paga quando quitar. Contas fixas se repetem todo mês automaticamente.'},
-  {selector:'.bills-summary',title:'📊 Resumo das contas',desc:'Veja o total do mês, quanto já foi pago e quanto está em aberto. Navegue entre meses para ver o histórico de pagamentos.',page:'bills'},
-  {selector:'.fab',title:'➕ Novo lançamento',desc:'Toque aqui para registrar um gasto — cartão de crédito, débito, Pix ou entrada. Suporta parcelamento e assinaturas recorrentes.',page:'home'},
-  {selector:'.report-type-filters',title:'🔍 Filtros de relatório',desc:'Filtre por Crédito, Débito ou Pix e combine com filtro de período personalizado para análises detalhadas.',page:'report'},
-  {selector:'#nav-config, #snav-config',title:'⚙️ Configurações',desc:'Cadastre cartões, bancos, categorias e titulares. Em Ajuda você encontra o guia para instalar o FinTrack no seu celular.'},
-  {selector:'.install-tour-anchor',title:'📲 Instale o FinTrack!',desc:'Salve o FinTrack na sua tela inicial para acesso rápido e receba notificações quando uma conta estiver vencendo. É rápido e gratuito!',action:'install'},
+  {selector:'.balance-card',title:'💰 Resumo do mês',desc:'Veja o total gasto, entradas e saldo acumulado do mês. O saldo carrega automaticamente do mês anterior — se terminou junho com R$2.000, julho já começa com esse valor.',page:'home'},
+  {selector:'#main-fab',title:'➕ Novo lançamento',desc:'Toque aqui para registrar um gasto — Crédito, Débito, Pix, Dinheiro ou Entrada. Suporta parcelamento, divisão entre titulares e assinaturas recorrentes.',page:'home'},
+  {selector:'.cat-grid',title:'🗂️ Categorias clicáveis',desc:'Toque em uma categoria para filtrar os lançamentos do mês por ela. Toque de novo para desmarcar.',page:'home'},
+  {selector:'.bills-summary',title:'📋 Contas a Pagar',desc:'Gerencie contas fixas e variáveis. Contas fixas se repetem todo mês automaticamente. Abaixo das contas você encontra as Faturas dos cartões com status de aberta/fechada.',page:'bills'},
+  {selector:'#report-evolution-card',title:'📈 Evolução de gastos',desc:'Veja seus gastos mês a mês. Use os filtros de tipo (Crédito, Déb/Pix, Dinheiro) e o botão Contas para mostrar/ocultar as barras de contas pagas.',page:'report'},
+  {selector:'#report-saldo-card',title:'⚖️ Balanço mensal',desc:'Acompanhe entradas (verde), saídas (vermelho) e a linha de saldo acumulado (roxo) que passa de um mês para o outro.',page:'report'},
+  {selector:'#report-cat',title:'🔍 Análise detalhada',desc:'Filtre lançamentos por período e tipo, e veja o detalhamento por categoria, titular e cartão/banco. Clique em qualquer item para ver os lançamentos daquele grupo.',page:'report'},
+  {selector:'#snav-config, #nav-config',title:'⚙️ Configurações',desc:'Cadastre cartões (com dia de vencimento e intervalo de fechamento), bancos, categorias e titulares. Os lançamentos de crédito calculam automaticamente a qual fatura pertencem.',page:'config'},
+  {selector:'.install-tour-anchor',title:'📲 Instale o FinTrack!',desc:'Salve o FinTrack na sua tela inicial para acesso rápido. Os dados sincronizam em tempo real entre todos os dispositivos automaticamente.',action:'install'},
 ];
 let tourStep=0;
 window.startTour=function(){showPage('home');setTimeout(()=>{tourStep=0;document.getElementById('tour-overlay').classList.add('active');renderTourStep();},300);};
 function renderTourStep(){
   const step=TOUR_STEPS[tourStep];
-  // Navega para a página certa se o passo especificar
   if(step.page){
     const active=document.querySelector('.page.active');
     if(!active||active.id!=='page-'+step.page){
       showPage(step.page);
-      setTimeout(()=>renderTourStep(),350);
+      setTimeout(()=>renderTourStep(),400);
       return;
     }
   }
-  const el=document.querySelector(step.selector);if(!el){tourNext();return;}
-  const rect=el.getBoundingClientRect();const pad=8;const spotlight=document.getElementById('tour-spotlight');
+  // Garante FAB visível se for o passo do FAB
+  if(step.selector==='#main-fab'){
+    const fab=document.getElementById('main-fab');
+    if(fab)fab.classList.add('visible');
+  }
+  const el=document.querySelector(step.selector);
+  if(!el){tourNext();return;}
+  const rect=el.getBoundingClientRect();
+  // Se elemento não está visível na tela, pula
+  if(rect.width===0&&rect.height===0){tourNext();return;}
+  const pad=8;const spotlight=document.getElementById('tour-spotlight');
   spotlight.style.top=(rect.top-pad)+'px';spotlight.style.left=(rect.left-pad)+'px';spotlight.style.width=(rect.width+pad*2)+'px';spotlight.style.height=(rect.height+pad*2)+'px';
   document.getElementById('tour-tip-title').textContent=step.title;document.getElementById('tour-tip-desc').textContent=step.desc;document.getElementById('tour-counter').textContent=`${tourStep+1} de ${TOUR_STEPS.length}`;
   const tooltip=document.getElementById('tour-tooltip');
   const vw=window.innerWidth, vh=window.innerHeight;
-  const tw=Math.min(280, vw-32), th=200;
-  // Tenta abaixo do elemento, senão acima, senão centralizado
+  const tw=Math.min(300, vw-32), th=200;
   let top = rect.bottom + pad + 12;
   let left = Math.max(16, Math.min(rect.left, vw - tw - 16));
   if (top + th > vh - 16) {
     top = rect.top - th - 12;
-    if (top < 16) {
-      // Centraliza verticalmente se não cabe nem acima nem abaixo
-      top = Math.max(16, Math.round((vh - th) / 2));
-    }
+    if (top < 16) top = Math.max(16, Math.round((vh - th) / 2));
   }
   tooltip.style.top=top+'px';tooltip.style.left=left+'px';tooltip.style.maxWidth=tw+'px';
   tooltip.querySelector('.tour-next-btn').textContent=tourStep===TOUR_STEPS.length-1?'Concluir ✓':'Próximo →';
