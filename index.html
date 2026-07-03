@@ -554,7 +554,7 @@ select.field-input option{background:#03002A}
               <div class="balance-stat-value" id="home-income" style="color:#4ade80">R$ 0,00</div>
             </div>
             <div class="balance-stat" style="flex:1">
-              <div class="balance-stat-label">= Saldo</div>
+              <div class="balance-stat-label">≈ Saldo acumulado</div>
               <div class="balance-stat-value" id="home-balance" style="color:#fff">R$ 0,00</div>
             </div>
           </div>
@@ -579,7 +579,7 @@ select.field-input option{background:#03002A}
       <div class="page" id="page-bills">
         <div style="height:16px"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Contas a Pagar</div>
+        <div style="height:8px"></div>
           <button class="cta-btn" onclick="openBillModal()" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:13px">+ Nova conta</button>
         </div>
         <!-- Banner permissão de notificação -->
@@ -612,7 +612,7 @@ select.field-input option{background:#03002A}
       <!-- RELATÓRIOS -->
       <div class="page" id="page-report">
         <div style="height:16px"></div>
-        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:16px">Relatórios</div>
+        <div style="height:8px"></div>
 
         <!-- GRÁFICOS EMPILHADOS LARGURA TOTAL -->
         <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px">
@@ -699,7 +699,7 @@ select.field-input option{background:#03002A}
           <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:var(--red);margin-bottom:4px">🔒 Configuração obrigatória</div>
           <div style="font-size:13px;color:var(--text2);line-height:1.4">Cadastre pelo menos <b>1 cartão de crédito</b> e <b>1 banco</b>. As demais telas serão liberadas automaticamente.</div>
         </div>
-        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:20px">Configurações</div>
+        <div style="height:8px"></div>
         <div class="section-title">Cartões de crédito</div>
         <div class="config-card" id="cards-config-list"></div>
         <div style="margin-top:8px;margin-bottom:20px">
@@ -1397,10 +1397,36 @@ function renderHome() {
   document.getElementById('home-credit').textContent=fmt(credit);
   document.getElementById('home-debit').textContent=fmt(debit);
   document.getElementById('home-count').textContent=outTxs.length;
+  // Saldo acumulado: soma todos os meses até o atual
+  function calcSaldoAcumulado(upToYear, upToMonth) {
+    let saldo = 0;
+    // Percorre todos os meses desde o mais antigo até o mês solicitado
+    const allMonths = new Set(transactions.map(t => (t.competenceDate||t.date||'').slice(0,7)));
+    allMonths.forEach(ym => {
+      if (!ym) return;
+      const [y, m] = ym.split('-').map(Number);
+      const mo = m - 1; // 0-based
+      if (y > upToYear || (y === upToYear && mo > upToMonth)) return;
+      // Entradas
+      const inc = transactions.filter(t => {
+        const d = (t.competenceDate||t.date||'').slice(0,7);
+        return t.type==='transfer_in' && d===ym;
+      }).reduce((s,t)=>s+(t.myAmount??t.amount),0);
+      // Saídas não-crédito
+      const out = transactions.filter(t => {
+        const d = (t.competenceDate||t.date||'').slice(0,7);
+        return t.type!=='transfer_in' && t.type!=='credit' && d===ym;
+      }).reduce((s,t)=>s+(t.myAmount??t.amount),0);
+      saldo += inc - out;
+    });
+    return saldo;
+  }
+
+  const saldoAcumulado = calcSaldoAcumulado(currentYear, currentMonth);
   const incEl=document.getElementById('home-income');
   const balEl=document.getElementById('home-balance');
   if(incEl)incEl.textContent=fmt(income);
-  if(balEl){balEl.textContent=(balance>=0?'':'-')+fmt(Math.abs(balance));balEl.style.color=balance>=0?'#4ade80':'#f87171';}
+  if(balEl){balEl.textContent=(saldoAcumulado>=0?'':'-')+fmt(Math.abs(saldoAcumulado));balEl.style.color=saldoAcumulado>=0?'#4ade80':'#f87171';}
 
   // Cat grid — clicável para filtrar
   const catMap={};
@@ -2110,20 +2136,23 @@ function getFilteredTxs(){
 }
 
 let evolutionType = 'all';
+let showEvoBills = true; // controla se barras de contas aparecem
 let evoPeriodMonths = 6;
 let evoPeriodCustom = false;
 
 window.setEvolutionType = function(type, el) {
-  // "Contas" pode ser desmarcado clicando de novo (toggle)
-  if (type === 'bills' && evolutionType === 'bills') {
-    evolutionType = 'all';
-    document.querySelectorAll('#evolution-type-btns .report-type-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelector('#evolution-type-btns [data-etype="all"]').classList.add('active');
-  } else {
-    evolutionType = type;
-    document.querySelectorAll('#evolution-type-btns .report-type-btn').forEach(b=>b.classList.remove('active'));
-    el.classList.add('active');
+  if (type === 'bills') {
+    // Toggle das barras de contas — independente do filtro de tipo
+    showEvoBills = !showEvoBills;
+    const billsBtn = document.getElementById('evo-btn-bills');
+    if(billsBtn) billsBtn.classList.toggle('active', showEvoBills);
+    renderEvolution();
+    renderSaldo();
+    return;
   }
+  evolutionType = type;
+  document.querySelectorAll('#evolution-type-btns .report-type-btn:not(#evo-btn-bills)').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
   renderEvolution();
   renderSaldo();
 };
@@ -2200,12 +2229,11 @@ function renderEvolution() {
   if (!months.length) { container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Selecione um período válido</div>'; return; }
 
   // Modo "só contas" — mostra apenas barra verde
-  const billsOnly = evolutionType === 'bills';
   // Legenda
   const legTx = document.getElementById('evo-leg-tx');
   const legBills = document.getElementById('evo-leg-bills');
-  if (legTx) legTx.style.display = billsOnly ? 'none' : '';
-  if (legBills) legBills.style.display = '';
+  if (legTx) legTx.style.display = '';
+  if (legBills) legBills.style.display = showEvoBills ? '' : 'none';
 
   const txValues = months.map(({year, month}) =>
     transactions.filter(t => {
@@ -2213,23 +2241,23 @@ function renderEvolution() {
       if (evolutionType === 'credit' && t.type !== 'credit') return false;
       if (evolutionType === 'debitpix' && (t.type === 'credit' || t.type === 'cash')) return false;
       if (evolutionType === 'cash' && t.type !== 'cash') return false;
-      if (evolutionType === 'bills') return false;
       const d = new Date((t.competenceDate||t.date)+'T12:00:00');
       return d.getMonth()===month && d.getFullYear()===year;
     }).reduce((s,t) => s+(t.myAmount??t.amount), 0)
   );
 
-  const billValues = months.map(({year, month}) => getBillsPaidForMonth(year, month));
+  const billValues = showEvoBills
+    ? months.map(({year, month}) => getBillsPaidForMonth(year, month))
+    : months.map(()=>0);
 
   const maxVal = Math.max(...txValues, ...billValues, 1);
   const w = container.clientWidth || 300;
   const h = 160;
   const padL = 8, padR = 8, padT = 28, padB = 32;
-  // Cada mês ocupa barW pixels; dentro tem 2 barras (ou 1 se billsOnly)
   const barGroupW = Math.floor((w - padL - padR) / months.length);
   const groupGap = Math.max(2, Math.floor(barGroupW * 0.15));
   const usableW = barGroupW - groupGap;
-  const barsPerGroup = billsOnly ? 1 : 2;
+  const barsPerGroup = showEvoBills ? 2 : 1;
   const barGap = 2;
   const bw = Math.floor((usableW - barGap * (barsPerGroup - 1)) / barsPerGroup);
   const chartH = h - padT - padB;
@@ -2251,18 +2279,13 @@ function renderEvolution() {
       svg += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="4" ry="4" fill="${fill}"/>`;
       if (val > 0 && showLabel && months.length <= 6) {
         const label = val >= 1000 ? 'R$'+(val/1000).toFixed(1).replace('.',',')+'k' : 'R$'+Math.round(val);
-        // stagger: first bar label above, second bar label higher to avoid overlap
         const labelY = barIdx === 0 ? y - 14 : y - 4;
         svg += `<text x="${x+bw/2}" y="${labelY}" text-anchor="middle" font-size="8" font-family="Sora,sans-serif" font-weight="600" fill="${isCurrent?color:'var(--text3)'}">${label}</text>`;
       }
     };
 
-    if (billsOnly) {
-      drawBar(billValues[i], 0, GREEN, GREENL, true);
-    } else {
-      drawBar(txValues[i], 0, PURPLE, PURPLEL, months.length <= 8);
-      drawBar(billValues[i], 1, GREEN, GREENL, months.length <= 8);
-    }
+    drawBar(txValues[i], 0, PURPLE, PURPLEL, months.length <= 8);
+    if (showEvoBills) drawBar(billValues[i], 1, GREEN, GREENL, months.length <= 8);
 
     // Label do mês
     const groupCenterX = gx + usableW / 2;
@@ -2354,15 +2377,25 @@ function renderSaldo() {
   const RED='#f87171', RED_L='rgba(248,113,113,.15)';
   const PURPLE='#6C63FF';
 
+  // Calcula saldo acumulado — carrega do mês anterior
+  let runningBalance = 0;
+  // Pega saldo de todos os meses ANTES do primeiro mês do gráfico
+  const firstMonth = months[0];
+  const allMonthsSet = new Set(transactions.map(t=>(t.competenceDate||t.date||'').slice(0,7)));
+  allMonthsSet.forEach(ym => {
+    if (!ym) return;
+    const [y,m] = ym.split('-').map(Number); const mo=m-1;
+    if (y > firstMonth.year || (y===firstMonth.year && mo >= firstMonth.month)) return;
+    const inc = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type==='transfer_in').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+    const out = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+    runningBalance += inc - out;
+  });
+
   const data = months.map(({year, month}) => {
     const pad = n => String(n).padStart(2,'0');
-    const payKey = `${year}-${pad(month+1)}`;
-    const income = transactions
-      .filter(t => { const d=new Date((t.competenceDate||t.date)+'T12:00:00'); return t.type==='transfer_in'&&d.getMonth()===month&&d.getFullYear()===year; })
-      .reduce((s,t)=>s+(t.myAmount??t.amount),0);
-    const nonCredit = transactions
-      .filter(t => { const d=new Date((t.competenceDate||t.date)+'T12:00:00'); return t.type!=='transfer_in'&&t.type!=='credit'&&d.getMonth()===month&&d.getFullYear()===year; })
-      .reduce((s,t)=>s+(t.myAmount??t.amount),0);
+    const ym = `${year}-${pad(month+1)}`;
+    const income = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type==='transfer_in').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+    const nonCredit = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
     const billsPaid = getBillsPaidForMonth(year, month);
     const faturasPagas = (userConfig.cards||[]).reduce((s,card) => {
       const k = getFaturaKey(card.name, year, month);
@@ -2373,8 +2406,8 @@ function renderSaldo() {
       return s;
     }, 0);
     const totalOut = nonCredit + billsPaid + faturasPagas;
-    const saldo = income - totalOut;
-    return { income, totalOut, saldo };
+    runningBalance += income - totalOut;
+    return { income, totalOut, saldo: runningBalance };
   });
 
   // Escala baseada nos valores absolutos de entrada e saída (não saldo negativo)
