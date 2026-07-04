@@ -2820,40 +2820,34 @@ function renderTourStep(){
   const vw=window.innerWidth, vh=window.innerHeight;
   const tw=Math.min(320,vw-32);
 
-  // Tenta encontrar o elemento
   const el=document.querySelector(step.selector);
 
   if(el){
+    // Scroll instantâneo (sem animação) para trazer o elemento à vista
+    el.scrollIntoView({behavior:'instant',block:'center',inline:'nearest'});
     const rect=el.getBoundingClientRect();
-    const inView=rect.top>-50&&rect.bottom<vh+50&&rect.width>0&&rect.height>0;
-    if(inView){
-      const pad=8;
-      spotlight.style.top=(rect.top-pad)+'px';
-      spotlight.style.left=(rect.left-pad)+'px';
-      spotlight.style.width=(rect.width+pad*2)+'px';
-      spotlight.style.height=(rect.height+pad*2)+'px';
-      spotlight.style.display='block';
-      // Posiciona tooltip abaixo ou acima do elemento
-      let top=rect.bottom+16;
-      let left=Math.max(16,Math.min(rect.left,vw-tw-16));
-      if(top+240>vh) top=Math.max(16,rect.top-240-16);
-      if(top<16) top=Math.round((vh-240)/2);
-      tooltip.style.top=top+'px';
-      tooltip.style.left=left+'px';
-    } else {
-      // Elemento fora da viewport — spotlight no centro, tooltip centralizado
-      spotlight.style.display='none';
-      tooltip.style.top=Math.round((vh-240)/2)+'px';
-      tooltip.style.left=Math.round((vw-tw)/2)+'px';
-    }
+    const pad=10;
+    // Spotlight sobre o elemento
+    spotlight.style.top=(rect.top-pad)+'px';
+    spotlight.style.left=(rect.left-pad)+'px';
+    spotlight.style.width=(rect.width+pad*2)+'px';
+    spotlight.style.height=(rect.height+pad*2)+'px';
+    spotlight.style.display='block';
+    // Tooltip: tenta abaixo, depois acima, depois centralizado
+    let top=rect.bottom+16;
+    let left=Math.max(16,Math.min(rect.left,vw-tw-16));
+    if(top+260>vh){ top=rect.top-260-16; }
+    if(top<16){ top=Math.round((vh-260)/2); left=Math.round((vw-tw)/2); }
+    tooltip.style.top=top+'px';
+    tooltip.style.left=left+'px';
   } else {
-    // Elemento não encontrado — tooltip centralizado, sem spotlight
     spotlight.style.display='none';
-    tooltip.style.top=Math.round((vh-240)/2)+'px';
+    tooltip.style.top=Math.round((vh-260)/2)+'px';
     tooltip.style.left=Math.round((vw-tw)/2)+'px';
   }
 
   tooltip.style.maxWidth=tw+'px';
+  tooltip.style.display='block';
   document.getElementById('tour-tip-title').textContent=step.title;
   document.getElementById('tour-tip-desc').textContent=step.desc;
   document.getElementById('tour-counter').textContent=`${tourStep+1} / ${TOUR_STEPS.length}`;
