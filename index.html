@@ -408,10 +408,8 @@ select.field-input option{background:#03002A}
 #tour-overlay{position:fixed;inset:0;z-index:2000;display:none}
 #tour-overlay.active{display:block}
 #tour-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);pointer-events:auto}
-.tour-spotlight{position:fixed;border-radius:12px;outline:3px solid var(--accent);outline-offset:3px;pointer-events:none;z-index:2001;transition:all .3s ease;display:none}
-.tour-spotlight.active{display:block}
-.tour-tooltip{position:fixed;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;max-width:320px;min-width:260px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:2002;pointer-events:auto;display:none}
-.tour-tooltip.active{display:block}
+.tour-spotlight{position:fixed;border-radius:12px;outline:3px solid var(--accent);outline-offset:3px;pointer-events:none;z-index:2001;display:none}
+.tour-tooltip{position:fixed;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;max-width:320px;min-width:260px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:2002;pointer-events:auto}
 .tour-tooltip-title{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px}
 .tour-tooltip-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px}
 .tour-tooltip-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -2794,17 +2792,15 @@ const TOUR_STEPS=[
 ];
 let tourStep=0;
 window.startTour=function(){
-  showPage('home');
-  setTimeout(()=>{
-    tourStep=0;
-    document.getElementById('tour-overlay').classList.add('active');
-    document.getElementById('tour-spotlight').classList.add('active');
-    document.getElementById('tour-tooltip').classList.add('active');
-    renderTourStep();
-  },300);
+  tourStep=0;
+  document.getElementById('tour-overlay').classList.add('active');
+  document.getElementById('tour-spotlight').style.display='none';
+  document.getElementById('tour-tooltip').style.display='block';
+  renderTourStep();
 };
 function renderTourStep(){
   const step=TOUR_STEPS[tourStep];
+  // Navega para a página certa
   if(step.page){
     const active=document.querySelector('.page.active');
     if(!active||active.id!=='page-'+step.page){
@@ -2813,46 +2809,55 @@ function renderTourStep(){
       return;
     }
   }
-  // Garante FAB visível se for o passo do FAB
+  // FAB: garante visível
   if(step.selector==='#main-fab'){
     const fab=document.getElementById('main-fab');
     if(fab)fab.classList.add('visible');
   }
+
+  const spotlight=document.getElementById('tour-spotlight');
+  const tooltip=document.getElementById('tour-tooltip');
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const tw=Math.min(320,vw-32);
+
+  // Tenta encontrar o elemento
   const el=document.querySelector(step.selector);
-  if(!el){tourNext();return;}
 
-  // Rola o elemento para a área visível antes de medir
-  el.scrollIntoView({behavior:'smooth',block:'center'});
-
-  setTimeout(()=>{
+  if(el){
     const rect=el.getBoundingClientRect();
-    if(rect.width===0&&rect.height===0){tourNext();return;}
-
-    const pad=8;
-    const spotlight=document.getElementById('tour-spotlight');
-    spotlight.style.top=(rect.top-pad)+'px';
-    spotlight.style.left=(rect.left-pad)+'px';
-    spotlight.style.width=(rect.width+pad*2)+'px';
-    spotlight.style.height=(rect.height+pad*2)+'px';
-
-    document.getElementById('tour-tip-title').textContent=step.title;
-    document.getElementById('tour-tip-desc').textContent=step.desc;
-    document.getElementById('tour-counter').textContent=`${tourStep+1} de ${TOUR_STEPS.length}`;
-
-    const tooltip=document.getElementById('tour-tooltip');
-    const vw=window.innerWidth, vh=window.innerHeight;
-    const tw=Math.min(320, vw-32);
-    let top=rect.bottom+pad+12;
-    let left=Math.max(16,Math.min(rect.left,vw-tw-16));
-    if(top+220>vh-16){
-      top=rect.top-220-12;
-      if(top<16) top=Math.max(16,Math.round((vh-220)/2));
+    const inView=rect.top>-50&&rect.bottom<vh+50&&rect.width>0&&rect.height>0;
+    if(inView){
+      const pad=8;
+      spotlight.style.top=(rect.top-pad)+'px';
+      spotlight.style.left=(rect.left-pad)+'px';
+      spotlight.style.width=(rect.width+pad*2)+'px';
+      spotlight.style.height=(rect.height+pad*2)+'px';
+      spotlight.style.display='block';
+      // Posiciona tooltip abaixo ou acima do elemento
+      let top=rect.bottom+16;
+      let left=Math.max(16,Math.min(rect.left,vw-tw-16));
+      if(top+240>vh) top=Math.max(16,rect.top-240-16);
+      if(top<16) top=Math.round((vh-240)/2);
+      tooltip.style.top=top+'px';
+      tooltip.style.left=left+'px';
+    } else {
+      // Elemento fora da viewport — spotlight no centro, tooltip centralizado
+      spotlight.style.display='none';
+      tooltip.style.top=Math.round((vh-240)/2)+'px';
+      tooltip.style.left=Math.round((vw-tw)/2)+'px';
     }
-    tooltip.style.top=top+'px';
-    tooltip.style.left=left+'px';
-    tooltip.style.maxWidth=tw+'px';
-    tooltip.querySelector('.tour-next-btn').textContent=tourStep===TOUR_STEPS.length-1?'Concluir ✓':'Próximo →';
-  }, 350);
+  } else {
+    // Elemento não encontrado — tooltip centralizado, sem spotlight
+    spotlight.style.display='none';
+    tooltip.style.top=Math.round((vh-240)/2)+'px';
+    tooltip.style.left=Math.round((vw-tw)/2)+'px';
+  }
+
+  tooltip.style.maxWidth=tw+'px';
+  document.getElementById('tour-tip-title').textContent=step.title;
+  document.getElementById('tour-tip-desc').textContent=step.desc;
+  document.getElementById('tour-counter').textContent=`${tourStep+1} / ${TOUR_STEPS.length}`;
+  tooltip.querySelector('.tour-next-btn').textContent=tourStep===TOUR_STEPS.length-1?'Concluir ✓':'Próximo →';
 }
 window.tourNext=function(){
   const step=TOUR_STEPS[tourStep];
@@ -2862,8 +2867,8 @@ window.tourNext=function(){
 };
 window.endTour=async function(){
   document.getElementById('tour-overlay').classList.remove('active');
-  document.getElementById('tour-spotlight').classList.remove('active');
-  document.getElementById('tour-tooltip').classList.remove('active');
+  document.getElementById('tour-spotlight').style.display='none';
+  document.getElementById('tour-tooltip').style.display='none';
   if(currentUser){try{await updateDoc(userRef(),{tourDone:true});}catch(e){}}
 };
 
