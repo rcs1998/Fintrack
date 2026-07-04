@@ -405,11 +405,11 @@ select.field-input option{background:#03002A}
 .ob-next:active{opacity:.85;transform:scale(.98)}
 .ob-skip{font-size:13px;color:var(--text3);cursor:pointer;padding:4px 12px}
 /* TOUR */
-#tour-overlay{position:fixed;inset:0;z-index:500;pointer-events:none;display:none}
-#tour-overlay.active{display:block;pointer-events:auto}
-#tour-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0)}
-.tour-spotlight{position:absolute;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.75);transition:all .4s cubic-bezier(.32,.72,0,1);pointer-events:none}
-.tour-tooltip{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;max-width:280px;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:501}
+#tour-overlay{position:fixed;inset:0;z-index:2000;display:none}
+#tour-overlay.active{display:block}
+#tour-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);pointer-events:auto}
+.tour-spotlight{position:absolute;border-radius:12px;outline:3px solid var(--accent);outline-offset:3px;transition:all .3s ease;pointer-events:none;z-index:2001}
+.tour-tooltip{position:fixed;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;max-width:320px;min-width:260px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:2002;pointer-events:auto}
 .tour-tooltip-title{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px}
 .tour-tooltip-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px}
 .tour-tooltip-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
