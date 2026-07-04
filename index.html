@@ -408,8 +408,10 @@ select.field-input option{background:#03002A}
 #tour-overlay{position:fixed;inset:0;z-index:2000;display:none}
 #tour-overlay.active{display:block}
 #tour-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);pointer-events:auto}
-.tour-spotlight{position:absolute;border-radius:12px;outline:3px solid var(--accent);outline-offset:3px;transition:all .3s ease;pointer-events:none;z-index:2001}
-.tour-tooltip{position:fixed;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;max-width:320px;min-width:260px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:2002;pointer-events:auto}
+.tour-spotlight{position:fixed;border-radius:12px;outline:3px solid var(--accent);outline-offset:3px;pointer-events:none;z-index:2001;transition:all .3s ease;display:none}
+.tour-spotlight.active{display:block}
+.tour-tooltip{position:fixed;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;max-width:320px;min-width:260px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:2002;pointer-events:auto;display:none}
+.tour-tooltip.active{display:block}
 .tour-tooltip-title{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px}
 .tour-tooltip-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px}
 .tour-tooltip-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -442,16 +444,16 @@ select.field-input option{background:#03002A}
 
 <div id="tour-overlay">
   <div id="tour-backdrop" onclick="endTour()"></div>
-  <div class="tour-spotlight" id="tour-spotlight"></div>
-  <div class="tour-tooltip" id="tour-tooltip">
-    <div class="tour-tooltip-title" id="tour-tip-title"></div>
-    <div class="tour-tooltip-desc" id="tour-tip-desc"></div>
-    <div class="tour-tooltip-footer">
-      <div class="tour-step-counter" id="tour-counter"></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span class="tour-skip-btn" onclick="endTour()">Pular tour</span>
-        <button class="tour-next-btn" onclick="tourNext()">Próximo →</button>
-      </div>
+</div>
+<div class="tour-spotlight" id="tour-spotlight" style="display:none"></div>
+<div class="tour-tooltip" id="tour-tooltip" style="display:none">
+  <div class="tour-tooltip-title" id="tour-tip-title"></div>
+  <div class="tour-tooltip-desc" id="tour-tip-desc"></div>
+  <div class="tour-tooltip-footer">
+    <div class="tour-step-counter" id="tour-counter"></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="tour-skip-btn" onclick="endTour()">Pular tour</span>
+      <button class="tour-next-btn" onclick="tourNext()">Próximo →</button>
     </div>
   </div>
 </div>
@@ -2791,14 +2793,23 @@ const TOUR_STEPS=[
   {selector:'.install-tour-anchor',title:'📲 Instale o FinTrack!',desc:'Salve o FinTrack na sua tela inicial para acesso rápido. Os dados sincronizam em tempo real entre todos os dispositivos automaticamente.',action:'install'},
 ];
 let tourStep=0;
-window.startTour=function(){showPage('home');setTimeout(()=>{tourStep=0;document.getElementById('tour-overlay').classList.add('active');renderTourStep();},300);};
+window.startTour=function(){
+  showPage('home');
+  setTimeout(()=>{
+    tourStep=0;
+    document.getElementById('tour-overlay').classList.add('active');
+    document.getElementById('tour-spotlight').classList.add('active');
+    document.getElementById('tour-tooltip').classList.add('active');
+    renderTourStep();
+  },300);
+};
 function renderTourStep(){
   const step=TOUR_STEPS[tourStep];
   if(step.page){
     const active=document.querySelector('.page.active');
     if(!active||active.id!=='page-'+step.page){
       showPage(step.page);
-      setTimeout(()=>renderTourStep(),400);
+      setTimeout(()=>renderTourStep(),500);
       return;
     }
   }
@@ -2809,23 +2820,39 @@ function renderTourStep(){
   }
   const el=document.querySelector(step.selector);
   if(!el){tourNext();return;}
-  const rect=el.getBoundingClientRect();
-  // Se elemento não está visível na tela, pula
-  if(rect.width===0&&rect.height===0){tourNext();return;}
-  const pad=8;const spotlight=document.getElementById('tour-spotlight');
-  spotlight.style.top=(rect.top-pad)+'px';spotlight.style.left=(rect.left-pad)+'px';spotlight.style.width=(rect.width+pad*2)+'px';spotlight.style.height=(rect.height+pad*2)+'px';
-  document.getElementById('tour-tip-title').textContent=step.title;document.getElementById('tour-tip-desc').textContent=step.desc;document.getElementById('tour-counter').textContent=`${tourStep+1} de ${TOUR_STEPS.length}`;
-  const tooltip=document.getElementById('tour-tooltip');
-  const vw=window.innerWidth, vh=window.innerHeight;
-  const tw=Math.min(300, vw-32), th=200;
-  let top = rect.bottom + pad + 12;
-  let left = Math.max(16, Math.min(rect.left, vw - tw - 16));
-  if (top + th > vh - 16) {
-    top = rect.top - th - 12;
-    if (top < 16) top = Math.max(16, Math.round((vh - th) / 2));
-  }
-  tooltip.style.top=top+'px';tooltip.style.left=left+'px';tooltip.style.maxWidth=tw+'px';
-  tooltip.querySelector('.tour-next-btn').textContent=tourStep===TOUR_STEPS.length-1?'Concluir ✓':'Próximo →';
+
+  // Rola o elemento para a área visível antes de medir
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+
+  setTimeout(()=>{
+    const rect=el.getBoundingClientRect();
+    if(rect.width===0&&rect.height===0){tourNext();return;}
+
+    const pad=8;
+    const spotlight=document.getElementById('tour-spotlight');
+    spotlight.style.top=(rect.top-pad)+'px';
+    spotlight.style.left=(rect.left-pad)+'px';
+    spotlight.style.width=(rect.width+pad*2)+'px';
+    spotlight.style.height=(rect.height+pad*2)+'px';
+
+    document.getElementById('tour-tip-title').textContent=step.title;
+    document.getElementById('tour-tip-desc').textContent=step.desc;
+    document.getElementById('tour-counter').textContent=`${tourStep+1} de ${TOUR_STEPS.length}`;
+
+    const tooltip=document.getElementById('tour-tooltip');
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const tw=Math.min(320, vw-32);
+    let top=rect.bottom+pad+12;
+    let left=Math.max(16,Math.min(rect.left,vw-tw-16));
+    if(top+220>vh-16){
+      top=rect.top-220-12;
+      if(top<16) top=Math.max(16,Math.round((vh-220)/2));
+    }
+    tooltip.style.top=top+'px';
+    tooltip.style.left=left+'px';
+    tooltip.style.maxWidth=tw+'px';
+    tooltip.querySelector('.tour-next-btn').textContent=tourStep===TOUR_STEPS.length-1?'Concluir ✓':'Próximo →';
+  }, 350);
 }
 window.tourNext=function(){
   const step=TOUR_STEPS[tourStep];
@@ -2833,7 +2860,12 @@ window.tourNext=function(){
   if(step&&step.action==='install'){endTour();openInstallModal();return;}
   tourStep++;if(tourStep>=TOUR_STEPS.length){endTour();return;}renderTourStep();
 };
-window.endTour=async function(){document.getElementById('tour-overlay').classList.remove('active');if(currentUser){try{await updateDoc(userRef(),{tourDone:true});}catch(e){}}};
+window.endTour=async function(){
+  document.getElementById('tour-overlay').classList.remove('active');
+  document.getElementById('tour-spotlight').classList.remove('active');
+  document.getElementById('tour-tooltip').classList.remove('active');
+  if(currentUser){try{await updateDoc(userRef(),{tourDone:true});}catch(e){}}
+};
 
 window.openInstallModal = function() { document.getElementById('modal-install').classList.add('open'); };
 window.closeInstallModal = function() { document.getElementById('modal-install').classList.remove('open'); };
