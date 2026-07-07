@@ -1292,6 +1292,11 @@ function esc(str) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
+// Para texto do usuário usado dentro de onclick="...('${valor}')" (contexto JS + HTML combinado)
+function escJsAttr(str) {
+  const jsEscaped = String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return esc(jsEscaped);
+}
 
 window.switchAuthTab = function(tab) {
   document.getElementById('tab-login').classList.toggle('active',tab==='login');
@@ -1437,9 +1442,9 @@ function renderHome() {
   const catEntries=Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
   document.getElementById('cat-grid').innerHTML=catEntries.map(([c,v])=>{
     const isActive=homeCatFilter===c;
-    return `<div class="cat-item${isActive?' cat-item-active':''}" onclick="setCatFilter('${c.replace(/'/g,"\\'")}')">
+    return `<div class="cat-item${isActive?' cat-item-active':''}" onclick="setCatFilter('${escJsAttr(c)}')">
       <div class="cat-item-icon">${CAT_ICONS[c]||'📦'}</div>
-      <div class="cat-item-label">${c}</div>
+      <div class="cat-item-label">${esc(c)}</div>
       <div class="cat-item-value" style="color:${isActive?'var(--accent)':'var(--accent)'}">${fmt(v)}</div>
     </div>`;
   }).join('');
@@ -1528,7 +1533,7 @@ function renderBills() {
     const recurTag=b.isRecurring?`<span class="bill-badge pending" style="background:var(--orange-soft);color:var(--orange)">🔄 Fixa</span>`:'';
     return `<div class="bill-item ${b.paid?'paid-item':''}" onclick="openBillDetail('${b.id}','${b._payKey||''}')">
       <div class="bill-status-dot ${st}"></div>
-      <div class="bill-info"><div class="bill-name">${b.name}</div>
+      <div class="bill-info"><div class="bill-name">${esc(b.name)}</div>
         <div class="bill-meta"><span class="bill-badge ${st}">${statusLabel[st]}</span>${recurTag}<span>${dueStr}${paidStr}</span></div>
       </div>
       <div class="bill-amount-wrap">
@@ -1599,7 +1604,7 @@ function renderFaturas() {
     <div class="fatura-card ${pago?'paga':''}" onclick="openFaturaDetail('${encodeURIComponent(card.name)}','${compKey}')">
       <div class="fatura-card-header">
         <div>
-          <div class="fatura-card-name">💳 ${card.name}
+          <div class="fatura-card-name">💳 ${esc(card.name)}
             ${isClosed
               ? '<span style="font-size:10px;background:rgba(239,68,68,.15);color:#EF4444;border-radius:20px;padding:2px 8px;margin-left:6px;font-weight:600">🔒 Fechada</span>'
               : '<span style="font-size:10px;background:rgba(34,197,94,.12);color:#22C55E;border-radius:20px;padding:2px 8px;margin-left:6px;font-weight:600">🟢 Aberta</span>'}
@@ -1611,7 +1616,7 @@ function renderFaturas() {
       <div class="fatura-card-footer">
         <div class="fatura-card-due">${pago ? '✓ Fatura paga' : isClosed ? '⚠️ Aguardando pagamento' : 'Fatura em aberto'}</div>
         <button class="fatura-pagar-btn ${pago?'pago':''}"
-          onclick="event.stopPropagation();toggleFaturaPaga('${card.name}',${y},${m},${pago})">
+          onclick="event.stopPropagation();toggleFaturaPaga('${escJsAttr(card.name)}',${y},${m},${pago})">
           ${pago ? 'Desfazer' : 'Marcar como paga'}
         </button>
       </div>
@@ -1665,7 +1670,7 @@ window.openBillModal = function(billId=null) {
   document.getElementById('bill-delete-wrap').style.display=billId?'block':'none';
   const now=new Date();
   document.getElementById('bill-month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  document.getElementById('bill-category').innerHTML=userConfig.categories.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('bill-category').innerHTML=userConfig.categories.map(c=>`<option>${esc(c)}</option>`).join('');
   if(billId){
     const b=bills.find(x=>x.id===billId);
     if(b){
@@ -1818,7 +1823,7 @@ function populateStep2() {
   document.getElementById('f-bank-wrap').style.display=(isCredit||isCash)?'none':'';
   document.getElementById('installment-section').style.display=isCredit?'':'none';
   document.getElementById('f-card').innerHTML=userConfig.cards.length
-    ?userConfig.cards.map((c,i)=>`<option value="${i}">${c.name} (vence dia ${c.dueDay})</option>`).join('')
+    ?userConfig.cards.map((c,i)=>`<option value="${i}">${esc(c.name)} (vence dia ${esc(c.dueDay)})</option>`).join('')
     :'<option value="">— Nenhum cartão cadastrado —</option>';
   // Salva índice do cartão em variável JS (evita perda em display:none no iOS)
   selectedCardIdx = userConfig.cards.length ? 0 : -1;
@@ -1826,12 +1831,12 @@ function populateStep2() {
   // ✅ FIX banco: popula select com values explícitos E salva em variável JS
   const bankSel=document.getElementById('f-bank');
   bankSel.innerHTML=userConfig.banks.length
-    ?userConfig.banks.map(b=>`<option value="${b}">${b}</option>`).join('')
+    ?userConfig.banks.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')
     :'<option value="">— Nenhum banco cadastrado —</option>';
   // Inicializa variável com o primeiro banco e escuta mudanças
   selectedBank = bankSel.value;
   bankSel.onchange = () => { selectedBank = bankSel.value; };
-  document.getElementById('f-cat').innerHTML=userConfig.categories.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('f-cat').innerHTML=userConfig.categories.map(c=>`<option>${esc(c)}</option>`).join('');
   // Mostra toggle fatura fechada só para crédito
   document.getElementById('f-closed-wrap').style.display = isCredit ? '' : 'none';
   if (!isCredit) { faturaJaFechou = false; document.getElementById('f-closed-toggle').classList.remove('on'); }
@@ -1841,8 +1846,8 @@ function populateStep3() {
   const isCredit=selectedType==='credit';
   document.getElementById('recurring-section').style.display=isCredit?'':'none';
   document.getElementById('installment-section').style.display=isCredit?'':'none';
-  document.getElementById('f-person').innerHTML=userConfig.persons.map(p=>`<option>${p}</option>`).join('');
-  document.getElementById('split-people-list').innerHTML=userConfig.persons.map(p=>`<div class="split-chip ${splitSelected.includes(p)?'selected':''}" onclick="toggleSplitPerson(this,'${p}')"><span class="check">✓</span> ${p}</div>`).join('');
+  document.getElementById('f-person').innerHTML=userConfig.persons.map(p=>`<option>${esc(p)}</option>`).join('');
+  document.getElementById('split-people-list').innerHTML=userConfig.persons.map(p=>`<div class="split-chip ${splitSelected.includes(p)?'selected':''}" onclick="toggleSplitPerson(this,'${escJsAttr(p)}')"><span class="check">✓</span> ${esc(p)}</div>`).join('');
   document.querySelectorAll('.inst-btn').forEach(b=>b.classList.remove('selected'));
   const btns=document.querySelectorAll('.inst-btn');
   let found=false;btns.forEach(b=>{if(parseInt(b.textContent)===instCount){b.classList.add('selected');found=true;}});
@@ -1878,7 +1883,7 @@ function populateStep4() {
     splitActive&&splitSelected.length?['Meu valor',fmt(myAmt)]:null,
     recurringActive?['Recorrência','12 meses']:null,
   ].filter(Boolean);
-  document.getElementById('summary-content').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><div class="summary-key">${k}</div><div class="summary-val">${v}</div></div>`).join('');
+  document.getElementById('summary-content').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><div class="summary-key">${esc(k)}</div><div class="summary-val">${esc(v)}</div></div>`).join('');
 }
 
 function calcCompetence(dateStr,dueDay,interval,alreadyClosed=false) {
@@ -2505,10 +2510,10 @@ function renderReport(){
       const safeKey=encodeURIComponent(k);
       // Titular usa modal dedicado com WhatsApp; cat e card usam modal genérico
       const clickFn = groupType==='person'
-        ? `openPersonModal('${k.replace(/'/g,"\\'")}')`
+        ? `openPersonModal('${escJsAttr(k)}')`
         : `openGroupModal('${groupType}','${safeKey}')`;
       return `<div class="report-row clickable" onclick="${clickFn}">
-        <div style="font-size:13px;min-width:80px;display:flex;align-items:center;gap:4px">${k}<span style="color:var(--accent);font-size:14px">›</span></div>
+        <div style="font-size:13px;min-width:80px;display:flex;align-items:center;gap:4px">${esc(k)}<span style="color:var(--accent);font-size:14px">›</span></div>
         <div class="report-bar-wrap"><div class="report-bar" style="width:${Math.round(pct*100)}%"></div></div>
         <div class="report-val">${fmt(v)}</div>
       </div>`;
@@ -2556,7 +2561,7 @@ window.openGroupModal = function(groupType, safeKey) {
 };
 
 function renderConfig(){renderCardsList();renderChips('cat-chips',userConfig.categories,'removeCategory');renderChips('person-chips',userConfig.persons,'removePerson');renderChips('bank-chips',userConfig.banks,'removeBank');}
-function renderChips(id,arr,fn){document.getElementById(id).innerHTML=arr.map((item,i)=>`<div class="config-chip">${item} <span class="remove" onclick="window['${fn}'](${i})">✕</span></div>`).join('');}
+function renderChips(id,arr,fn){document.getElementById(id).innerHTML=arr.map((item,i)=>`<div class="config-chip">${esc(item)} <span class="remove" onclick="window['${fn}'](${i})">✕</span></div>`).join('');}
 window.addCategory=function(){const v=document.getElementById('cat-input').value.trim();if(v&&!userConfig.categories.includes(v)){userConfig.categories.push(v);saveConfig();renderConfig();}document.getElementById('cat-input').value='';};
 window.removeCategory=function(i){userConfig.categories.splice(i,1);saveConfig();renderConfig();};
 window.addPerson=function(){const v=document.getElementById('person-input').value.trim();if(v&&!userConfig.persons.includes(v)){userConfig.persons.push(v);saveConfig();renderConfig();}document.getElementById('person-input').value='';};
@@ -2677,7 +2682,7 @@ window.openDetailModal=function(id){
     t.amount!==t.myAmount?['Meu valor',fmt(t.myAmount)]:null,
     t.isRecurring?['Recorrência','Assinatura mensal']:null,
   ].filter(Boolean);
-  document.getElementById('detail-rows').innerHTML=rows.map(([k,v])=>`<div class="detail-row"><div class="detail-key">${k}</div><div class="detail-val">${v}</div></div>`).join('');
+  document.getElementById('detail-rows').innerHTML=rows.map(([k,v])=>`<div class="detail-row"><div class="detail-key">${esc(k)}</div><div class="detail-val">${esc(v)}</div></div>`).join('');
   const noteBox=document.getElementById('detail-note-box');
   if(t.note){noteBox.style.display='block';noteBox.textContent=`📝 ${t.note}`;}else noteBox.style.display='none';
   document.getElementById('modal-detail').classList.add('open');
@@ -2688,13 +2693,13 @@ window.openEdit=function(){
   if(!detailTx)return;
   document.getElementById('edit-title').value=detailTx.title||detailTx.description||'';
   document.getElementById('edit-note').value=detailTx.note||'';
-  document.getElementById('edit-cat').innerHTML=userConfig.categories.map(c=>`<option ${c===detailTx.category?'selected':''}>${c}</option>`).join('');
-  document.getElementById('edit-person').innerHTML=userConfig.persons.map(p=>`<option ${p===detailTx.person?'selected':''}>${p}</option>`).join('');
+  document.getElementById('edit-cat').innerHTML=userConfig.categories.map(c=>`<option ${c===detailTx.category?'selected':''}>${esc(c)}</option>`).join('');
+  document.getElementById('edit-person').innerHTML=userConfig.persons.map(p=>`<option ${p===detailTx.person?'selected':''}>${esc(p)}</option>`).join('');
   // ✅ FIX 2: Campo banco na edição — só para débito/pix
   const bankWrap=document.getElementById('edit-bank-wrap');
   if(detailTx.type!=='credit'){
     bankWrap.style.display='';
-    document.getElementById('edit-bank').innerHTML=userConfig.banks.map(b=>`<option value="${b}" ${b===detailTx.bank?'selected':''}>${b}</option>`).join('');
+    document.getElementById('edit-bank').innerHTML=userConfig.banks.map(b=>`<option value="${esc(b)}" ${b===detailTx.bank?'selected':''}>${esc(b)}</option>`).join('');
   } else { bankWrap.style.display='none'; }
   document.getElementById('edit-form').classList.add('open');
   document.getElementById('detail-actions').style.display='none';
@@ -2926,12 +2931,12 @@ window.openNotifCenter = function() {
     const isPaid = b.isRecurring ? !!((b.payments||{})[payKey]) : !!b.paid;
     if (isPaid) return;
     const dueStr = `${y}-${pad(m+1)}-${pad(b.dueDay)}`;
-    if (dueStr === today) alerts.push({icon:'⚠️', msg:`<b>${b.name}</b> vence <b>hoje</b> — ${fmt(b.value)}`, urgent:true});
+    if (dueStr === today) alerts.push({icon:'⚠️', msg:`<b>${esc(b.name)}</b> vence <b>hoje</b> — ${fmt(b.value)}`, urgent:true});
     else if (dueStr > today && dueStr <= in3Str) {
       const diff = Math.round((new Date(dueStr)-now)/86400000);
-      alerts.push({icon:'📋', msg:`<b>${b.name}</b> vence em <b>${diff} dia${diff>1?'s':''}</b> — ${fmt(b.value)}`, urgent:false});
+      alerts.push({icon:'📋', msg:`<b>${esc(b.name)}</b> vence em <b>${diff} dia${diff>1?'s':''}</b> — ${fmt(b.value)}`, urgent:false});
     } else if (dueStr < today) {
-      alerts.push({icon:'🚨', msg:`<b>${b.name}</b> está <b>vencida</b> — ${fmt(b.value)}`, urgent:true});
+      alerts.push({icon:'🚨', msg:`<b>${esc(b.name)}</b> está <b>vencida</b> — ${fmt(b.value)}`, urgent:true});
     }
   });
 
