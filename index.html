@@ -1286,6 +1286,12 @@ async function loadUserData() {
 async function saveConfig() { try { await updateDoc(userRef(),{config:userConfig}); } catch(e){console.error(e);} }
 async function saveTx(tx) { try { const{id,...data}=tx; const ref=await addDoc(txCol(),data); return ref.id; } catch(e){console.error(e);throw e;} }
 function genUUID() { return 'r-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8); }
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
 
 window.switchAuthTab = function(tab) {
   document.getElementById('tab-login').classList.toggle('active',tab==='login');
@@ -1461,10 +1467,10 @@ function renderHome() {
     const recTag=t.isRecurring?`<span class="tag tag-recurring">🔄</span>`:'';
     const person=t.person&&t.person!=='Eu'?` · ${t.person}`:'';
     const bankInfo=(t.type!=='credit'&&t.bank)?` · ${t.bank}`:'';
-    const noteStr=t.note?`<div class="tx-note">${t.note}</div>`:'';
+    const noteStr=t.note?`<div class="tx-note">${esc(t.note)}</div>`:'';
     return `<div class="transaction-item" onclick="openDetailModal('${t.id}')">
       <div class="tx-icon" style="background:${isOut?'var(--red-soft)':'var(--green-soft)'}">${CAT_ICONS[t.category]||'📦'}</div>
-      <div class="tx-info"><div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>${noteStr}
+      <div class="tx-info"><div class="tx-desc">${esc(t.title||t.description||'Sem título')}${inst}</div>${noteStr}
         <div class="tx-meta">${fmtDate(t.date)}${person}${bankInfo} <span class="tag ${typeTag[t.type]}">${typeLabel[t.type]}</span>${recTag}</div>
       </div>
       <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
@@ -1630,8 +1636,8 @@ window.openFaturaDetail = function(safeCardName, compKey) {
     return `<div class="transaction-item" onclick="openDetailModal('${t.id}');document.getElementById('modal-group').classList.remove('open')">
       <div class="tx-icon" style="background:var(--red-soft)">${CAT_ICONS[t.category]||'📦'}</div>
       <div class="tx-info">
-        <div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
-        <div class="tx-meta">${fmtDate(t.date)} · ${t.person||'Eu'} · <span class="tag ${typeTag[t.type]||''}">${typeLabel[t.type]||t.type}</span></div>
+        <div class="tx-desc">${esc(t.title||t.description||'Sem título')}${inst}</div>
+        <div class="tx-meta">${fmtDate(t.date)} · ${esc(t.person||'Eu')} · <span class="tag ${typeTag[t.type]||''}">${typeLabel[t.type]||t.type}</span></div>
       </div>
       <div class="tx-amount out">-${fmt(amt)}</div>
     </div>`;
@@ -2535,7 +2541,7 @@ window.openGroupModal = function(groupType, safeKey) {
     return `<div class="transaction-item" onclick="openDetailModal('${t.id}');document.getElementById('modal-group').classList.remove('open')">
       <div class="tx-icon" style="background:${isOut?'var(--red-soft)':'var(--green-soft)'}">${CAT_ICONS[t.category]||'📦'}</div>
       <div class="tx-info">
-        <div class="tx-desc">${t.title||t.description||'Sem título'}${inst}</div>
+        <div class="tx-desc">${esc(t.title||t.description||'Sem título')}${inst}</div>
         <div class="tx-meta">${fmtDate(t.date)} · <span class="tag ${typeTag[t.type]||''}">${typeLabel[t.type]||t.type}</span></div>
       </div>
       <div class="tx-amount ${isOut?'out':'in'}">${isOut?'-':'+'}${fmt(amt)}</div>
@@ -2561,7 +2567,7 @@ window.removeBank=function(i){userConfig.banks.splice(i,1);saveConfig();renderCo
 function renderCardsList(){
   const el=document.getElementById('cards-config-list');
   if(!userConfig.cards.length){el.innerHTML='<div class="config-row"><div class="config-row-left"><div class="config-row-label" style="color:var(--text3)">Nenhum cartão cadastrado</div></div></div>';return;}
-  el.innerHTML=userConfig.cards.map((c,i)=>`<div class="config-row"><div class="config-row-left"><div>💳</div><div><div class="config-row-label">${c.name}</div><div class="config-row-sub">${c.bank} · Vence dia ${c.dueDay} · Fecha ${c.interval}d antes</div></div></div><div style="display:flex;gap:12px"><span style="cursor:pointer;color:var(--accent);font-size:13px" onclick="editCard(${i})">Editar</span><span style="cursor:pointer;color:var(--red);font-size:13px" onclick="deleteCard(${i})">Excluir</span></div></div>`).join('');
+  el.innerHTML=userConfig.cards.map((c,i)=>`<div class="config-row"><div class="config-row-left"><div>💳</div><div><div class="config-row-label">${esc(c.name)}</div><div class="config-row-sub">${esc(c.bank)} · Vence dia ${esc(c.dueDay)} · Fecha ${esc(c.interval)}d antes</div></div></div><div style="display:flex;gap:12px"><span style="cursor:pointer;color:var(--accent);font-size:13px" onclick="editCard(${i})">Editar</span><span style="cursor:pointer;color:var(--red);font-size:13px" onclick="deleteCard(${i})">Excluir</span></div></div>`).join('');
 }
 window.openAddCard=function(){editCardIdx=null;document.getElementById('card-modal-title').textContent='Novo cartão';['card-name','card-bank','card-due'].forEach(id=>document.getElementById(id).value='');document.getElementById('card-interval').value='10';document.getElementById('custom-interval-wrap').style.display='none';document.getElementById('modal-card').classList.add('open');};
 window.editCard=function(i){editCardIdx=i;const c=userConfig.cards[i];document.getElementById('card-modal-title').textContent='Editar cartão';document.getElementById('card-name').value=c.name;document.getElementById('card-bank').value=c.bank;document.getElementById('card-due').value=c.dueDay;document.getElementById('card-interval').value=c.interval;document.getElementById('modal-card').classList.add('open');};
@@ -2624,7 +2630,7 @@ function renderPersonModal(){
   const sorted=[...txs].sort((a,b)=>new Date(a.date)-new Date(b.date));
   const typeLabel={credit:'Crédito',debit:'Débito',pix:'Pix',cash:'Dinheiro',transfer_in:'Entrada'};
   if(!sorted.length){document.getElementById('person-modal-txlist').innerHTML='<div class="empty-state"><div class="empty-icon">🎉</div><div class="empty-label">Nenhum lançamento</div><div class="empty-sub">Sem gastos neste mês</div></div>';}
-  else{document.getElementById('person-modal-txlist').innerHTML=sorted.map(t=>{const inst=t.installmentOf?` (${t.installmentNum}/${t.installmentOf}x)`:'';const noteStr=t.note?`<div class="tx-note">${t.note}</div>`:'';return `<div class="person-tx-item"><div class="person-tx-left"><div class="person-tx-desc">${t.title||t.description||'Sem título'}${inst}</div>${noteStr}<div class="person-tx-meta">${fmtDate(t.date)} · ${CAT_ICONS[t.category]||'📦'} ${t.category||''} · ${typeLabel[t.type]||''}</div></div><div class="person-tx-amount">${fmt(t.myAmount??t.amount)}</div></div>`;}).join('');}
+  else{document.getElementById('person-modal-txlist').innerHTML=sorted.map(t=>{const inst=t.installmentOf?` (${t.installmentNum}/${t.installmentOf}x)`:'';const noteStr=t.note?`<div class="tx-note">${esc(t.note)}</div>`:'';return `<div class="person-tx-item"><div class="person-tx-left"><div class="person-tx-desc">${esc(t.title||t.description||'Sem título')}${inst}</div>${noteStr}<div class="person-tx-meta">${fmtDate(t.date)} · ${CAT_ICONS[t.category]||'📦'} ${esc(t.category||'')} · ${typeLabel[t.type]||''}</div></div><div class="person-tx-amount">${fmt(t.myAmount??t.amount)}</div></div>`;}).join('');}
 }
 window.personChangeMonth=function(dir){personMonth+=dir;if(personMonth>11){personMonth=0;personYear++;}if(personMonth<0){personMonth=11;personYear--;}renderPersonModal();};
 window.closePersonModal=function(){document.getElementById('modal-person').classList.remove('open');};
