@@ -736,7 +736,6 @@ select.field-input option{background:#03002A}
           <div style="color:var(--accent);font-size:14px">▶</div>
         </div>
           </div>
-        </div>
         <div style="height:8px"></div>
         <div id="dev-novidades-section" style="display:none">
           <div class="section-title">🔧 Novidades (dev)</div>
@@ -1481,12 +1480,14 @@ function renderHome() {
   const txs=transactions.filter(t=>{const d=new Date((t.competenceDate||t.date)+'T12:00:00');return d.getMonth()===m&&d.getFullYear()===y;});
   const outTxs=txs.filter(t=>t.type!=='transfer_in');
   const inTxs=txs.filter(t=>t.type==='transfer_in');
-  const total=outTxs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
   const credit=outTxs.filter(t=>t.type==='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-  const debit=outTxs.filter(t=>t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+  // Débito/Pix/Din exibido inclui as contas pagas do mês (incluindo faturas de cartão pagas),
+  // porque o saldo (mais abaixo) também subtrai isso — senão o card mostraria um valor de saída
+  // menor do que o que realmente afeta o saldo, dando a impressão de conta errada.
+  const billsPaidThisMonth = getBillsPaidForMonth(y, m);
+  const debit=outTxs.filter(t=>t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0) + billsPaidThisMonth;
+  const total=credit+debit;
   const income=inTxs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
-  const nonCreditOut=debit; // débito+pix+dinheiro
-  const balance=income-nonCreditOut;
   document.getElementById('home-total').textContent=fmt(total);
   document.getElementById('home-credit').textContent=fmt(credit);
   document.getElementById('home-debit').textContent=fmt(debit);
