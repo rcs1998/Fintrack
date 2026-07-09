@@ -1906,6 +1906,8 @@ function populateStep2() {
   document.getElementById('f-cat').innerHTML=userConfig.categories.map(c=>`<option>${esc(c)}</option>`).join('');
   // Entrada não precisa de categoria (não é gasto, não entra em relatório por categoria)
   document.getElementById('f-cat-wrap').style.display = selectedType==='transfer_in' ? 'none' : '';
+  document.getElementById('f-title').placeholder = selectedType==='transfer_in' ? 'Ex: Salário, Freelance, Reembolso...' : 'Ex: 99App, Supermercado Extra, Netflix...';
+  document.getElementById('f-note').placeholder = selectedType==='transfer_in' ? 'Ex: Referente a horas extras de junho' : 'Ex: Ida ao aeroporto com a família';
   // Mostra toggle fatura fechada só para crédito
   document.getElementById('f-closed-wrap').style.display = isCredit ? '' : 'none';
   if (!isCredit) { faturaJaFechou = false; document.getElementById('f-closed-toggle').classList.remove('on'); }
