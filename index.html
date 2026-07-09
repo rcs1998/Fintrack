@@ -738,6 +738,22 @@ select.field-input option{background:#03002A}
           </div>
         </div>
         <div style="height:8px"></div>
+        <div id="dev-novidades-section" style="display:none">
+          <div class="section-title">🔧 Novidades (dev)</div>
+          <div class="config-card" style="padding:16px">
+            <div id="novidades-list-dev"></div>
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+              <input class="field-input" id="nov-title" placeholder="Título da novidade">
+              <textarea class="field-input" id="nov-desc" placeholder="Descrição" style="min-height:70px;resize:vertical;font-family:'Inter',sans-serif"></textarea>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1"><label class="field-label">Início (opcional)</label><input class="field-input" type="date" id="nov-start"></div>
+                <div style="flex:1"><label class="field-label">Fim (opcional)</label><input class="field-input" type="date" id="nov-end"></div>
+              </div>
+              <button class="cta-btn" onclick="saveNovidade()" style="font-size:14px;padding:13px">Publicar novidade</button>
+            </div>
+          </div>
+        </div>
+        <div style="height:8px"></div>
         <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.4 · Dados salvos na nuvem ☁️</div>
       <div class="install-tour-anchor" style="height:1px"></div>
       </div>
@@ -1197,7 +1213,70 @@ let editBillId = null;
 let payBillId = null;
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪'};
+
+// ── NOVIDADES ──
+// As novidades agora vêm do Firestore (coleção "novidades"), publicadas direto pelo app —
+// veja o painel "🔧 Novidades (dev)" na tela de Configurações, visível só pra DEV_UID.
+const DEV_UID = 'EUgFCLnrh3YAWpjV6d1j1uzvl7M2';
+let novidadesCache = [];
+
+async function loadNovidades() {
+  try {
+    const snap = await getDocs(collection(db,'novidades'));
+    novidadesCache = snap.docs.map(d=>({id:d.id,...d.data()}));
+  } catch(e) { console.error('loadNovidades error:', e); novidadesCache = []; }
+}
+
+function getActiveNovidades() {
+  const todayStr = new Date().toISOString().slice(0,10);
+  const vistas = new Set(userConfig.novidadesVistas || []);
+  return novidadesCache.filter(n => {
+    if (!n.id || vistas.has(n.id)) return false;
+    if (n.startDate && todayStr < n.startDate) return false;
+    if (n.endDate && todayStr > n.endDate) return false;
+    return true;
+  });
+}
+
+function checkNovidades() {
+  const ativas = getActiveNovidades();
+  if (!ativas.length) return;
+  showNovidadesModal(ativas);
+}
+
+function showNovidadesModal(items) {
+  let existing = document.getElementById('modal-novidades');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'modal-novidades';
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header"><div class="modal-title">✨ Novidades</div><button class="modal-close" onclick="dismissNovidades()">✕</button></div>
+      <div style="padding:8px 20px 24px">
+        ${items.map(n => `
+          <div style="padding:14px 0;border-bottom:1px solid var(--border)">
+            <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px">${esc(n.title||'')}</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.5">${esc(n.desc||'')}</div>
+          </div>`).join('')}
+        <button class="cta-btn" onclick="dismissNovidades()" style="margin-top:16px;font-size:14px;padding:13px">Entendi ✓</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target===modal) dismissNovidades(); });
+  document.body.appendChild(modal);
+  window._novidadesAtivas = items.map(n=>n.id);
+}
+
+window.dismissNovidades = async function() {
+  const ids = window._novidadesAtivas || [];
+  const modal = document.getElementById('modal-novidades');
+  if (modal) modal.remove();
+  if (!ids.length) return;
+  userConfig.novidadesVistas = Array.from(new Set([...(userConfig.novidadesVistas||[]), ...ids]));
+  try { await saveConfig(); } catch(e) {}
+};
+const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️'};
 
 onAuthStateChanged(auth, async (user) => {
   if (user) { currentUser = user; await loadUserData(); showApp(); }
@@ -1224,7 +1303,9 @@ function showApp() {
     // Mostra FAB na home
     const fab=document.getElementById('main-fab');
     if(fab&&!fab.classList.contains('fab-locked'))fab.classList.add('visible');
-    if (!userConfig.tourDone) { setTimeout(()=>startTour(),800); userConfig.tourDone=true; saveConfig(); }
+    const isFirstTour = !userConfig.tourDone;
+    if (isFirstTour) { setTimeout(()=>startTour(),800); userConfig.tourDone=true; saveConfig(); }
+    else { setTimeout(checkNovidades, 800); }
   }
   checkBillsDueOnPageLoad();
   setTimeout(updateNotifBadge, 1500);
@@ -1269,6 +1350,8 @@ async function loadUserData() {
     transactions = txSnap.docs.map(d=>({id:d.id,...d.data()}));
     try { const bSnap = await getDocs(query(billsCol(),orderBy('createdAt','desc'))); bills = bSnap.docs.map(d=>({id:d.id,...d.data()})); } catch(e){bills=[];}
     await checkFaturaAuto();
+    await checkSaldoAnteriorAuto();
+    await loadNovidades();
     // Listeners em tempo real — atualiza automaticamente quando outro dispositivo lança
     onSnapshot(query(txCol(),orderBy('createdAt','desc')), snap=>{
       transactions = snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1408,29 +1491,9 @@ function renderHome() {
   document.getElementById('home-credit').textContent=fmt(credit);
   document.getElementById('home-debit').textContent=fmt(debit);
   document.getElementById('home-count').textContent=outTxs.length;
-  // Saldo acumulado: soma todos os meses até o atual (inclui contas pagas e faturas)
-  function calcSaldoAcumulado(upToYear, upToMonth) {
-    let saldo = 0;
-    const pad = n => String(n).padStart(2,'0');
-    const allYMs = new Set(transactions.map(t=>(t.competenceDate||t.date||'').slice(0,7)));
-    // Garante que todos os meses até o atual sejam considerados (para contas pagas)
-    for(let y=2020;y<=upToYear;y++){
-      const maxM = y===upToYear ? upToMonth : 11;
-      for(let mo=0;mo<=maxM;mo++) allYMs.add(`${y}-${pad(mo+1)}`);
-    }
-    allYMs.forEach(ym => {
-      if(!ym||ym.length<7) return;
-      const [y,ms] = ym.split('-').map(Number); const mo=ms-1;
-      if(y>upToYear||(y===upToYear&&mo>upToMonth)) return;
-      const inc = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type==='transfer_in').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-      const out = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-      const billsPaid = getBillsPaidForMonth(y, mo);
-      saldo += inc - out - billsPaid;
-    });
-    return saldo;
-  }
-
-  const saldoAcumulado = calcSaldoAcumulado(currentYear, currentMonth);
+  // Saldo do mês: agora o saldo do mês anterior já entra como um lançamento automático
+  // ("Saldo anterior"), então basta calcular entradas - saídas não-crédito - faturas pagas DESTE mês.
+  const saldoAcumulado = getMonthNetSimple(currentYear, currentMonth);
   const incEl=document.getElementById('home-income');
   const balEl=document.getElementById('home-balance');
   if(incEl)incEl.textContent=fmt(income);
@@ -2214,12 +2277,12 @@ function getEvolutionMonths() {
   return months;
 }
 
-function getBillsPaidForMonth(year, month) {
+function getBillsPaidForMonth(year, month, includeFaturaAuto = true) {
   const pad = n => String(n).padStart(2,'0');
   const payKey = `${year}-${pad(month+1)}`;
   let total = 0;
   (bills||[]).forEach(b => {
-    if (b.isFaturaAuto) return; // evita duplicata com barras de gastos
+    if (b.isFaturaAuto && !includeFaturaAuto) return; // só ignora fatura automática no gráfico de evolução (evita duplicata com a barra de gastos de crédito)
     if (b.isRecurring) {
       const info = (b.payments||{})[payKey];
       if (info) total += info.value ?? b.value ?? 0;
@@ -2230,6 +2293,99 @@ function getBillsPaidForMonth(year, month) {
     }
   });
   return total;
+}
+
+// Saldo líquido de um mês específico: entradas - saídas não-crédito - faturas pagas.
+// Se já existe um lançamento "Saldo anterior" criado para esse mês, ele entra automaticamente
+// aqui (como transfer_in se positivo, ou debit se negativo), então o valor retornado já é o
+// saldo acumulado "de verdade" até o fim desse mês — sem precisar somar todo o histórico de novo.
+function getMonthNetSimple(year, month) {
+  const pad = n => String(n).padStart(2,'0');
+  const ym = `${year}-${pad(month+1)}`;
+  const inc = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type==='transfer_in').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+  const out = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
+  const billsPaid = getBillsPaidForMonth(year, month);
+  return inc - out - billsPaid;
+}
+
+// Encontra o mês mais antigo com algum dado (transação ou conta), pra saber de onde começar
+// a reconstrução do histórico na primeira vez que o "Saldo anterior" automático roda.
+function getEarliestDataMonth() {
+  let earliest = null;
+  transactions.forEach(t=>{
+    const ym=(t.competenceDate||t.date||'').slice(0,7);
+    if(ym&&ym.length===7&&(!earliest||ym<earliest)) earliest=ym;
+  });
+  (bills||[]).forEach(b=>{
+    if(b.refYear==null||b.refMonth==null) return;
+    const ym=`${b.refYear}-${String(b.refMonth+1).padStart(2,'0')}`;
+    if(!earliest||ym<earliest) earliest=ym;
+  });
+  return earliest;
+}
+
+// Cria o lançamento automático de "Saldo anterior" no mês (year,month), com o valor vindo do
+// mês (sourceYear,sourceMonth). Positivo entra como Entrada; negativo entra como saída (vermelho).
+// Usa um ID determinístico (não addDoc) — se dois dispositivos tentarem criar ao mesmo tempo,
+// ambos escrevem no MESMO documento em vez de criar duplicatas.
+async function createSaldoAnteriorEntry(year, month, saldoAnterior, sourceYear, sourceMonth) {
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = `${year}-${pad(month+1)}-01`;
+  const isPositive = saldoAnterior >= 0;
+  const amount = Math.abs(saldoAnterior);
+  const label = `Saldo anterior (${MONTHS[sourceMonth]}/${sourceYear})`;
+  const id = `saldo_anterior_${year}-${pad(month+1)}`;
+  const tx = {
+    type: isPositive?'transfer_in':'debit',
+    date: dateStr, competenceDate: dateStr,
+    amount, myAmount: amount,
+    category: 'Saldo anterior',
+    description: label, title: label, note: '',
+    person: (userConfig.persons&&userConfig.persons[0])||'Eu',
+    card: null, bank: 'Saldo', splitWith: [],
+    isSaldoAnterior: true,
+    createdAt: new Date().toISOString(),
+  };
+  await setDoc(doc(db,'users',currentUser.uid,'transactions',id), tx);
+  const idx = transactions.findIndex(t=>t.id===id);
+  if (idx>=0) transactions[idx] = { id, ...tx }; else transactions.unshift({ id, ...tx }); // disponível na hora, sem esperar o onSnapshot
+}
+
+// Roda a cada abertura do app: garante que o saldo do mês anterior "entrou" como lançamento
+// no mês seguinte. Na primeira execução, reconstrói mês a mês desde o início dos dados.
+async function checkSaldoAnteriorAuto() {
+  const now = new Date();
+  const nowY = now.getFullYear(), nowM = now.getMonth();
+  const pad = n => String(n).padStart(2,'0');
+  const nowKey = `${nowY}-${pad(nowM+1)}`;
+
+  let lastKey = userConfig.saldoAnteriorLastMonth;
+
+  if (!lastKey) {
+    const earliest = getEarliestDataMonth();
+    if (!earliest) { userConfig.saldoAnteriorLastMonth = nowKey; await saveConfig(); return; }
+    const [ey, em] = earliest.split('-').map(Number);
+    let lm = em - 2, ly = ey; // mês fictício imediatamente ANTES do primeiro mês com dados (saldo=0 ali)
+    if (lm < 0) { lm = 11; ly--; }
+    lastKey = `${ly}-${pad(lm+1)}`;
+  }
+
+  const [ly0, lm1] = lastKey.split('-').map(Number);
+  let cy = ly0, cm = lm1 - 1;
+
+  while (cy < nowY || (cy === nowY && cm < nowM)) {
+    const saldoDoMes = getMonthNetSimple(cy, cm);
+    let ny = cy, nm = cm + 1;
+    if (nm > 11) { nm = 0; ny++; }
+    const targetKey = `${ny}-${pad(nm+1)}`;
+    const already = transactions.some(t => t.isSaldoAnterior && (t.competenceDate||t.date||'').slice(0,7) === targetKey);
+    if (!already && Math.abs(saldoDoMes) > 0.001) {
+      await createSaldoAnteriorEntry(ny, nm, saldoDoMes, cy, cm);
+    }
+    cy = ny; cm = nm;
+  }
+  userConfig.saldoAnteriorLastMonth = nowKey;
+  await saveConfig();
 }
 
 function renderEvolution() {
@@ -2258,7 +2414,7 @@ function renderEvolution() {
   );
 
   const billValues = showEvoBills
-    ? months.map(({year, month}) => getBillsPaidForMonth(year, month))
+    ? months.map(({year, month}) => getBillsPaidForMonth(year, month, false))
     : months.map(()=>0);
 
   const maxVal = Math.max(...txValues, ...billValues, 1);
@@ -2387,22 +2543,9 @@ function renderSaldo() {
   const RED='#f87171', RED_L='rgba(248,113,113,.15)';
   const PURPLE='#6C63FF';
 
-  // Calcula saldo acumulado de todos os meses ANTES do primeiro mês do gráfico
-  let runningBalance = 0;
-  const firstMonth = months[0];
-  const pad0 = n => String(n).padStart(2,'0');
-  // Itera meses desde 2020 até o mês anterior ao início do gráfico
-  for(let y=2020;y<=firstMonth.year;y++){
-    const maxM = y===firstMonth.year ? firstMonth.month-1 : 11;
-    for(let mo=0;mo<=maxM;mo++){
-      const ym=`${y}-${pad0(mo+1)}`;
-      const inc=transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type==='transfer_in').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-      const out=transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
-      const bp=getBillsPaidForMonth(y,mo);
-      runningBalance += inc - out - bp;
-    }
-  }
-
+  // O "Saldo anterior" de cada mês já é um lançamento (transfer_in ou debit) dentro do próprio mês,
+  // então getMonthNetSimple já retorna o saldo acumulado até o fim daquele mês — sem precisar
+  // varrer o histórico desde 2020 a cada render.
   const data = months.map(({year, month}) => {
     const pad = n => String(n).padStart(2,'0');
     const ym = `${year}-${pad(month+1)}`;
@@ -2410,8 +2553,8 @@ function renderSaldo() {
     const nonCredit = transactions.filter(t=>(t.competenceDate||t.date||'').slice(0,7)===ym&&t.type!=='transfer_in'&&t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0);
     const billsPaid = getBillsPaidForMonth(year, month);
     const totalOut = nonCredit + billsPaid;
-    runningBalance += income - totalOut;
-    return { income, totalOut, saldo: runningBalance };
+    const saldo = getMonthNetSimple(year, month);
+    return { income, totalOut, saldo };
   });
 
   // Escala baseada nos valores absolutos de entrada e saída (não saldo negativo)
@@ -2560,7 +2703,55 @@ window.openGroupModal = function(groupType, safeKey) {
   document.getElementById('modal-group').classList.add('open');
 };
 
-function renderConfig(){renderCardsList();renderChips('cat-chips',userConfig.categories,'removeCategory');renderChips('person-chips',userConfig.persons,'removePerson');renderChips('bank-chips',userConfig.banks,'removeBank');}
+function renderConfig(){renderCardsList();renderChips('cat-chips',userConfig.categories,'removeCategory');renderChips('person-chips',userConfig.persons,'removePerson');renderChips('bank-chips',userConfig.banks,'removeBank');renderNovidadesDev();}
+
+// ── Painel de novidades (visível só para DEV_UID) ──
+function renderNovidadesDev() {
+  const section = document.getElementById('dev-novidades-section');
+  if (!section) return;
+  if (!currentUser || currentUser.uid !== DEV_UID) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  const list = document.getElementById('novidades-list-dev');
+  if (!novidadesCache.length) { list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">Nenhuma novidade publicada ainda.</div>'; return; }
+  const sorted = [...novidadesCache].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  list.innerHTML = sorted.map(n => `
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-weight:600;font-size:14px">${esc(n.title||'')}</div>
+      <div style="font-size:12px;color:var(--text2);margin:2px 0">${esc(n.desc||'')}</div>
+      <div style="font-size:11px;color:var(--text3)">${esc(n.startDate||'—')} até ${esc(n.endDate||'—')}</div>
+      <div style="margin-top:6px"><span style="color:var(--red);font-size:12px;cursor:pointer" onclick="deleteNovidade('${n.id}')">Excluir</span></div>
+    </div>`).join('');
+}
+
+window.saveNovidade = async function() {
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const title = document.getElementById('nov-title').value.trim();
+  const desc = document.getElementById('nov-desc').value.trim();
+  const startDate = document.getElementById('nov-start').value || null;
+  const endDate = document.getElementById('nov-end').value || null;
+  if (!title) { showToast('⚠️ Preencha o título', false); return; }
+  try {
+    const data = { title, desc, startDate, endDate, createdAt: new Date().toISOString() };
+    const ref = await addDoc(collection(db,'novidades'), data);
+    novidadesCache.push({ id: ref.id, ...data });
+    document.getElementById('nov-title').value='';
+    document.getElementById('nov-desc').value='';
+    document.getElementById('nov-start').value='';
+    document.getElementById('nov-end').value='';
+    renderNovidadesDev();
+    showToast('✓ Novidade publicada!', true);
+  } catch(e) { console.error(e); showToast('❌ Erro ao publicar.', false); }
+};
+
+window.deleteNovidade = async function(id) {
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  try {
+    await deleteDoc(doc(db,'novidades',id));
+    novidadesCache = novidadesCache.filter(n=>n.id!==id);
+    renderNovidadesDev();
+    showToast('✓ Novidade excluída!', true);
+  } catch(e) { console.error(e); showToast('❌ Erro ao excluir.', false); }
+};
 function renderChips(id,arr,fn){document.getElementById(id).innerHTML=arr.map((item,i)=>`<div class="config-chip">${esc(item)} <span class="remove" onclick="window['${fn}'](${i})">✕</span></div>`).join('');}
 window.addCategory=function(){const v=document.getElementById('cat-input').value.trim();if(v&&!userConfig.categories.includes(v)){userConfig.categories.push(v);saveConfig();renderConfig();}document.getElementById('cat-input').value='';};
 window.removeCategory=function(i){userConfig.categories.splice(i,1);saveConfig();renderConfig();};
