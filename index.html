@@ -196,6 +196,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .amount-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
 .amount-value{font-family:'Sora',sans-serif;font-size:52px;font-weight:700;letter-spacing:-2px;color:var(--text);transition:color .2s;min-height:64px;display:flex;align-items:center;justify-content:center}
 .amount-value.has-value{color:var(--red)}
+.amount-value.has-value.in{color:var(--green)}
 .type-pills{display:flex;gap:8px;padding:0 20px;margin-bottom:20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x proximity}
 .type-pills::-webkit-scrollbar{display:none}
 .type-pills .pill{scroll-snap-align:start}
@@ -809,7 +810,7 @@ select.field-input option{background:#03002A}
         <div class="field-group"><label class="field-label">Data</label><input class="field-input" type="date" id="f-date"></div>
         <div class="field-group" id="f-card-wrap"><label class="field-label">Cartão</label><select class="field-input" id="f-card"></select></div>
         <div class="field-group" id="f-bank-wrap" style="display:none"><label class="field-label">Banco</label><select class="field-input" id="f-bank"></select></div>
-        <div class="field-group"><label class="field-label">Categoria</label><select class="field-input" id="f-cat"></select></div>
+        <div class="field-group" id="f-cat-wrap"><label class="field-label">Categoria</label><select class="field-input" id="f-cat"></select></div>
         <div class="field-group">
           <label class="field-label">Título <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(padronizado — para relatórios)</span></label>
           <input class="field-input" type="text" id="f-title" placeholder="Ex: 99App, Supermercado Extra, Netflix...">
@@ -836,7 +837,8 @@ select.field-input option{background:#03002A}
     </div>
     <div id="step3" style="display:none">
       <div class="form-body">
-        <div class="field-group"><label class="field-label">Quem fez este gasto?</label><select class="field-input" id="f-person"></select></div>
+        <div class="field-group"><label class="field-label" id="f-person-label">Quem fez este gasto?</label><select class="field-input" id="f-person"></select></div>
+        <div id="split-section">
         <div class="toggle-row">
           <div><div class="toggle-label">Dividir entre pessoas?</div><div class="toggle-sub" id="split-sub">Valor individual: —</div></div>
           <button class="toggle green" id="split-toggle" onclick="toggleSplit()"></button>
@@ -845,6 +847,7 @@ select.field-input option{background:#03002A}
           <label class="field-label">Selecione quem divide</label>
           <div class="split-people" id="split-people-list"></div>
           <div class="info-box" id="split-info">Selecione as pessoas que dividem este gasto</div>
+        </div>
         </div>
         <div id="recurring-section" style="display:none">
           <div class="toggle-row highlight" id="recurring-toggle-row">
@@ -1275,7 +1278,7 @@ window.dismissNovidades = async function() {
   userConfig.novidadesVistas = Array.from(new Set([...(userConfig.novidadesVistas||[]), ...ids]));
   try { await saveConfig(); } catch(e) {}
 };
-const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️'};
+const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️'};
 
 onAuthStateChanged(auth, async (user) => {
   if (user) { currentUser = user; await loadUserData(); showApp(); }
@@ -1901,6 +1904,8 @@ function populateStep2() {
   selectedBank = bankSel.value;
   bankSel.onchange = () => { selectedBank = bankSel.value; };
   document.getElementById('f-cat').innerHTML=userConfig.categories.map(c=>`<option>${esc(c)}</option>`).join('');
+  // Entrada não precisa de categoria (não é gasto, não entra em relatório por categoria)
+  document.getElementById('f-cat-wrap').style.display = selectedType==='transfer_in' ? 'none' : '';
   // Mostra toggle fatura fechada só para crédito
   document.getElementById('f-closed-wrap').style.display = isCredit ? '' : 'none';
   if (!isCredit) { faturaJaFechou = false; document.getElementById('f-closed-toggle').classList.remove('on'); }
@@ -1908,8 +1913,16 @@ function populateStep2() {
 
 function populateStep3() {
   const isCredit=selectedType==='credit';
+  const isIncome=selectedType==='transfer_in';
   document.getElementById('recurring-section').style.display=isCredit?'':'none';
   document.getElementById('installment-section').style.display=isCredit?'':'none';
+  document.getElementById('f-person-label').textContent = isIncome ? 'Quem recebeu?' : 'Quem fez este gasto?';
+  document.getElementById('split-section').style.display = isIncome ? 'none' : '';
+  if (isIncome && splitActive) {
+    splitActive=false; splitSelected=[];
+    document.getElementById('split-toggle').classList.remove('on');
+    document.getElementById('split-panel').style.display='none';
+  }
   document.getElementById('f-person').innerHTML=userConfig.persons.map(p=>`<option>${esc(p)}</option>`).join('');
   document.getElementById('split-people-list').innerHTML=userConfig.persons.map(p=>`<div class="split-chip ${splitSelected.includes(p)?'selected':''}" onclick="toggleSplitPerson(this,'${escJsAttr(p)}')"><span class="check">✓</span> ${esc(p)}</div>`).join('');
   document.querySelectorAll('.inst-btn').forEach(b=>b.classList.remove('selected'));
@@ -1939,10 +1952,10 @@ function populateStep4() {
     selectedType==='credit'?['Cartão',card?card.name:'—']:['Banco',bankVal||'—'],
     ['Data',fmtDate(dateVal)],
     selectedType==='credit'?['Competência',compDate?formatCompetence(compDate):'—']:null,
-    ['Categoria',document.getElementById('f-cat').value],
+    isIn?null:['Categoria',document.getElementById('f-cat').value],
     ['Título',document.getElementById('f-title').value||'—'],
     document.getElementById('f-note').value?['Nota',document.getElementById('f-note').value]:null,
-    ['Titular',document.getElementById('f-person').value],
+    [isIn?'Recebido por':'Titular',document.getElementById('f-person').value],
     splitActive&&splitSelected.length?['Divide com',splitSelected.join(', ')]:null,
     splitActive&&splitSelected.length?['Meu valor',fmt(myAmt)]:null,
     recurringActive?['Recorrência','12 meses']:null,
@@ -2034,7 +2047,7 @@ window.confirmLaunch = async function() {
   const dateVal=document.getElementById('f-date').value||new Date().toISOString().split('T')[0];
   const card=cardChosen?userConfig.cards[cardIdx]:null;
   const person=document.getElementById('f-person').value||userConfig.persons[0]||'Eu';
-  const category=document.getElementById('f-cat').value||userConfig.categories[0]||'Outros';
+  const category=selectedType==='transfer_in'?'Entrada':(document.getElementById('f-cat').value||userConfig.categories[0]||'Outros');
   const title=document.getElementById('f-title').value||'';
   const note=document.getElementById('f-note').value||'';
   let compDate=dateVal;if(selectedType==='credit'&&card)compDate=calcCompetence(dateVal,card.dueDay,card.interval,faturaJaFechou);
@@ -2086,6 +2099,7 @@ window.numpad = function(k) {
 };
 function updateAmountDisplay() {
   const v = parseAmount();
+  const isIncome = selectedType==='transfer_in';
   if (amountCents === 0) {
     document.getElementById('amount-display').textContent = 'R$ 0,00';
     document.getElementById('amount-display').className = 'amount-value';
@@ -2094,13 +2108,13 @@ function updateAmountDisplay() {
     const cents = amountCents % 100;
     const fmtReais = reais.toLocaleString('pt-BR');
     document.getElementById('amount-display').textContent = `R$ ${fmtReais},${String(cents).padStart(2,'0')}`;
-    document.getElementById('amount-display').className = 'amount-value has-value';
+    document.getElementById('amount-display').className = 'amount-value has-value'+(isIncome?' in':'');
   }
   // Atualiza amountRaw para compatibilidade com updateSplitInfo
   amountRaw = amountCents > 0 ? String(amountCents) : '';
 }
 function parseAmount() { return amountCents / 100; }
-window.selectType = function(el){document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));el.classList.add('selected');selectedType=el.dataset.type;};
+window.selectType = function(el){document.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));el.classList.add('selected');selectedType=el.dataset.type;updateAmountDisplay();};
 
 window.toggleFaturaClosed = function() {
   faturaJaFechou = !faturaJaFechou;
