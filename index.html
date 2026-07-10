@@ -935,13 +935,17 @@ select.field-input option{background:#03002A}
     <div class="modal-header"><div class="modal-title" id="bill-modal-title">Nova conta</div><button class="modal-close" onclick="closeBillModal()">✕</button></div>
     <div class="form-body" style="padding-top:16px">
       <div class="field-group"><label class="field-label">Nome da conta</label><input class="field-input" id="bill-name" placeholder="Ex: CEMIG, Aluguel, Internet..."></div>
-      <div class="field-group"><label class="field-label">Valor</label><input class="field-input" type="text" inputmode="decimal" id="bill-value" placeholder="Ex: 147,86"></div>
+      <div class="field-group"><label class="field-label">Valor</label><input class="field-input" type="text" inputmode="decimal" id="bill-value" placeholder="Ex: 147,86" oninput="applyCurrencyMask(this)"></div>
       <div class="field-group"><label class="field-label">Vencimento (dia do mês)</label><input class="field-input" type="number" id="bill-due-day" min="1" max="31" placeholder="Ex: 10"></div>
       <div class="field-group"><label class="field-label">Mês de referência</label><input class="field-input" type="month" id="bill-month"></div>
       <div class="field-group"><label class="field-label">Categoria</label><select class="field-input" id="bill-category"></select></div>
       <div class="toggle-row">
         <div><div class="toggle-label">🔄 Conta fixa (recorrente)?</div><div class="toggle-sub">Replica automaticamente todo mês</div></div>
         <button class="toggle orange" id="bill-recurring-toggle" onclick="toggleBillRecurring()"></button>
+      </div>
+      <div class="field-group" id="bill-recurring-end-wrap" style="display:none">
+        <label class="field-label">Repetir até <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(opcional — deixe em branco para repetir sempre)</span></label>
+        <input class="field-input" type="month" id="bill-recurring-end">
       </div>
       <!-- Botão excluir aparece só na edição -->
       <div id="bill-delete-wrap" style="display:none;margin-top:16px">
@@ -959,7 +963,7 @@ select.field-input option{background:#03002A}
     <div class="modal-header"><div class="modal-title">Marcar como paga</div><button class="modal-close" onclick="closePayBillModal()">✕</button></div>
     <div class="form-body" style="padding-top:16px">
       <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:600;margin-bottom:16px" id="pay-bill-name">—</div>
-      <div class="field-group"><label class="field-label">Valor pago</label><input class="field-input" type="text" inputmode="decimal" id="pay-bill-value" placeholder="Ex: 150,00"></div>
+      <div class="field-group"><label class="field-label">Valor pago</label><input class="field-input" type="text" inputmode="decimal" id="pay-bill-value" placeholder="Ex: 150,00" oninput="applyCurrencyMask(this)"></div>
       <div class="field-group"><label class="field-label">Data do pagamento</label><input class="field-input" type="date" id="pay-bill-date"></div>
     </div>
     <div class="cta-wrap"><button class="cta-btn success" onclick="confirmPayBill()">✓ Confirmar pagamento</button></div>
@@ -1561,6 +1565,15 @@ window.toggleShowAll = function() {
 };
 
 // ── CONTAS A PAGAR ──
+function billYm(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
+// Uma conta recorrente só é válida a partir do mês em que foi criada (refYear/refMonth) e,
+// se configurado, até o mês final (recurringEnd) — ex: IPTU parcelado de julho a dezembro.
+function isRecurringActiveForYm(bill, ym) {
+  const startYm = billYm(bill.refYear, bill.refMonth);
+  if (ym < startYm) return false;
+  if (bill.recurringEnd && ym > bill.recurringEnd) return false;
+  return true;
+}
 function getBillStatus(bill) {
   if (bill.paid) return 'paid';
   // Usa data local para evitar bug de timezone (UTC vs horário de Brasília)
@@ -1576,7 +1589,7 @@ function getBillStatus(bill) {
 function renderBills() {
   const m=billMonth,y=billYear;
   document.getElementById('bill-month-display').textContent=`${MONTHS[m]} ${y}`;
-  const monthBills=bills.filter(b=>{if(b.isRecurring)return true;return b.refMonth===m&&b.refYear===y;});
+  const monthBills=bills.filter(b=>{if(b.isRecurring)return isRecurringActiveForYm(b,billYm(y,m));return b.refMonth===m&&b.refYear===y;});
   const displayed=monthBills.map(b=>{
     if(!b.isRecurring)return b;
     const payKey=`${y}-${String(m+1).padStart(2,'0')}`;
@@ -1597,7 +1610,8 @@ function renderBills() {
     const st=getBillStatus(b);
     const dueStr=b.dueDay?`Vence dia ${b.dueDay}`:'';
     const paidStr=b.paid?` · Pago em ${fmtDate(b.paidDate||'')} — ${fmt(b.paidValue||b.value)}`:'';
-    const recurTag=b.isRecurring?`<span class="bill-badge pending" style="background:var(--orange-soft);color:var(--orange)">🔄 Fixa</span>`:'';
+    const recurEndLabel = b.recurringEnd ? (() => { const [ey,em]=b.recurringEnd.split('-').map(Number); return ` até ${MONTHS[em-1].slice(0,3)}/${ey}`; })() : '';
+    const recurTag=b.isRecurring?`<span class="bill-badge pending" style="background:var(--orange-soft);color:var(--orange)">🔄 Fixa${esc(recurEndLabel)}</span>`:'';
     return `<div class="bill-item ${b.paid?'paid-item':''}" onclick="openBillDetail('${b.id}','${b._payKey||''}')">
       <div class="bill-status-dot ${st}"></div>
       <div class="bill-info"><div class="bill-name">${esc(b.name)}</div>
@@ -1734,6 +1748,8 @@ window.openBillModal = function(billId=null) {
   editBillId=billId; billRecurringActive=false;
   document.getElementById('bill-modal-title').textContent=billId?'Editar conta':'Nova conta';
   document.getElementById('bill-recurring-toggle').classList.remove('on');
+  document.getElementById('bill-recurring-end-wrap').style.display='none';
+  document.getElementById('bill-recurring-end').value='';
   document.getElementById('bill-delete-wrap').style.display=billId?'block':'none';
   const now=new Date();
   document.getElementById('bill-month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -1742,12 +1758,14 @@ window.openBillModal = function(billId=null) {
     const b=bills.find(x=>x.id===billId);
     if(b){
       document.getElementById('bill-name').value=b.name||'';
-      document.getElementById('bill-value').value=b.value||'';
+      setMaskedValue(document.getElementById('bill-value'), b.value);
       document.getElementById('bill-due-day').value=b.dueDay||'';
       document.getElementById('bill-month').value=`${b.refYear}-${String(b.refMonth+1).padStart(2,'0')}`;
       document.getElementById('bill-category').value=b.category||userConfig.categories[0];
       billRecurringActive=!!b.isRecurring;
       document.getElementById('bill-recurring-toggle').classList.toggle('on',billRecurringActive);
+      document.getElementById('bill-recurring-end-wrap').style.display = billRecurringActive ? '' : 'none';
+      document.getElementById('bill-recurring-end').value = b.recurringEnd || '';
     }
   } else {
     document.getElementById('bill-name').value='';
@@ -1758,30 +1776,38 @@ window.openBillModal = function(billId=null) {
 };
 
 window.closeBillModal = function() { document.getElementById('modal-bill').classList.remove('open'); };
-window.toggleBillRecurring = function() { billRecurringActive=!billRecurringActive; document.getElementById('bill-recurring-toggle').classList.toggle('on',billRecurringActive); };
+window.toggleBillRecurring = function() {
+  billRecurringActive=!billRecurringActive;
+  document.getElementById('bill-recurring-toggle').classList.toggle('on',billRecurringActive);
+  document.getElementById('bill-recurring-end-wrap').style.display = billRecurringActive ? '' : 'none';
+  if (!billRecurringActive) document.getElementById('bill-recurring-end').value = '';
+};
 
 window.saveBill = async function() {
   const name = document.getElementById('bill-name').value.trim();
-  // Lê valor como texto e normaliza: aceita vírgula ou ponto
-  const rawVal = document.getElementById('bill-value').value.toString().trim().replace(',','.');
-  const value = parseFloat(rawVal);
+  const rawVal = document.getElementById('bill-value').value.toString().trim();
+  const value = parseBRLValue(rawVal);
   const dueDayRaw = document.getElementById('bill-due-day').value;
   const dueDay = dueDayRaw ? parseInt(dueDayRaw) : null;
   const monthVal = document.getElementById('bill-month').value;
   const category = document.getElementById('bill-category').value || 'Outros';
+  const recurringEndVal = document.getElementById('bill-recurring-end').value || null;
 
   if (!name) { showToast('⚠️ Informe o nome da conta', false); return; }
   if (!rawVal || isNaN(value) || value <= 0) { showToast('⚠️ Informe o valor da conta', false); return; }
   if (!monthVal) { showToast('⚠️ Selecione o mês de referência', false); return; }
+  if (billRecurringActive && recurringEndVal && recurringEndVal < monthVal) { showToast('⚠️ O mês final não pode ser antes do mês inicial', false); return; }
 
   const parts = monthVal.split('-');
   const refYear = parseInt(parts[0]);
   const refMonth = parseInt(parts[1]) - 1; // 0-indexed
+  const recurringEnd = billRecurringActive ? recurringEndVal : null;
 
   const billData = {
     name, value, dueDay,
     refMonth, refYear, category,
     isRecurring: billRecurringActive,
+    recurringEnd,
     paid: false, payments: {},
     createdAt: new Date().toISOString(),
   };
@@ -1791,7 +1817,7 @@ window.saveBill = async function() {
   try {
     if (editBillId) {
       const ref = doc(db, 'users', currentUser.uid, 'bills', editBillId);
-      await updateDoc(ref, { name, value, dueDay, category, isRecurring: billRecurringActive, refMonth, refYear });
+      await updateDoc(ref, { name, value, dueDay, category, isRecurring: billRecurringActive, recurringEnd, refMonth, refYear });
       const idx = bills.findIndex(x => x.id === editBillId);
       if (idx >= 0) bills[idx] = { ...bills[idx], ...billData };
     } else {
@@ -1810,7 +1836,7 @@ window.openPayBillModal = function(billId,payKey,defaultValue) {
   payBillId={billId,payKey};
   const b=bills.find(x=>x.id===billId);
   document.getElementById('pay-bill-name').textContent=b?b.name:'';
-  document.getElementById('pay-bill-value').value=defaultValue||'';
+  setMaskedValue(document.getElementById('pay-bill-value'), defaultValue);
   document.getElementById('pay-bill-date').value=new Date().toISOString().split('T')[0];
   document.getElementById('modal-pay-bill').classList.add('open');
 };
@@ -1819,7 +1845,7 @@ window.closePayBillModal = function() { document.getElementById('modal-pay-bill'
 window.confirmPayBill = async function() {
   if(!payBillId)return;
   const{billId,payKey}=payBillId;
-  const value=parseFloat(document.getElementById('pay-bill-value').value.replace(',','.'));
+  const value=parseBRLValue(document.getElementById('pay-bill-value').value);
   const date=document.getElementById('pay-bill-date').value;
   if(!value||isNaN(value)){showToast('⚠️ Informe o valor pago',false);return;}
   const b=bills.find(x=>x.id===billId); if(!b)return;
@@ -2099,6 +2125,31 @@ window.numpad = function(k) {
   }
   updateAmountDisplay();
 };
+// ── Máscara de valor pra campos de texto (Contas a Pagar) ──
+// Mesmo princípio do numpad do lançamento: os dígitos digitados são tratados como centavos,
+// entrando da direita, com a vírgula sempre nas 2 últimas casas — sem precisar digitar a vírgula.
+function maskDigitsToBRL(digits) {
+  if (!digits) return '';
+  const cents = parseInt(digits, 10);
+  const reais = Math.floor(cents/100);
+  const centPart = cents % 100;
+  return `${reais.toLocaleString('pt-BR')},${String(centPart).padStart(2,'0')}`;
+}
+window.applyCurrencyMask = function(el) {
+  const digits = el.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+  el.value = maskDigitsToBRL(digits);
+};
+function setMaskedValue(el, numberValue) {
+  const cents = Math.round((numberValue||0)*100);
+  el.value = cents > 0 ? maskDigitsToBRL(String(cents)) : '';
+}
+// Lê de volta um valor formatado em BRL (ex: "1.234,56") pro formato numérico ("1234.56"),
+// removendo os pontos de milhar antes de trocar a vírgula decimal — senão valores >= R$1.000 quebram.
+function parseBRLValue(str) {
+  if (!str) return NaN;
+  return parseFloat(String(str).trim().replace(/\./g,'').replace(',','.'));
+}
+
 function updateAmountDisplay() {
   const v = parseAmount();
   const isIncome = selectedType==='transfer_in';
@@ -2301,6 +2352,7 @@ function getBillsPaidForMonth(year, month, includeFaturaAuto = true) {
   (bills||[]).forEach(b => {
     if (b.isFaturaAuto && !includeFaturaAuto) return; // só ignora fatura automática no gráfico de evolução (evita duplicata com a barra de gastos de crédito)
     if (b.isRecurring) {
+      if (!isRecurringActiveForYm(b, payKey)) return;
       const info = (b.payments||{})[payKey];
       if (info) total += info.value ?? b.value ?? 0;
     } else {
@@ -3136,6 +3188,8 @@ window.openNotifCenter = function() {
   const alerts = [];
   (bills||[]).forEach(b => {
     if (!b.dueDay) return;
+    if (b.isRecurring && !isRecurringActiveForYm(b, payKey)) return;
+    if (!b.isRecurring && (b.refMonth !== m || b.refYear !== y)) return;
     const isPaid = b.isRecurring ? !!((b.payments||{})[payKey]) : !!b.paid;
     if (isPaid) return;
     const dueStr = `${y}-${pad(m+1)}-${pad(b.dueDay)}`;
@@ -3208,6 +3262,8 @@ function updateNotifBadge() {
   const payKey = `${y}-${pad(m+1)}`;
   const hasAlerts = (bills||[]).some(b => {
     if (!b.dueDay) return false;
+    if (b.isRecurring && !isRecurringActiveForYm(b, payKey)) return false;
+    if (!b.isRecurring && (b.refMonth !== m || b.refYear !== y)) return false;
     const isPaid = b.isRecurring ? !!((b.payments||{})[payKey]) : !!b.paid;
     if (isPaid) return false;
     const dueStr = `${y}-${pad(m+1)}-${pad(b.dueDay)}`;
@@ -3272,6 +3328,8 @@ function checkBillsDue() {
 
   bills.forEach(b => {
     if (!b.dueDay) return;
+    if (b.isRecurring && !isRecurringActiveForYm(b, payKey)) return;
+    if (!b.isRecurring && (b.refMonth !== m || b.refYear !== y)) return;
     // Verifica se já foi paga neste mês
     const isPaid = b.isRecurring
       ? !!((b.payments||{})[payKey])
