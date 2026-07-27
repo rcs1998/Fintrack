@@ -688,6 +688,7 @@ select.field-input option{background:#03002A}
           </div>
         </div>
 
+      <div id="report-period-label" style="font-size:12px;color:var(--text3);margin:0 4px 10px;font-weight:600"></div>
       <div class="report-card"><div class="report-card-title">📊 Por categoria</div><div id="report-cat"></div></div>
         <div class="report-card"><div class="report-card-title">👤 Por titular</div><div id="report-person"></div></div>
         <div class="report-card"><div class="report-card-title">💳 Por cartão / banco</div><div id="report-card-data"></div></div>
@@ -1051,7 +1052,16 @@ select.field-input option{background:#03002A}
       <div class="field-group" style="margin-bottom:0"><label class="field-label">Categoria</label><select class="field-input" id="edit-cat"></select></div>
       <!-- ✅ FIX 2: Campo banco na edição — aparece só para débito/pix -->
       <div class="field-group" style="margin-bottom:0" id="edit-bank-wrap"><label class="field-label">Banco</label><select class="field-input" id="edit-bank"></select></div>
+      <!-- ✅ FIX 4: Campo cartão na edição — aparece só para crédito -->
+      <div class="field-group" style="margin-bottom:0" id="edit-card-wrap"><label class="field-label">Cartão</label><select class="field-input" id="edit-card"></select></div>
       <div class="field-group" style="margin-bottom:0"><label class="field-label">Titular</label><select class="field-input" id="edit-person"></select></div>
+      <!-- ✅ FIX 8: opção de propagar a edição para os meses futuros de uma recorrência -->
+      <div class="field-group" style="margin-bottom:0;display:none" id="edit-apply-future-wrap">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="edit-apply-future" style="width:16px;height:16px">
+          Aplicar também aos próximos meses desta recorrência
+        </label>
+      </div>
       <button class="cta-btn success" onclick="saveEdit()">✓ Salvar alterações</button>
       <button class="back-btn" onclick="cancelEdit()">Cancelar</button>
     </div>
@@ -1491,7 +1501,10 @@ function renderHome() {
   // Débito/Pix/Din exibido inclui as contas pagas do mês (incluindo faturas de cartão pagas),
   // porque o saldo (mais abaixo) também subtrai isso — senão o card mostraria um valor de saída
   // menor do que o que realmente afeta o saldo, dando a impressão de conta errada.
-  const billsPaidThisMonth = getBillsPaidForMonth(y, m);
+  // ✅ FIX 5: exclui fatura automática de cartão (isFaturaAuto) daqui — ela já está
+  // contabilizada em 'credit' (soma das compras por competência), então incluí-la
+  // de novo ao marcar a fatura como paga duplicava o valor no total do mês.
+  const billsPaidThisMonth = getBillsPaidForMonth(y, m, false);
   const debit=outTxs.filter(t=>t.type!=='credit').reduce((s,t)=>s+(t.myAmount??t.amount),0) + billsPaidThisMonth;
   const total=credit+debit;
   const income=inTxs.reduce((s,t)=>s+(t.myAmount??t.amount),0);
@@ -2534,70 +2547,76 @@ function renderEvolution() {
 
 // ── FATURA AUTOMÁTICA ──
 // Cria uma conta na aba Contas quando a fatura de um cartão fecha
+// ✅ FIX 7: antes só criava a fatura se o app fosse aberto EXATAMENTE no dia do
+// fechamento — se o usuário não abria o app naquele dia específico, a fatura daquele
+// mês nunca era criada (e, sem ela, nunca dava pra marcar como paga e nunca entrava
+// no saldo, mesmo o dinheiro tendo realmente saído da conta ao pagar a fatura de verdade).
+// Agora verifica retroativamente os últimos meses e cria qualquer fatura que já fechou
+// e ainda não tem lançamento correspondente, não só a de hoje.
 async function checkFaturaAuto() {
   if (!userConfig.cards || !userConfig.cards.length) return;
   const today = new Date();
-  const todayY = today.getFullYear();
-  const todayM = today.getMonth(); // 0-11
-  const todayD = today.getDate();
+  today.setHours(0,0,0,0);
 
   for (const card of userConfig.cards) {
     const intv = parseInt(card.interval) || 10;
     const dueDay = parseInt(card.dueDay);
     const closeDay = dueDay - intv; // pode ser negativo
 
-    // Dia de fechamento real no mês atual
-    let closingDay, closingMonth, closingYear;
-    if (closeDay <= 0) {
-      const daysInMonth = new Date(todayY, todayM + 1, 0).getDate();
-      closingDay = daysInMonth + closeDay; // ex: 30 + (-3) = 27
-      closingMonth = todayM;
-      closingYear = todayY;
-    } else {
-      closingDay = closeDay;
-      closingMonth = todayM;
-      closingYear = todayY;
+    // Verifica os últimos 6 meses em busca de fechamentos ainda sem fatura criada
+    for (let offset = 0; offset < 6; offset++) {
+      let refM = today.getMonth() - offset, refY = today.getFullYear();
+      while (refM < 0) { refM += 12; refY--; }
+
+      // Dia de fechamento desse mês de referência
+      let closingDay;
+      if (closeDay <= 0) {
+        const daysInMonth = new Date(refY, refM + 1, 0).getDate();
+        closingDay = daysInMonth + closeDay; // ex: 30 + (-3) = 27
+      } else {
+        closingDay = closeDay;
+      }
+      const closingDate = new Date(refY, refM, closingDay);
+      if (closingDate > today) continue; // esse fechamento ainda não aconteceu
+
+      // Competência desta fatura = mês em que ela vence
+      let compM = closeDay <= 0 ? refM + 1 : refM;
+      let compY = refY;
+      if (compM > 11) { compM = 0; compY++; }
+      const compKey = `${compY}-${String(compM + 1).padStart(2,'0')}-01`;
+      const faturaKey = `fatura_${card.name}_${compKey}`;
+
+      // Verifica se já existe conta automática para este cartão/mês
+      const jaExiste = bills.some(b => b.faturaKey === faturaKey);
+      if (jaExiste) continue;
+
+      // Soma todos os lançamentos de crédito deste cartão com competência neste mês
+      const total = transactions
+        .filter(t => t.type === 'credit' && t.card === card.name && t.competenceDate === compKey && !t.splitOrigin)
+        .reduce((s, t) => s + (t.myAmount ?? t.amount), 0);
+
+      if (total <= 0) continue;
+
+      // Cria a conta automática
+      const billData = {
+        name: `Fatura Cartão ${card.name}`,
+        value: total,
+        dueDay: dueDay,
+        category: 'Cartão de Crédito',
+        isRecurring: false,
+        refMonth: compM,
+        refYear: compY,
+        paid: false,
+        isFaturaAuto: true,
+        faturaKey,
+        createdAt: new Date().toISOString()
+      };
+      try {
+        const ref = await addDoc(billsCol(), billData);
+        bills.push({ id: ref.id, ...billData }); // evita recriar no mesmo carregamento
+        showToast(`💳 Fatura ${card.name} (${compKey.slice(0,7)}) criada: ${fmt(total)}`, true);
+      } catch(e) { console.error('checkFaturaAuto error', e); }
     }
-
-    // Só age se hoje é o dia do fechamento
-    if (todayD !== closingDay || todayM !== closingMonth || todayY !== closingYear) continue;
-
-    // Competência desta fatura = mês em que ela vence
-    let compM = closeDay <= 0 ? todayM + 1 : todayM;
-    let compY = todayY;
-    if (compM > 11) { compM = 0; compY++; }
-    const compKey = `${compY}-${String(compM + 1).padStart(2,'0')}-01`;
-    const faturaKey = `fatura_${card.name}_${compKey}`;
-
-    // Verifica se já existe conta automática para este cartão/mês
-    const jaExiste = bills.some(b => b.faturaKey === faturaKey);
-    if (jaExiste) continue;
-
-    // Soma todos os lançamentos de crédito deste cartão com competência neste mês
-    const total = transactions
-      .filter(t => t.type === 'credit' && t.card === card.name && t.competenceDate === compKey && !t.splitOrigin)
-      .reduce((s, t) => s + (t.myAmount ?? t.amount), 0);
-
-    if (total <= 0) continue;
-
-    // Cria a conta automática
-    const billData = {
-      name: `Fatura Cartão ${card.name}`,
-      value: total,
-      dueDay: dueDay,
-      category: 'Cartão de Crédito',
-      isRecurring: false,
-      refMonth: compM,
-      refYear: compY,
-      paid: false,
-      isFaturaAuto: true,
-      faturaKey,
-      createdAt: new Date().toISOString()
-    };
-    try {
-      await addDoc(billsCol(), billData);
-      showToast(`💳 Fatura ${card.name} criada: ${fmt(total)}`, true);
-    } catch(e) { console.error('checkFaturaAuto error', e); }
   }
 }
 
@@ -2734,6 +2753,23 @@ function renderReport(){
   renderBreakdown('report-cat',t=>t.category,'cat');
   renderBreakdown('report-person',t=>t.person,'person');
   renderBreakdown('report-card-data',t=>t.type==='credit'?(t.card||'—'):(t.bank||t.card||'—'),'card');
+
+  // ✅ FIX 6: mostra qual período está sendo exibido nas seções de detalhamento
+  const labelEl=document.getElementById('report-period-label');
+  if(labelEl) labelEl.textContent='📅 '+getReportPeriodLabel();
+}
+
+// Monta o texto do período atualmente selecionado nos filtros de Relatórios
+function getReportPeriodLabel(){
+  const now=new Date();
+  const nowY=now.getFullYear(), nowM=now.getMonth();
+  if(reportFilter==='month') return `${MONTHS[nowM]} ${nowY}`;
+  if(reportFilter==='1m'){const d=new Date(nowY,nowM+1,1);return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;}
+  if(reportFilter==='3m'){const from=new Date(nowY,nowM+1,1),to=new Date(nowY,nowM+3,1);return `${MONTHS[from.getMonth()]}/${from.getFullYear()} a ${MONTHS[to.getMonth()]}/${to.getFullYear()}`;}
+  if(reportFilter==='6m'){const from=new Date(nowY,nowM+1,1),to=new Date(nowY,nowM+6,1);return `${MONTHS[from.getMonth()]}/${from.getFullYear()} a ${MONTHS[to.getMonth()]}/${to.getFullYear()}`;}
+  if(reportFilter==='year') return `Ano de ${nowY}`;
+  if(reportFilter==='custom'&&customDateFrom&&customDateTo) return `${fmtDate(customDateFrom)} a ${fmtDate(customDateTo)}`;
+  return 'Todo o período';
 }
 
 // Modal genérico de detalhe de grupo
@@ -2957,10 +2993,20 @@ window.openEdit=function(){
   document.getElementById('edit-person').innerHTML=userConfig.persons.map(p=>`<option ${p===detailTx.person?'selected':''}>${esc(p)}</option>`).join('');
   // ✅ FIX 2: Campo banco na edição — só para débito/pix
   const bankWrap=document.getElementById('edit-bank-wrap');
+  const cardWrap=document.getElementById('edit-card-wrap');
   if(detailTx.type!=='credit'){
     bankWrap.style.display='';
     document.getElementById('edit-bank').innerHTML=userConfig.banks.map(b=>`<option value="${esc(b)}" ${b===detailTx.bank?'selected':''}>${esc(b)}</option>`).join('');
-  } else { bankWrap.style.display='none'; }
+    cardWrap.style.display='none';
+  } else {
+    bankWrap.style.display='none';
+    cardWrap.style.display='';
+    document.getElementById('edit-card').innerHTML=userConfig.cards.map(c=>`<option value="${esc(c.name)}" ${c.name===detailTx.card?'selected':''}>${esc(c.name)}</option>`).join('');
+  }
+  // ✅ FIX 8: só faz sentido oferecer "aplicar aos próximos meses" pra recorrências
+  const futureWrap=document.getElementById('edit-apply-future-wrap');
+  futureWrap.style.display=detailTx.isRecurring&&detailTx.recurringId?'block':'none';
+  document.getElementById('edit-apply-future').checked=false;
   document.getElementById('edit-form').classList.add('open');
   document.getElementById('detail-actions').style.display='none';
 };
@@ -2974,12 +3020,28 @@ window.saveEdit=async function(){
   const person=document.getElementById('edit-person').value;
   // ✅ FIX 2: Salva banco corrigido
   const bank=detailTx.type!=='credit'?document.getElementById('edit-bank').value:detailTx.bank;
+  // ✅ FIX 4: Salva cartão corrigido (só lançamentos de crédito têm esse campo)
+  const card=detailTx.type==='credit'?document.getElementById('edit-card').value:detailTx.card;
+  const updates={title,description:title,note,category,person,bank,card};
+  // ✅ FIX 8: se marcado, aplica a mesma edição neste lançamento E nos meses seguintes da recorrência
+  const applyFuture=detailTx.isRecurring&&detailTx.recurringId&&document.getElementById('edit-apply-future').checked;
   try {
-    const ref=doc(db,'users',currentUser.uid,'transactions',detailTx.id);
-    await updateDoc(ref,{title,description:title,note,category,person,bank});
-    const idx=transactions.findIndex(x=>x.id===detailTx.id);
-    if(idx>=0)transactions[idx]={...transactions[idx],title,description:title,note,category,person,bank};
-    closeDetailModal();showToast('✓ Lançamento atualizado!',true);renderHome();
+    if(applyFuture){
+      const anchor=detailTx.competenceDate||detailTx.date;
+      const toUpdate=transactions.filter(t=>t.recurringId===detailTx.recurringId&&(t.competenceDate||t.date)>=anchor);
+      const batch=writeBatch(db);
+      toUpdate.forEach(t=>batch.update(doc(db,'users',currentUser.uid,'transactions',t.id),updates));
+      await batch.commit();
+      const ids=new Set(toUpdate.map(t=>t.id));
+      transactions=transactions.map(t=>ids.has(t.id)?{...t,...updates}:t);
+      closeDetailModal();showToast(`✓ ${toUpdate.length} lançamento(s) atualizado(s)!`,true);renderHome();
+    } else {
+      const ref=doc(db,'users',currentUser.uid,'transactions',detailTx.id);
+      await updateDoc(ref,updates);
+      const idx=transactions.findIndex(x=>x.id===detailTx.id);
+      if(idx>=0)transactions[idx]={...transactions[idx],...updates};
+      closeDetailModal();showToast('✓ Lançamento atualizado!',true);renderHome();
+    }
   } catch(e){showToast('❌ Erro ao salvar.',false);}
 };
 
