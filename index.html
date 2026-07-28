@@ -1055,11 +1055,11 @@ select.field-input option{background:#03002A}
       <!-- ✅ FIX 4: Campo cartão na edição — aparece só para crédito -->
       <div class="field-group" style="margin-bottom:0" id="edit-card-wrap"><label class="field-label">Cartão</label><select class="field-input" id="edit-card"></select></div>
       <div class="field-group" style="margin-bottom:0"><label class="field-label">Titular</label><select class="field-input" id="edit-person"></select></div>
-      <!-- ✅ FIX 8: opção de propagar a edição para os meses futuros de uma recorrência -->
+      <!-- ✅ FIX 8/9: opção de propagar a edição pros meses futuros (recorrência) ou pras demais parcelas -->
       <div class="field-group" style="margin-bottom:0;display:none" id="edit-apply-future-wrap">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer">
           <input type="checkbox" id="edit-apply-future" style="width:16px;height:16px">
-          Aplicar também aos próximos meses desta recorrência
+          <span id="edit-apply-future-label">Aplicar também aos próximos meses desta recorrência</span>
         </label>
       </div>
       <button class="cta-btn success" onclick="saveEdit()">✓ Salvar alterações</button>
@@ -1181,7 +1181,8 @@ select.field-input option{background:#03002A}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, writeBatch, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyByoauTX_Pap5cSzTpP43yjJspE5uBx2-c",
@@ -1196,6 +1197,21 @@ const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
+
+// ✅ FIX 10: Push notification real (funciona com o app fechado) — ver functions/index.js
+// COLE AQUI a chave VAPID gerada em: Console Firebase > Configurações do projeto >
+// Cloud Messaging > Certificados push da Web > "Gerar par de chaves"
+const VAPID_KEY = "COLOQUE_SUA_CHAVE_VAPID_AQUI";
+let messaging = null;
+isMessagingSupported().then(supported => {
+  if (!supported) { console.warn('FCM não suportado neste navegador.'); return; }
+  messaging = getMessaging(firebaseApp);
+  // Notificação chegando com o app ABERTO — mostra como toast em vez de notificação do sistema
+  onMessage(messaging, (payload) => {
+    const n = payload.notification || {};
+    showToast(`🔔 ${n.title || ''} — ${n.body || ''}`, true);
+  });
+});
 
 let currentUser = null;
 let userConfig = { cards:[], categories:['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Vestuário','Supermercado','Restaurante','Combustível','Streaming','Outros'], persons:['Eu'], banks:['Sicoob','Santander','Nubank','Itaú','Bradesco','Inter','C6 Bank'] };
@@ -1325,6 +1341,9 @@ function showApp() {
   }
   checkBillsDueOnPageLoad();
   setTimeout(updateNotifBadge, 1500);
+  // ✅ FIX 10: se o usuário já tinha permitido notificações antes, garante que o token
+  // deste dispositivo continua registrado (tokens podem expirar/mudar)
+  if ('Notification' in window && Notification.permission === 'granted') registerPushToken();
 }
 
 function isSetupIncomplete() { return !(userConfig.cards&&userConfig.cards.length>0&&userConfig.banks&&userConfig.banks.length>0); }
@@ -3003,9 +3022,19 @@ window.openEdit=function(){
     cardWrap.style.display='';
     document.getElementById('edit-card').innerHTML=userConfig.cards.map(c=>`<option value="${esc(c.name)}" ${c.name===detailTx.card?'selected':''}>${esc(c.name)}</option>`).join('');
   }
-  // ✅ FIX 8: só faz sentido oferecer "aplicar aos próximos meses" pra recorrências
+  // ✅ FIX 8/9: oferece "aplicar em lote" pra recorrências (próximos meses) e pra parcelamentos (demais parcelas)
   const futureWrap=document.getElementById('edit-apply-future-wrap');
-  futureWrap.style.display=detailTx.isRecurring&&detailTx.recurringId?'block':'none';
+  const futureLabel=document.getElementById('edit-apply-future-label');
+  const isInstallment=detailTx.installmentOf&&detailTx.installmentOf>1;
+  if(detailTx.isRecurring&&detailTx.recurringId){
+    futureWrap.style.display='block';
+    futureLabel.textContent='Aplicar também aos próximos meses desta recorrência';
+  } else if(isInstallment){
+    futureWrap.style.display='block';
+    futureLabel.textContent=`Aplicar também às outras ${detailTx.installmentOf-1} parcelas deste lançamento`;
+  } else {
+    futureWrap.style.display='none';
+  }
   document.getElementById('edit-apply-future').checked=false;
   document.getElementById('edit-form').classList.add('open');
   document.getElementById('detail-actions').style.display='none';
@@ -3023,8 +3052,11 @@ window.saveEdit=async function(){
   // ✅ FIX 4: Salva cartão corrigido (só lançamentos de crédito têm esse campo)
   const card=detailTx.type==='credit'?document.getElementById('edit-card').value:detailTx.card;
   const updates={title,description:title,note,category,person,bank,card};
-  // ✅ FIX 8: se marcado, aplica a mesma edição neste lançamento E nos meses seguintes da recorrência
-  const applyFuture=detailTx.isRecurring&&detailTx.recurringId&&document.getElementById('edit-apply-future').checked;
+  const applyBatch=document.getElementById('edit-apply-future').checked;
+  // ✅ FIX 8: recorrência — aplica neste lançamento E nos meses seguintes (mesmo recurringId)
+  const applyFuture=applyBatch&&detailTx.isRecurring&&detailTx.recurringId;
+  // ✅ FIX 9: parcelamento — aplica em todas as parcelas do mesmo lançamento (mesmo critério do doDelete: installmentOf+título+cartão+pessoa originais)
+  const applyInstallments=applyBatch&&!applyFuture&&detailTx.installmentOf&&detailTx.installmentOf>1;
   try {
     if(applyFuture){
       const anchor=detailTx.competenceDate||detailTx.date;
@@ -3035,6 +3067,20 @@ window.saveEdit=async function(){
       const ids=new Set(toUpdate.map(t=>t.id));
       transactions=transactions.map(t=>ids.has(t.id)?{...t,...updates}:t);
       closeDetailModal();showToast(`✓ ${toUpdate.length} lançamento(s) atualizado(s)!`,true);renderHome();
+    } else if(applyInstallments){
+      const refTitle=(detailTx.title||detailTx.description||'').trim();
+      const toUpdate=transactions.filter(t=>
+        t.installmentOf===detailTx.installmentOf&&
+        (t.title||t.description||'').trim()===refTitle&&
+        t.card===detailTx.card&&
+        t.person===detailTx.person
+      );
+      const batch=writeBatch(db);
+      toUpdate.forEach(t=>batch.update(doc(db,'users',currentUser.uid,'transactions',t.id),updates));
+      await batch.commit();
+      const ids=new Set(toUpdate.map(t=>t.id));
+      transactions=transactions.map(t=>ids.has(t.id)?{...t,...updates}:t);
+      closeDetailModal();showToast(`✓ ${toUpdate.length} parcela(s) atualizada(s)!`,true);renderHome();
     } else {
       const ref=doc(db,'users',currentUser.uid,'transactions',detailTx.id);
       await updateDoc(ref,updates);
@@ -3368,12 +3414,27 @@ window.requestNotifPermission = async function() {
   if (perm === 'granted') {
     showToast('✅ Notificações ativadas!', true);
     updateNotifBanner();
-    checkBillsDue(); // verifica imediatamente
+    checkBillsDue(); // verifica imediatamente (enquanto o app está aberto)
+    await registerPushToken(); // ✅ FIX 10: registra o dispositivo pro servidor poder avisar mesmo com o app fechado
   } else {
     showToast('Notificações bloqueadas. Habilite nas configurações do navegador.', false);
     updateNotifBanner();
   }
 };
+
+// ✅ FIX 10: salva o token do dispositivo no Firestore — é assim que a Cloud Function
+// (functions/index.js) sabe pra quem mandar o push quando uma conta está vencendo,
+// mesmo com o app fechado. Sem isso, o servidor não tem como te alcançar.
+async function registerPushToken() {
+  if (!messaging || !currentUser) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const swReg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+    if (!token) return;
+    await updateDoc(userRef(), { fcmTokens: arrayUnion(token) });
+  } catch(e) { console.error('Erro ao registrar token FCM:', e); }
+}
 
 function checkBillsDue() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
