@@ -2,9 +2,7 @@
   "name": "functions",
   "description": "FinTrack — Cloud Function de notificação de contas vencendo",
   "private": true,
-  "engines": {
-    "node": "22"
-  },
+  "engines": { "node": "22" },
   "main": "index.js",
   "dependencies": {
     "firebase-admin": "^12.1.0",
