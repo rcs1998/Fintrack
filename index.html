@@ -148,6 +148,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .month-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:6px 14px;font-size:14px;cursor:pointer;transition:all .2s}
 .section-title{font-family:'Sora',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;margin-top:20px}
 .transaction-list{display:flex;flex-direction:column;gap:8px}
+.tx-type-chip{background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s}
+.tx-type-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .transaction-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s}
 .transaction-item:active{background:var(--surface2);transform:scale(.99)}
 .tx-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
@@ -570,6 +572,12 @@ select.field-input option{background:#03002A}
         <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
           <div class="section-title" style="margin:0" id="tx-list-title">Últimos lançamentos</div>
           <button id="show-all-btn" onclick="toggleShowAll()" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;padding:4px 0">Ver todos</button>
+        </div>
+        <!-- ✅ FIX 11: filtro rápido de tipo pra lista de lançamentos -->
+        <div style="display:flex;gap:6px;margin-bottom:10px" id="tx-type-filter">
+          <button class="tx-type-chip" data-type="" onclick="setTypeFilter('')">Todos</button>
+          <button class="tx-type-chip" data-type="out" onclick="setTypeFilter('out')">↓ Saídas</button>
+          <button class="tx-type-chip" data-type="in" onclick="setTypeFilter('in')">↑ Entradas</button>
         </div>
         <div class="transaction-list" id="tx-list">
           <div class="empty-state"><div class="empty-icon">💸</div><div class="empty-label">Nenhum lançamento</div><div class="empty-sub">Toque em + para registrar</div></div>
@@ -1221,6 +1229,7 @@ let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let showAllTx = false;
 let homeCatFilter = null; // null = todos
+let homeTypeFilter = null; // ✅ FIX 11: null = todos | 'out' = só saídas | 'in' = só entradas
 let billMonth = new Date().getMonth();
 let billYear = new Date().getFullYear();
 let reportFilter = 'month';
@@ -1552,12 +1561,19 @@ function renderHome() {
     </div>`;
   }).join('');
 
-  // Lista de transações — aplicar filtro de categoria e limite
+  // Lista de transações — aplicar filtro de categoria, tipo e limite
   let filtered=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(homeCatFilter) filtered=filtered.filter(t=>(t.category||'Outros')===homeCatFilter);
+  // ✅ FIX 11: filtro de tipo (saídas/entradas)
+  if(homeTypeFilter==='in') filtered=filtered.filter(t=>t.type==='transfer_in');
+  if(homeTypeFilter==='out') filtered=filtered.filter(t=>t.type!=='transfer_in');
   const limit=showAllTx?filtered.length:15;
   const sorted=filtered.slice(0,limit);
   const total2=filtered.reduce((s,t)=>s+(t.myAmount??t.amount),0);
+  // ✅ FIX 11: marca visualmente o chip ativo
+  document.querySelectorAll('.tx-type-chip').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.type===(homeTypeFilter||''));
+  });
 
   // Atualiza título da seção
   const titleEl=document.getElementById('tx-list-title');
@@ -1588,6 +1604,12 @@ function renderHome() {
 
 window.setCatFilter = function(cat) {
   homeCatFilter = homeCatFilter === cat ? null : cat; // toggle
+  showAllTx = false;
+  renderHome();
+};
+// ✅ FIX 11: filtro de tipo — Todos / Saídas / Entradas
+window.setTypeFilter = function(type) {
+  homeTypeFilter = type || null;
   showAllTx = false;
   renderHome();
 };
