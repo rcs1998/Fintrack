@@ -1269,7 +1269,7 @@ async function loadNovidades() {
 }
 
 function getActiveNovidades() {
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = getLocalDateStr();
   const vistas = new Set(userConfig.novidadesVistas || []);
   return novidadesCache.filter(n => {
     if (!n.id || vistas.has(n.id)) return false;
@@ -1413,6 +1413,17 @@ async function loadUserData() {
 async function saveConfig() { try { await updateDoc(userRef(),{config:userConfig}); } catch(e){console.error(e);} }
 async function saveTx(tx) { try { const{id,...data}=tx; const ref=await addDoc(txCol(),data); return ref.id; } catch(e){console.error(e);throw e;} }
 function genUUID() { return 'r-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8); }
+// ✅ FIX DATA: retorna a data local (não UTC) no formato YYYY-MM-DD.
+// new Date().toISOString() converte para UTC antes de formatar, o que faz
+// a data "pular" para o dia seguinte no horário do Brasil (UTC-3) a partir
+// de aprox. 21h. Esta função usa os componentes locais do dispositivo.
+function getLocalDateStr(d) {
+  d = d || new Date();
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
 function esc(str) {
   if (str === null || str === undefined) return '';
   return String(str).replace(/[&<>"']/g, c => ({
@@ -1891,7 +1902,7 @@ window.openPayBillModal = function(billId,payKey,defaultValue) {
   const b=bills.find(x=>x.id===billId);
   document.getElementById('pay-bill-name').textContent=b?b.name:'';
   setMaskedValue(document.getElementById('pay-bill-value'), defaultValue);
-  document.getElementById('pay-bill-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('pay-bill-date').value=getLocalDateStr();
   document.getElementById('modal-pay-bill').classList.add('open');
 };
 window.closePayBillModal = function() { document.getElementById('modal-pay-bill').classList.remove('open'); };
@@ -1943,7 +1954,7 @@ window.openModal = function() {
   document.getElementById('inst-panel').style.display='none';
   document.getElementById('recurring-panel').style.display='none';
   document.getElementById('split-sub').textContent='Valor individual: —';
-  document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-date').value=getLocalDateStr();
   document.getElementById('f-title').value='';
   document.getElementById('f-note').value='';
   goStep(1);
@@ -2126,7 +2137,7 @@ window.confirmLaunch = async function() {
   if(selectedType==='credit'&&(!userConfig.cards.length||!cardChosen)){showToast('⚠️ Cadastre e selecione um cartão para Crédito',false);return;}
   if(selectedType!=='credit'&&selectedType!=='cash'&&(!userConfig.banks.length||!bankVal)){showToast('⚠️ Cadastre e selecione um banco para Débito/Pix/Entrada',false);return;}
   const btn=document.getElementById('confirm-btn');btn.disabled=true;btn.textContent='Salvando...';
-  const dateVal=document.getElementById('f-date').value||new Date().toISOString().split('T')[0];
+  const dateVal=document.getElementById('f-date').value||getLocalDateStr();
   const card=cardChosen?userConfig.cards[cardIdx]:null;
   const person=document.getElementById('f-person').value||userConfig.persons[0]||'Eu';
   const category=selectedType==='transfer_in'?'Entrada':(document.getElementById('f-cat').value||userConfig.categories[0]||'Outros');
@@ -2954,7 +2965,7 @@ window.exportCSV=function(){
   if(!transactions.length){showToast('⚠️ Nenhum dado para exportar',false);return;}
   const header=['Data','Competência','Tipo','Cartão/Banco','Descrição','Categoria','Titular','Divide com','Valor Total','Meu Valor','Parcela','Recorrente'].map(csvField).join(';')+'\n';
   const rows=transactions.map(t=>[t.date,t.competenceDate||t.date,{credit:'Crédito',debit:'Débito',pix:'Pix',cash:'Dinheiro',transfer_in:'Entrada'}[t.type],t.card||t.bank||'',t.description||'',t.category||'',t.person||'',(t.splitWith||[]).join(', '),(t.amount||0).toFixed(2).replace('.',','),(t.myAmount||t.amount||0).toFixed(2).replace('.',','),t.installmentOf?`${t.installmentNum}/${t.installmentOf}`:'1/1',t.isRecurring?'Sim':'Não'].map(csvField).join(';')).join('\n');
-  const blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`fintrack_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);showToast('✓ CSV exportado!',true);
+  const blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`fintrack_${getLocalDateStr()}.csv`;a.click();URL.revokeObjectURL(url);showToast('✓ CSV exportado!',true);
 };
 
 function showToast(msg,ok=true){const t=document.getElementById('toast');t.textContent=msg;t.style.background=ok?'var(--green)':'var(--red)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
