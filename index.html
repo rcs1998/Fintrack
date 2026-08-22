@@ -1981,10 +1981,12 @@ function populateStep2() {
   document.getElementById('f-bank-wrap').style.display=(isCredit||isCash)?'none':'';
   document.getElementById('installment-section').style.display=isCredit?'':'none';
   document.getElementById('f-card').innerHTML=userConfig.cards.length
-    ?userConfig.cards.map((c,i)=>`<option value="${i}">${esc(c.name)} (vence dia ${esc(c.dueDay)})</option>`).join('')
+    ?userConfig.cards.map((c,i)=>`<option value="${i}">${esc(c.name)}${c.isMain?' ★':''} (vence dia ${esc(c.dueDay)})</option>`).join('')
     :'<option value="">— Nenhum cartão cadastrado —</option>';
-  // Salva índice do cartão em variável JS (evita perda em display:none no iOS)
-  selectedCardIdx = userConfig.cards.length ? 0 : -1;
+  // ✅ Pré-seleciona o cartão marcado como principal (em vez de sempre o índice 0)
+  const mainCardIdx = userConfig.cards.findIndex(c=>c.isMain);
+  selectedCardIdx = userConfig.cards.length ? (mainCardIdx>=0?mainCardIdx:0) : -1;
+  document.getElementById('f-card').value = selectedCardIdx;
   document.getElementById('f-card').onchange = () => { selectedCardIdx = parseInt(document.getElementById('f-card').value); };
   // ✅ FIX banco: popula select com values explícitos E salva em variável JS
   const bankSel=document.getElementById('f-bank');
@@ -2920,18 +2922,22 @@ window.removeBank=function(i){userConfig.banks.splice(i,1);saveConfig();renderCo
 function renderCardsList(){
   const el=document.getElementById('cards-config-list');
   if(!userConfig.cards.length){el.innerHTML='<div class="config-row"><div class="config-row-left"><div class="config-row-label" style="color:var(--text3)">Nenhum cartão cadastrado</div></div></div>';return;}
-  el.innerHTML=userConfig.cards.map((c,i)=>`<div class="config-row"><div class="config-row-left"><div>💳</div><div><div class="config-row-label">${esc(c.name)}</div><div class="config-row-sub">${esc(c.bank)} · Vence dia ${esc(c.dueDay)} · Fecha ${esc(c.interval)}d antes</div></div></div><div style="display:flex;gap:12px"><span style="cursor:pointer;color:var(--accent);font-size:13px" onclick="editCard(${i})">Editar</span><span style="cursor:pointer;color:var(--red);font-size:13px" onclick="deleteCard(${i})">Excluir</span></div></div>`).join('');
+  el.innerHTML=userConfig.cards.map((c,i)=>`<div class="config-row"><div class="config-row-left"><div>💳</div><div><div class="config-row-label">${esc(c.name)}${c.isMain?' <span style="color:var(--accent);font-size:11px;font-weight:700">★ Principal</span>':''}</div><div class="config-row-sub">${esc(c.bank)} · Vence dia ${esc(c.dueDay)} · Fecha ${esc(c.interval)}d antes</div></div></div><div style="display:flex;gap:12px;align-items:center">${c.isMain?'':`<span style="cursor:pointer;color:var(--text3);font-size:13px" onclick="setMainCard(${i})">Tornar principal</span>`}<span style="cursor:pointer;color:var(--accent);font-size:13px" onclick="editCard(${i})">Editar</span><span style="cursor:pointer;color:var(--red);font-size:13px" onclick="deleteCard(${i})">Excluir</span></div></div>`).join('');
 }
+window.setMainCard=function(i){userConfig.cards.forEach((c,idx)=>c.isMain=(idx===i));saveConfig();renderConfig();showToast('★ Cartão principal atualizado!',true);};
 window.openAddCard=function(){editCardIdx=null;document.getElementById('card-modal-title').textContent='Novo cartão';['card-name','card-bank','card-due'].forEach(id=>document.getElementById(id).value='');document.getElementById('card-interval').value='10';document.getElementById('custom-interval-wrap').style.display='none';document.getElementById('modal-card').classList.add('open');};
 window.editCard=function(i){editCardIdx=i;const c=userConfig.cards[i];document.getElementById('card-modal-title').textContent='Editar cartão';document.getElementById('card-name').value=c.name;document.getElementById('card-bank').value=c.bank;document.getElementById('card-due').value=c.dueDay;document.getElementById('card-interval').value=c.interval;document.getElementById('modal-card').classList.add('open');};
-window.deleteCard=function(i){userConfig.cards.splice(i,1);saveConfig();renderConfig();updateSetupLock();};
+window.deleteCard=function(i){const wasMain=userConfig.cards[i]&&userConfig.cards[i].isMain;userConfig.cards.splice(i,1);if(wasMain&&userConfig.cards.length)userConfig.cards[0].isMain=true;saveConfig();renderConfig();updateSetupLock();};
 window.closeCardModal=function(){document.getElementById('modal-card').classList.remove('open');};
 window.toggleCustomInterval=function(){document.getElementById('custom-interval-wrap').style.display=document.getElementById('card-interval').value==='custom'?'block':'none';};
 window.saveCard=function(){
   const name=document.getElementById('card-name').value.trim();const bank=document.getElementById('card-bank').value.trim();const due=parseInt(document.getElementById('card-due').value);
   const intSel=document.getElementById('card-interval').value;const interval=intSel==='custom'?parseInt(document.getElementById('custom-interval').value):parseInt(intSel);
   if(!name||!due||!interval){showToast('⚠️ Preencha todos os campos',false);return;}
-  const was=isSetupIncomplete();const card={name,bank,dueDay:due,interval};
+  const was=isSetupIncomplete();
+  // Mantém isMain se estiver editando; primeiro cartão cadastrado vira principal automaticamente
+  const isMain=editCardIdx!==null?!!userConfig.cards[editCardIdx].isMain:userConfig.cards.length===0;
+  const card={name,bank,dueDay:due,interval,isMain};
   if(editCardIdx!==null)userConfig.cards[editCardIdx]=card;else userConfig.cards.push(card);
   saveConfig();renderConfig();closeCardModal();showToast('✓ Cartão salvo!',true);updateSetupLock();
   if(was&&!isSetupIncomplete())showToast('🎉 Configuração concluída! App liberado.',true);
