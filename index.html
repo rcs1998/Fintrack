@@ -958,6 +958,16 @@ select.field-input option{background:#03002A}
   </div>
 </div>
 
+<!-- MODAL AVISO DE LIMITE -->
+<div class="modal-overlay" id="modal-limit-warning">
+  <div class="modal-sheet" style="max-width:400px;margin:auto">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title" id="limit-warning-title">Aviso de limite</div><button class="modal-close" onclick="closeLimitWarningModal()">✕</button></div>
+    <div class="form-body" style="padding:16px 0 24px;font-size:15px;line-height:1.5;white-space:pre-line" id="limit-warning-body"></div>
+    <div class="cta-wrap"><button class="cta-btn" onclick="closeLimitWarningModal()">Entendi</button></div>
+  </div>
+</div>
+
 <!-- MODAL CONTA A PAGAR -->
 <div class="modal-overlay" id="modal-bill">
   <div class="modal-sheet">
@@ -2174,17 +2184,32 @@ function checkSpendingLimits(type, card, category, compDate, dateVal, valorLanca
     }
   } catch(e) { console.error('checkSpendingLimits error:', e); }
 }
-// Espera o toast de confirmação do lançamento sumir antes de exibir o aviso de limite, pra não sobrepor as mensagens
+// Fila de avisos de limite (caso mais de um dispare no mesmo lançamento: cartão + categoria)
+let limitWarningQueue = [];
 function warnLimit(label, spent, limit) {
   const pct = spent / limit;
   if (pct < 0.8) return;
   const spentFmt = spent.toFixed(2).replace('.',',');
   const limitFmt = limit.toFixed(2).replace('.',',');
-  setTimeout(() => {
-    if (pct >= 1) showToast(`🔴 Você estourou o ${label}: R$ ${spentFmt} de R$ ${limitFmt}`, false);
-    else showToast(`🟡 Você já usou ${Math.round(pct*100)}% do ${label}: R$ ${spentFmt} de R$ ${limitFmt}`, false);
-  }, 3000);
+  const estourou = pct >= 1;
+  const msg = estourou
+    ? `Você estourou o ${label}.\n\nJá gasto: R$ ${spentFmt}\nLimite definido: R$ ${limitFmt}`
+    : `Você já usou ${Math.round(pct*100)}% do ${label}.\n\nJá gasto: R$ ${spentFmt}\nLimite definido: R$ ${limitFmt}`;
+  limitWarningQueue.push({msg, estourou});
+  setTimeout(showNextLimitWarning, 500);
 }
+function showNextLimitWarning() {
+  if (document.getElementById('modal-limit-warning').classList.contains('open')) return; // já tem um aberto, o próximo aparece ao fechar este
+  const next = limitWarningQueue.shift();
+  if (!next) return;
+  document.getElementById('limit-warning-title').textContent = next.estourou ? '🔴 Limite estourado' : '🟡 Perto do limite';
+  document.getElementById('limit-warning-body').textContent = next.msg;
+  document.getElementById('modal-limit-warning').classList.add('open');
+}
+window.closeLimitWarningModal = function() {
+  document.getElementById('modal-limit-warning').classList.remove('open');
+  setTimeout(showNextLimitWarning, 300); // mostra o próximo aviso da fila, se houver
+};
 
 window.confirmLaunch = async function() {
   const amount=parseAmount();
@@ -3046,6 +3071,13 @@ window.saveCard=function(){
   const limitVal=parseBRLValue(document.getElementById('card-limit').value);
   const limit=isNaN(limitVal)||limitVal<=0?null:limitVal;
   const categoryLimits={...cardCatLimitsTemp};
+  // ✅ Se o usuário digitou categoria+valor mas esqueceu de clicar no "+", inclui automaticamente
+  // (evita que o valor seja perdido silenciosamente e a validação abaixo não pegue esse caso).
+  const pendingCat=document.getElementById('card-cat-limit-select').value;
+  const pendingVal=parseBRLValue(document.getElementById('card-cat-limit-value').value);
+  if(pendingCat && !isNaN(pendingVal) && pendingVal>0){
+    categoryLimits[pendingCat]=pendingVal;
+  }
   // ✅ Só valida a soma das categorias contra o limite geral SE o limite geral estiver definido.
   // Sem limite geral, os limites por categoria funcionam livres (ex: só limitar Alimentação).
   if(limit!==null){
@@ -3414,7 +3446,7 @@ window.switchInstallOS = function(os, el) {
   document.getElementById('install-android').classList.toggle('active', os==='android');
 };
 
-['modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install','modal-group'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
+['modal-card','modal-profile','modal-person','modal-detail','modal-bill','modal-pay-bill','modal-install','modal-group','modal-limit-warning'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
 // Modal de lançamento usa closeModal() para restaurar o FAB
 const modalEl=document.getElementById('modal');if(modalEl)modalEl.addEventListener('click',function(e){if(e.target===this)closeModal();});
 
