@@ -774,6 +774,7 @@ select.field-input option{background:#03002A}
         </div>
         <div style="height:8px"></div>
         <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.4 · Dados salvos na nuvem ☁️</div>
+        <div id="debug-viewport-panel" style="font-size:12px;color:#fff;background:#8B2500;border:2px solid #FF6B35;border-radius:10px;padding:12px;margin:0 0 20px;white-space:pre-line;font-family:monospace;min-height:20px">Carregando diagnóstico…</div>
       <div class="install-tour-anchor" style="height:1px"></div>
       </div>
     </div>
@@ -2993,7 +2994,58 @@ window.openGroupModal = function(groupType, safeKey) {
   document.getElementById('modal-group').classList.add('open');
 };
 
-function renderConfig(){renderCardsList();renderChips('cat-chips',userConfig.categories,'removeCategory');renderChips('person-chips',userConfig.persons,'removePerson');renderChips('bank-chips',userConfig.banks,'removeBank');renderNovidadesDev();renderDebitCatLimits();}
+function renderConfig(){
+  // ✅ Cada parte roda isolada: se uma travar com erro, as outras continuam normalmente
+  // (antes, um erro no meio da lista impedia as funções seguintes de rodar, incluindo o
+  // painel de diagnóstico — o que explicava ele nunca aparecer).
+  const safe=(fn,label)=>{try{fn();}catch(e){console.error('Erro em '+label+':',e);}};
+  safe(()=>renderCardsList(),'renderCardsList');
+  safe(()=>renderChips('cat-chips',userConfig.categories,'removeCategory'),'renderChips categorias');
+  safe(()=>renderChips('person-chips',userConfig.persons,'removePerson'),'renderChips pessoas');
+  safe(()=>renderChips('bank-chips',userConfig.banks,'removeBank'),'renderChips bancos');
+  safe(()=>renderNovidadesDev(),'renderNovidadesDev');
+  safe(()=>renderDebitCatLimits(),'renderDebitCatLimits');
+  safe(()=>renderDebugViewportPanel(),'renderDebugViewportPanel');
+  setTimeout(()=>safe(()=>renderDebugViewportPanel(),'renderDebugViewportPanel (retry)'),500);
+}
+// ── PAINEL TEMPORÁRIO DE DIAGNÓSTICO — investigar a faixa em branco no fundo do PWA no iOS ──
+// Mostra as medidas reais que o navegador está calculando, pra identificar com certeza qual
+// número está errado, em vez de continuar tentando às cegas. Remover depois de resolvido.
+function renderDebugViewportPanel(){
+  const el=document.getElementById('debug-viewport-panel');
+  if(!el) return;
+  try{
+    const app=document.getElementById('app');
+    const rect=app?app.getBoundingClientRect():null;
+    const nav=document.querySelector('.bottom-nav');
+    const navRect=nav?nav.getBoundingClientRect():null;
+    const cs=getComputedStyle(document.documentElement);
+    const isStandalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const lines=[
+      '🔧 DIAGNÓSTICO (temporário)',
+      `window.innerHeight: ${window.innerHeight}`,
+      `visualViewport.height: ${window.visualViewport?window.visualViewport.height:'—'}`,
+      `visualViewport.offsetTop: ${window.visualViewport?window.visualViewport.offsetTop:'—'}`,
+      `document.documentElement.clientHeight: ${document.documentElement.clientHeight}`,
+      `screen.height: ${window.screen.height}`,
+      `devicePixelRatio: ${window.devicePixelRatio}`,
+      `display-mode standalone: ${isStandalone}`,
+      `#app rect: top=${rect?rect.top.toFixed(1):'—'} bottom=${rect?rect.bottom.toFixed(1):'—'} height=${rect?rect.height.toFixed(1):'—'}`,
+      `.bottom-nav rect: top=${navRect?navRect.top.toFixed(1):'—'} bottom=${navRect?navRect.bottom.toFixed(1):'—'}`,
+      `gap real (innerHeight - #app.bottom): ${rect?(window.innerHeight-rect.bottom).toFixed(1):'—'}px`,
+      `safe-area-inset-bottom (via env): ${getSafeAreaBottom()}px`
+    ];
+    el.textContent=lines.join('\n');
+  }catch(e){el.textContent='Erro ao calcular diagnóstico: '+e.message;}
+}
+function getSafeAreaBottom(){
+  const probe=document.createElement('div');
+  probe.style.cssText='position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden';
+  document.body.appendChild(probe);
+  const val=getComputedStyle(probe).paddingBottom;
+  document.body.removeChild(probe);
+  return parseFloat(val)||0;
+}
 
 // ── Painel de novidades (visível só para DEV_UID) ──
 function renderNovidadesDev() {
