@@ -72,7 +72,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .auth-google:active{background:var(--surface)}
 .auth-error{background:var(--red-soft);border:1px solid var(--red);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--red);display:none;text-align:center}
 .auth-error.show{display:block}
-#app{position:fixed;top:0;left:0;right:0;bottom:0;height:calc(var(--real-vh,1px)*100);display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
 .header{display:flex;align-items:center;justify-content:space-between;padding:calc(20px + env(safe-area-inset-top)) 20px 0;flex-shrink:0}
 .header-logo{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.5px}
 .header-logo span{color:var(--accent)}
@@ -3702,18 +3702,30 @@ function checkBillsDueOnPageLoad() {
 }
 
 function setRealAppHeight(){
-  const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
-  const offsetTop=(window.visualViewport&&window.visualViewport.offsetTop)||0;
+  const vvH=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
+  const winH=window.innerHeight;
+  // ✅ Só considera "teclado aberto" quando a diferença é grande (>100px).
+  // Sem essa checagem, uma leitura momentânea/imprecisa do visualViewport (comum no PWA em
+  // standalone no iOS) pode travar o app numa altura menor que a tela real, deixando uma
+  // faixa em branco embaixo — exatamente onde ficaria a barra de endereço do Safari.
+  const keyboardOpen=(winH-vvH)>100;
+  const h=keyboardOpen?vvH:winH;
+  const offsetTop=keyboardOpen?((window.visualViewport&&window.visualViewport.offsetTop)||0):0;
   const vh=h/100;
   document.documentElement.style.setProperty('--real-vh', vh+'px');
   // Força o #app a ter a altura correta via style direto também (iOS PWA fix)
   const app=document.getElementById('app');
   if(app&&app.style.display!=='none'){
-    app.style.height=h+'px';
-    // ✅ Compensa o deslocamento que o iOS aplica ao rolar a página pra revelar o campo focado
-    // quando o teclado abre. Sem isso, o #app (position:fixed;top:0) fica desalinhado do
-    // viewport visual real, fazendo a barra inferior "flutuar" no meio da tela.
-    app.style.top=offsetTop+'px';
+    if(keyboardOpen){
+      app.style.height=h+'px';
+      app.style.top=offsetTop+'px';
+    } else {
+      // ✅ Sem teclado aberto, remove qualquer altura/top fixados via JS e deixa o CSS nativo
+      // (top:0;bottom:0, sem height fixo) preencher a tela real — mais confiável do que
+      // qualquer cálculo aproximado via JS, e evita a faixa em branco no fundo em modo PWA.
+      app.style.height='';
+      app.style.top='';
+    }
   }
 }
 setRealAppHeight();
