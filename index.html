@@ -952,6 +952,7 @@ select.field-input option{background:#03002A}
           <input class="field-input" type="text" inputmode="decimal" id="card-cat-limit-value" placeholder="R$" style="width:110px" oninput="applyCurrencyMask(this)">
           <button type="button" class="cta-btn" style="width:auto;padding:0 16px" onclick="addCardCategoryLimit()">+</button>
         </div>
+        <div id="card-limit-error" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);border-radius:10px;color:#EF4444;font-size:13px;line-height:1.4"></div>
       </div>
     </div>
     <div class="cta-wrap"><button class="cta-btn" onclick="saveCard()">Salvar cartão</button></div>
@@ -2163,22 +2164,24 @@ function formatCompetence(dateStr){const[y,m]=dateStr.split('-');return `${MONTH
 // ── VERIFICAÇÃO DE LIMITES DE GASTO (cartão, categoria no crédito, categoria no débito/Pix/dinheiro) ──
 // valorLancado = valor do lançamento recém-salvo (myAmount, já considerando split), somado ao histórico
 // já existente em `transactions` para compor o total após este lançamento.
-function checkSpendingLimits(type, card, category, compDate, dateVal, valorLancado) {
+// excludeId = ID da transação recém-criada — o listener em tempo real do Firestore pode já ter
+// atualizado `transactions` com ela antes desta função rodar, então excluímos pelo ID pra não contar em dobro.
+function checkSpendingLimits(type, card, category, compDate, dateVal, valorLancado, excludeId) {
   try {
     if (type === 'credit' && card) {
       if (card.limit) {
-        const spentCard = transactions.filter(t=>t.type==='credit'&&t.card===card.name&&t.competenceDate===compDate).reduce((s,t)=>s+(t.myAmount??t.amount),0) + valorLancado;
+        const spentCard = transactions.filter(t=>t.id!==excludeId&&t.type==='credit'&&t.card===card.name&&t.competenceDate===compDate).reduce((s,t)=>s+(t.myAmount??t.amount),0) + valorLancado;
         warnLimit(`limite do cartão ${card.name}`, spentCard, card.limit);
       }
       if (card.categoryLimits && card.categoryLimits[category]) {
-        const spentCat = transactions.filter(t=>t.type==='credit'&&t.card===card.name&&t.category===category&&t.competenceDate===compDate).reduce((s,t)=>s+(t.myAmount??t.amount),0) + valorLancado;
+        const spentCat = transactions.filter(t=>t.id!==excludeId&&t.type==='credit'&&t.card===card.name&&t.category===category&&t.competenceDate===compDate).reduce((s,t)=>s+(t.myAmount??t.amount),0) + valorLancado;
         warnLimit(`limite de ${category} no ${card.name}`, spentCat, card.categoryLimits[category]);
       }
     } else if (type!=='credit' && type!=='transfer_in') {
       const limits = userConfig.debitCategoryLimits || {};
       if (limits[category]) {
         const ym = (dateVal||'').slice(0,7);
-        const spentCat = transactions.filter(t=>t.type!=='credit'&&t.type!=='transfer_in'&&t.category===category&&(t.date||'').slice(0,7)===ym).reduce((s,t)=>s+(t.myAmount??t.amount),0) + valorLancado;
+        const spentCat = transactions.filter(t=>t.id!==excludeId&&t.type!=='credit'&&t.type!=='transfer_in'&&t.category===category&&(t.date||'').slice(0,7)===ym).reduce((s,t)=>s+(t.myAmount??t.amount),0) + valorLancado;
         warnLimit(`limite de ${category} no débito/Pix`, spentCat, limits[category]);
       }
     }
@@ -2246,19 +2249,21 @@ window.confirmLaunch = async function() {
   try {
     if(recurringActive&&selectedType==='credit'){
       const recurringId=genUUID();const[cy,cm]=compDate.split('-').map(Number);
-      for(let i=0;i<12;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i};await saveTx(tx);await saveSplitTxs(tx,{competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i});}
+      let firstId=null;
+      for(let i=0;i<12;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i};const newId=await saveTx(tx);if(i===0)firstId=newId;await saveSplitTxs(tx,{competenceDate:cDate,isRecurring:true,recurringId,recurringMonth:i});}
       closeModal();showToast('✓ Recorrência criada para 12 meses!',true);
-      checkSpendingLimits(selectedType,card,category,compDate,dateVal,myAmount);
+      checkSpendingLimits(selectedType,card,category,compDate,dateVal,myAmount,firstId);
     } else if(instActive&&selectedType==='credit'&&instCount>1){
       const perInst=amount/instCount;const myPerInst=myAmount/instCount;const splitPerInst=splitAmt/instCount;const[cy,cm]=compDate.split('-').map(Number);
-      for(let i=0;i<instCount;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,amount:perInst,myAmount:myPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1};await saveTx(tx);await saveSplitTxs(tx,{amount:splitPerInst,myAmount:splitPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1});}
+      let firstId=null;
+      for(let i=0;i<instCount;i++){let mo=cm-1+i,yr=cy;while(mo>11){mo-=12;yr++;}const cDate=`${yr}-${String(mo+1).padStart(2,'0')}-01`;const tx={...base,amount:perInst,myAmount:myPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1};const newId=await saveTx(tx);if(i===0)firstId=newId;await saveSplitTxs(tx,{amount:splitPerInst,myAmount:splitPerInst,competenceDate:cDate,installmentOf:instCount,installmentNum:i+1});}
       closeModal();showToast('✓ Lançamento parcelado salvo!',true);
-      checkSpendingLimits(selectedType,card,category,compDate,dateVal,myPerInst);
+      checkSpendingLimits(selectedType,card,category,compDate,dateVal,myPerInst,firstId);
     } else {
-      await saveTx(base);
+      const newId=await saveTx(base);
       await saveSplitTxs(base);
       closeModal();showToast('✓ Lançamento salvo!',true);
-      checkSpendingLimits(selectedType,card,category,compDate,dateVal,myAmount);
+      checkSpendingLimits(selectedType,card,category,compDate,dateVal,myAmount,newId);
     }
     // onSnapshot atualiza transactions automaticamente — não precisa de renderHome() aqui
   } catch(e){showToast('❌ Erro ao salvar. Tente novamente.',false);}
@@ -3046,9 +3051,10 @@ window.addCardCategoryLimit=function(){
   if(!cat||!val||val<=0){showToast('⚠️ Escolha a categoria e um valor válido',false);return;}
   cardCatLimitsTemp[cat]=val;
   document.getElementById('card-cat-limit-value').value='';
+  document.getElementById('card-limit-error').style.display='none';
   renderCardCatLimitsList();
 };
-window.removeCardCategoryLimit=function(cat){delete cardCatLimitsTemp[cat];renderCardCatLimitsList();};
+window.removeCardCategoryLimit=function(cat){delete cardCatLimitsTemp[cat];document.getElementById('card-limit-error').style.display='none';renderCardCatLimitsList();};
 
 function renderCardsList(){
   const el=document.getElementById('cards-config-list');
@@ -3059,8 +3065,8 @@ function renderCardsList(){
   }).join('');
 }
 window.setMainCard=function(i){userConfig.cards.forEach((c,idx)=>c.isMain=(idx===i));saveConfig();renderConfig();showToast('★ Cartão principal atualizado!',true);};
-window.openAddCard=function(){editCardIdx=null;cardCatLimitsTemp={};document.getElementById('card-modal-title').textContent='Novo cartão';['card-name','card-bank','card-due','card-limit'].forEach(id=>document.getElementById(id).value='');document.getElementById('card-interval').value='10';document.getElementById('custom-interval-wrap').style.display='none';populateCardCatLimitSelect();renderCardCatLimitsList();document.getElementById('modal-card').classList.add('open');};
-window.editCard=function(i){editCardIdx=i;const c=userConfig.cards[i];cardCatLimitsTemp={...(c.categoryLimits||{})};document.getElementById('card-modal-title').textContent='Editar cartão';document.getElementById('card-name').value=c.name;document.getElementById('card-bank').value=c.bank;document.getElementById('card-due').value=c.dueDay;document.getElementById('card-interval').value=c.interval;setMaskedValue(document.getElementById('card-limit'),c.limit||0);populateCardCatLimitSelect();renderCardCatLimitsList();document.getElementById('modal-card').classList.add('open');};
+window.openAddCard=function(){editCardIdx=null;cardCatLimitsTemp={};document.getElementById('card-modal-title').textContent='Novo cartão';['card-name','card-bank','card-due','card-limit'].forEach(id=>document.getElementById(id).value='');document.getElementById('card-interval').value='10';document.getElementById('custom-interval-wrap').style.display='none';document.getElementById('card-limit-error').style.display='none';populateCardCatLimitSelect();renderCardCatLimitsList();document.getElementById('modal-card').classList.add('open');};
+window.editCard=function(i){editCardIdx=i;const c=userConfig.cards[i];cardCatLimitsTemp={...(c.categoryLimits||{})};document.getElementById('card-modal-title').textContent='Editar cartão';document.getElementById('card-name').value=c.name;document.getElementById('card-bank').value=c.bank;document.getElementById('card-due').value=c.dueDay;document.getElementById('card-interval').value=c.interval;setMaskedValue(document.getElementById('card-limit'),c.limit||0);document.getElementById('card-limit-error').style.display='none';populateCardCatLimitSelect();renderCardCatLimitsList();document.getElementById('modal-card').classList.add('open');};
 window.deleteCard=function(i){const wasMain=userConfig.cards[i]&&userConfig.cards[i].isMain;userConfig.cards.splice(i,1);if(wasMain&&userConfig.cards.length)userConfig.cards[0].isMain=true;saveConfig();renderConfig();updateSetupLock();};
 window.closeCardModal=function(){document.getElementById('modal-card').classList.remove('open');};
 window.toggleCustomInterval=function(){document.getElementById('custom-interval-wrap').style.display=document.getElementById('card-interval').value==='custom'?'block':'none';};
@@ -3083,10 +3089,15 @@ window.saveCard=function(){
   if(limit!==null){
     const somaCategorias=Object.values(categoryLimits).reduce((s,v)=>s+v,0);
     if(somaCategorias>limit){
-      showToast(`⚠️ A soma dos limites por categoria (R$ ${somaCategorias.toFixed(2).replace('.',',')}) ultrapassa o limite do cartão (R$ ${limit.toFixed(2).replace('.',',')})`,false);
+      const errEl=document.getElementById('card-limit-error');
+      errEl.textContent=`A soma dos limites por categoria (R$ ${somaCategorias.toFixed(2).replace('.',',')}) ultrapassa o limite do cartão (R$ ${limit.toFixed(2).replace('.',',')}). Ajuste um dos dois valores.`;
+      errEl.style.display='block';
+      document.activeElement && document.activeElement.blur(); // fecha o teclado, se estiver aberto
+      setTimeout(()=>errEl.scrollIntoView({behavior:'smooth',block:'center'}),150);
       return;
     }
   }
+  document.getElementById('card-limit-error').style.display='none';
   const was=isSetupIncomplete();
   // Mantém isMain se estiver editando; primeiro cartão cadastrado vira principal automaticamente
   const isMain=editCardIdx!==null?!!userConfig.cards[editCardIdx].isMain:userConfig.cards.length===0;
