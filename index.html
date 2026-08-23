@@ -46,7 +46,7 @@ html[data-theme="light"]{
 #theme-toggle-track::before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
 #theme-toggle:checked + #theme-toggle-track{background:var(--accent)}
 #theme-toggle:checked + #theme-toggle-track::before{transform:translateX(20px)}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
 #loading-screen{position:fixed;top:0;left:0;width:100%;height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999}
 .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -1450,15 +1450,21 @@ function defaultUserConfig() { return { cards:[], categories:['Alimentação','T
 async function loadUserData() {
   userConfig = defaultUserConfig(); transactions = []; bills = [];
   try {
-    const snap = await getDoc(userRef());
+    // ✅ Antes essas 4 leituras rodavam uma de cada vez (sequencial), somando o tempo de
+    // cada ida-e-volta ao Firestore. Como são independentes entre si, rodar em paralelo
+    // (Promise.all) reduz bastante o tempo total de carregamento, principalmente em rede lenta.
+    const [snap, txSnap, bSnapResult] = await Promise.all([
+      getDoc(userRef()),
+      getDocs(query(txCol(),orderBy('createdAt','desc'))),
+      getDocs(query(billsCol(),orderBy('createdAt','desc'))).catch(()=>null),
+      loadNovidades()
+    ]);
     if (snap.exists()) { const d=snap.data(); if(d.config) userConfig={...defaultUserConfig(),...d.config}; }
     else { await setDoc(userRef(),{config:userConfig,createdAt:new Date().toISOString()}); }
-    const txSnap = await getDocs(query(txCol(),orderBy('createdAt','desc')));
     transactions = txSnap.docs.map(d=>({id:d.id,...d.data()}));
-    try { const bSnap = await getDocs(query(billsCol(),orderBy('createdAt','desc'))); bills = bSnap.docs.map(d=>({id:d.id,...d.data()})); } catch(e){bills=[];}
+    bills = bSnapResult ? bSnapResult.docs.map(d=>({id:d.id,...d.data()})) : [];
     await checkFaturaAuto();
     await checkSaldoAnteriorAuto();
-    await loadNovidades();
     // Listeners em tempo real — atualiza automaticamente quando outro dispositivo lança
     onSnapshot(query(txCol(),orderBy('createdAt','desc')), snap=>{
       transactions = snap.docs.map(d=>({id:d.id,...d.data()}));
