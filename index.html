@@ -72,7 +72,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .auth-google:active{background:var(--surface)}
 .auth-error{background:var(--red-soft);border:1px solid var(--red);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--red);display:none;text-align:center}
 .auth-error.show{display:block}
-#app{position:fixed;top:0;left:0;right:0;bottom:0;display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;height:100dvh;display:none;flex-direction:column;max-width:430px;margin:0 auto;overflow:hidden}
 .header{display:flex;align-items:center;justify-content:space-between;padding:calc(20px + env(safe-area-inset-top)) 20px 0;flex-shrink:0}
 .header-logo{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.5px}
 .header-logo span{color:var(--accent)}
@@ -1351,26 +1351,39 @@ window.dismissNovidades = async function() {
 };
 const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️'};
 
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    currentUser = user;
-    try {
-      // ✅ Timeout de segurança: se o carregamento dos dados travar (ex: rede instável),
-      // depois de 15s mostra erro e reabilita o botão em vez de ficar preso no "..." pra sempre.
-      await Promise.race([
-        loadUserData(),
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))
-      ]);
-      showApp();
-    } catch(e) {
-      console.error('Erro ao carregar dados do usuário:', e);
-      const btn=document.getElementById('auth-submit-btn');
-      const errEl=document.getElementById('auth-error');
-      if(btn){btn.disabled=false;btn.textContent=btn.dataset.mode==='register'?'Criar conta':'Entrar';}
-      if(errEl){errEl.textContent='Não foi possível carregar seus dados. Verifique sua conexão e tente novamente.';errEl.classList.add('show');}
-      document.getElementById('loading-screen').style.display='none';
-    }
+// ✅ Função compartilhada que finaliza o login: carrega os dados e mostra o app.
+// É chamada tanto pelo listener onAuthStateChanged (login novo / sessão restaurada)
+// quanto diretamente pelo botão de login (submitAuth) — porque o Firebase só dispara
+// onAuthStateChanged quando o estado de autenticação MUDA. Se uma tentativa anterior já
+// tiver autenticado o usuário (mesmo com erro/timeout na tela), uma nova tentativa de
+// login bem-sucedida NÃO dispara o evento de novo, e sem essa chamada direta o app ficava
+// preso na tela de login para sempre, sem erro nenhum aparecer.
+let authFlowInProgress=false;
+async function completeSignIn(user){
+  if (authFlowInProgress) return; // já tem um carregamento rodando, evita duplicar
+  authFlowInProgress=true;
+  currentUser=user;
+  try {
+    // Timeout de segurança: se o carregamento travar (ex: rede instável), depois de 15s
+    // mostra erro e reabilita o botão em vez de ficar preso no "..." pra sempre.
+    await Promise.race([
+      loadUserData(),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))
+    ]);
+    showApp();
+  } catch(e) {
+    console.error('Erro ao carregar dados do usuário:', e);
+    const btn=document.getElementById('auth-submit-btn');
+    const errEl=document.getElementById('auth-error');
+    if(btn){btn.disabled=false;btn.textContent=btn.dataset.mode==='register'?'Criar conta':'Entrar';}
+    if(errEl){errEl.textContent='Não foi possível carregar seus dados. Verifique sua conexão e tente novamente.';errEl.classList.add('show');}
+    document.getElementById('loading-screen').style.display='none';
+  } finally {
+    authFlowInProgress=false;
   }
+}
+onAuthStateChanged(auth, (user) => {
+  if (user) { completeSignIn(user); }
   else { currentUser = null; const seen = localStorage.getItem('ft_ob_seen'); if (!seen) showOnboarding(); else showAuth(); }
 });
 
@@ -1510,6 +1523,10 @@ window.submitAuth = async function() {
   try {
     if (mode==='register') { const cred=await createUserWithEmailAndPassword(auth,email,password); if(name) await updateProfile(cred.user,{displayName:name}); }
     else { await signInWithEmailAndPassword(auth,email,password); }
+    // ✅ Chama diretamente em vez de só confiar no onAuthStateChanged — se o usuário já
+    // estava autenticado de uma tentativa anterior (ex: após um timeout), o evento não
+    // dispara de novo, e sem essa chamada o app ficaria preso na tela de login.
+    if (auth.currentUser) completeSignIn(auth.currentUser);
   } catch(e) {
     const msgs={'auth/email-already-in-use':'E-mail já cadastrado.','auth/invalid-email':'E-mail inválido.','auth/weak-password':'Senha fraca (mín. 6 caracteres).','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.'};
     errEl.textContent=msgs[e.code]||'Erro ao entrar. Tente novamente.'; errEl.classList.add('show');
