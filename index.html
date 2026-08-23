@@ -1352,7 +1352,25 @@ window.dismissNovidades = async function() {
 const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️'};
 
 onAuthStateChanged(auth, async (user) => {
-  if (user) { currentUser = user; await loadUserData(); showApp(); }
+  if (user) {
+    currentUser = user;
+    try {
+      // ✅ Timeout de segurança: se o carregamento dos dados travar (ex: rede instável),
+      // depois de 15s mostra erro e reabilita o botão em vez de ficar preso no "..." pra sempre.
+      await Promise.race([
+        loadUserData(),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))
+      ]);
+      showApp();
+    } catch(e) {
+      console.error('Erro ao carregar dados do usuário:', e);
+      const btn=document.getElementById('auth-submit-btn');
+      const errEl=document.getElementById('auth-error');
+      if(btn){btn.disabled=false;btn.textContent=btn.dataset.mode==='register'?'Criar conta':'Entrar';}
+      if(errEl){errEl.textContent='Não foi possível carregar seus dados. Verifique sua conexão e tente novamente.';errEl.classList.add('show');}
+      document.getElementById('loading-screen').style.display='none';
+    }
+  }
   else { currentUser = null; const seen = localStorage.getItem('ft_ob_seen'); if (!seen) showOnboarding(); else showAuth(); }
 });
 
@@ -3704,11 +3722,14 @@ function checkBillsDueOnPageLoad() {
 function setRealAppHeight(){
   const vvH=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
   const winH=window.innerHeight;
-  // ✅ Só considera "teclado aberto" quando a diferença é grande (>100px).
-  // Sem essa checagem, uma leitura momentânea/imprecisa do visualViewport (comum no PWA em
-  // standalone no iOS) pode travar o app numa altura menor que a tela real, deixando uma
-  // faixa em branco embaixo — exatamente onde ficaria a barra de endereço do Safari.
-  const keyboardOpen=(winH-vvH)>100;
+  // ✅ Só considera "teclado aberto" quando EXISTE um campo de texto realmente focado na tela
+  // + a diferença de altura é grande. Antes, dependíamos só da diferença de altura — mas em
+  // alguns aparelhos/versões do iOS, o visualViewport reporta uma altura menor que a tela real
+  // mesmo sem teclado nenhum aberto, e isso travava o app numa altura menor pra sempre (a causa
+  // real da faixa em branco no fundo). Exigir um campo focado evita esse falso positivo.
+  const focusedEl=document.activeElement;
+  const hasFocusedField=focusedEl && /^(INPUT|TEXTAREA|SELECT)$/.test(focusedEl.tagName);
+  const keyboardOpen=hasFocusedField&&(winH-vvH)>80;
   const h=keyboardOpen?vvH:winH;
   const offsetTop=keyboardOpen?((window.visualViewport&&window.visualViewport.offsetTop)||0):0;
   const vh=h/100;
