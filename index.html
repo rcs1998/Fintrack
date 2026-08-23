@@ -80,8 +80,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .icon-btn{width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .icon-btn:active{transform:scale(.94);background:var(--surface2)}
 .user-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'Sora',sans-serif;color:#fff;cursor:pointer;flex-shrink:0;border:2px solid var(--border)}
-.bottom-nav{display:flex;background:var(--surface2);border-radius:24px;margin:0 12px calc(10px + env(safe-area-inset-bottom)) 12px;padding:10px 0;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.15)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:10px;font-family:'Sora',sans-serif;font-weight:500}
+.bottom-nav{display:flex;background:var(--surface);border-radius:24px;margin:0 12px calc(10px + env(safe-area-inset-bottom)) 12px;padding:10px 0;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:9px;font-family:'Sora',sans-serif;font-weight:500}
 .nav-item.active{color:var(--accent)}
 .nav-item .nav-icon{font-size:20px}
 .main-area{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
@@ -618,6 +618,28 @@ select.field-input option{background:#03002A}
         </div>
       </div>
 
+      <!-- INVESTIMENTOS -->
+      <div class="page" id="page-investments">
+        <div style="height:16px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Investimentos</div>
+          <button class="cta-btn" onclick="openInvestmentModal()" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:13px">+ Novo</button>
+        </div>
+        <div class="bills-summary">
+          <div class="bill-stat-card"><div class="bill-stat-label">Investido</div><div class="bill-stat-value total" id="inv-total-invested">R$ 0,00</div></div>
+          <div class="bill-stat-card"><div class="bill-stat-label">Valor atual</div><div class="bill-stat-value paid" id="inv-total-current">R$ 0,00</div></div>
+          <div class="bill-stat-card"><div class="bill-stat-label">Rendimento</div><div class="bill-stat-value open" id="inv-total-yield">R$ 0,00</div></div>
+        </div>
+        <div style="margin:20px 0" id="inv-evolution-chart"></div>
+        <div id="investments-list">
+          <div class="empty-state"><div class="empty-icon">📈</div><div class="empty-label">Nenhum investimento</div><div class="empty-sub">Toque em "+ Novo" para começar</div></div>
+        </div>
+        <div style="margin-top:28px">
+          <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text3)">✅ Resgatados</div>
+          <div id="investments-redeemed-list"></div>
+        </div>
+      </div>
+
       <!-- RELATÓRIOS -->
       <div class="page" id="page-report">
         <div style="height:16px"></div>
@@ -781,6 +803,7 @@ select.field-input option{background:#03002A}
     <div class="bottom-nav">
       <div class="nav-item active" id="nav-home" onclick="showPage('home')"><div class="nav-icon">🏠</div><div>Início</div></div>
       <div class="nav-item" id="nav-bills" onclick="showPage('bills')"><div class="nav-icon">📋</div><div>Contas</div></div>
+      <div class="nav-item" id="nav-investments" onclick="showPage('investments')"><div class="nav-icon">📈</div><div>Invest.</div></div>
       <div class="nav-item" id="nav-report" onclick="showPage('report')"><div class="nav-icon">📊</div><div>Relatórios</div></div>
       <div class="nav-item" id="nav-config" onclick="showPage('config')"><div class="nav-icon">⚙️</div><div>Config.</div></div>
     </div>
@@ -956,6 +979,45 @@ select.field-input option{background:#03002A}
       </div>
     </div>
     <div class="cta-wrap"><button class="cta-btn" onclick="saveCard()">Salvar cartão</button></div>
+  </div>
+</div>
+
+<!-- MODAL INVESTIMENTO -->
+<div class="modal-overlay" id="modal-investment">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title" id="investment-modal-title">Novo investimento</div><button class="modal-close" onclick="closeInvestmentModal()">✕</button></div>
+    <div class="form-body" style="padding-top:16px">
+      <div class="field-group"><label class="field-label">Apelido</label><input class="field-input" id="inv-name" placeholder="Ex: CDB Reserva, Tesouro Selic..."></div>
+      <div class="field-group"><label class="field-label">Banco / Corretora</label><input class="field-input" id="inv-bank" placeholder="Ex: Nubank, XP, Sicoob..."></div>
+      <div class="field-group"><label class="field-label">Tipo</label><select class="field-input" id="inv-type">
+        <option>CDB</option><option>Tesouro Direto</option><option>Fundos</option><option>Ações</option><option>Cripto</option><option>Poupança</option><option>LCI/LCA</option><option>Outro</option>
+      </select></div>
+      <div class="field-group"><label class="field-label">Valor investido</label><input class="field-input" type="text" inputmode="decimal" id="inv-value-invested" placeholder="Ex: 1.000,00" oninput="applyCurrencyMask(this)"></div>
+      <div class="field-group"><label class="field-label">Valor atual <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(opcional — atualize de vez em quando)</span></label><input class="field-input" type="text" inputmode="decimal" id="inv-value-current" placeholder="Ex: 1.045,30" oninput="applyCurrencyMask(this)"></div>
+      <div class="field-group"><label class="field-label">Data do investimento</label><input class="field-input" type="date" id="inv-date"></div>
+      <div class="field-group"><label class="field-label">Prazo/Vencimento <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(opcional)</span></label><input class="field-input" type="date" id="inv-maturity"></div>
+      <div id="investment-delete-wrap" style="display:none;margin-top:16px">
+        <button class="delete-btn" onclick="deleteInvestment()" style="width:100%">🗑 Excluir este investimento</button>
+      </div>
+    </div>
+    <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="saveInvestment()">✓ Salvar investimento</button></div>
+  </div>
+</div>
+
+<!-- MODAL RESGATE DE INVESTIMENTO -->
+<div class="modal-overlay" id="modal-redeem-investment">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Resgatar investimento</div><button class="modal-close" onclick="closeRedeemModal()">✕</button></div>
+    <div class="form-body" style="padding-top:16px">
+      <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:600;margin-bottom:16px" id="redeem-inv-name">—</div>
+      <div class="field-group"><label class="field-label">Valor a resgatar</label><input class="field-input" type="text" inputmode="decimal" id="redeem-value" placeholder="Ex: 500,00" oninput="applyCurrencyMask(this)"></div>
+      <div class="field-group"><label class="field-label">Creditar no banco</label><select class="field-input" id="redeem-bank"></select></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:-4px">Isso lança automaticamente uma entrada no valor resgatado nesse banco, contando nos seus relatórios normalmente.</div>
+      <div class="field-group" style="margin-top:12px"><label class="field-label">Data do resgate</label><input class="field-input" type="date" id="redeem-date"></div>
+    </div>
+    <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="confirmRedeemInvestment()">✓ Confirmar resgate</button></div>
   </div>
 </div>
 
@@ -1257,6 +1319,7 @@ let currentUser = null;
 let userConfig = { cards:[], categories:['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Vestuário','Supermercado','Restaurante','Combustível','Streaming','Outros'], persons:['Eu'], banks:['Sicoob','Santander','Nubank','Itaú','Bradesco','Inter','C6 Bank'] };
 let transactions = [];
 let bills = [];
+let investments = [];
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let showAllTx = false;
@@ -1444,6 +1507,7 @@ function fabShowIfHome(){const f=document.getElementById('main-fab');if(!f||f.cl
 function userRef() { return doc(db,'users',currentUser.uid); }
 function txCol() { return collection(db,'users',currentUser.uid,'transactions'); }
 function billsCol() { return collection(db,'users',currentUser.uid,'bills'); }
+function investmentsCol() { return collection(db,'users',currentUser.uid,'investments'); }
 
 function defaultUserConfig() { return { cards:[], categories:['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Vestuário','Supermercado','Restaurante','Combustível','Streaming','Outros'], persons:['Eu'], banks:['Sicoob','Santander','Nubank','Itaú','Bradesco','Inter','C6 Bank'] }; }
 
@@ -1453,16 +1517,18 @@ async function loadUserData() {
     // ✅ Antes essas 4 leituras rodavam uma de cada vez (sequencial), somando o tempo de
     // cada ida-e-volta ao Firestore. Como são independentes entre si, rodar em paralelo
     // (Promise.all) reduz bastante o tempo total de carregamento, principalmente em rede lenta.
-    const [snap, txSnap, bSnapResult] = await Promise.all([
+    const [snap, txSnap, bSnapResult, invSnapResult] = await Promise.all([
       getDoc(userRef()),
       getDocs(query(txCol(),orderBy('createdAt','desc'))),
       getDocs(query(billsCol(),orderBy('createdAt','desc'))).catch(()=>null),
+      getDocs(query(investmentsCol(),orderBy('createdAt','desc'))).catch(()=>null),
       loadNovidades()
     ]);
     if (snap.exists()) { const d=snap.data(); if(d.config) userConfig={...defaultUserConfig(),...d.config}; }
     else { await setDoc(userRef(),{config:userConfig,createdAt:new Date().toISOString()}); }
     transactions = txSnap.docs.map(d=>({id:d.id,...d.data()}));
     bills = bSnapResult ? bSnapResult.docs.map(d=>({id:d.id,...d.data()})) : [];
+    investments = invSnapResult ? invSnapResult.docs.map(d=>({id:d.id,...d.data()})) : [];
     await checkFaturaAuto();
     await checkSaldoAnteriorAuto();
     // Listeners em tempo real — atualiza automaticamente quando outro dispositivo lança
@@ -1475,6 +1541,11 @@ async function loadUserData() {
       bills = snap.docs.map(d=>({id:d.id,...d.data()}));
       const active=document.querySelector('.page.active');
       if(active&&active.id==='page-bills')renderBills();
+    });
+    onSnapshot(query(investmentsCol(),orderBy('createdAt','desc')), snap=>{
+      investments = snap.docs.map(d=>({id:d.id,...d.data()}));
+      const active=document.querySelector('.page.active');
+      if(active&&active.id==='page-investments')renderInvestments();
     });
   } catch(e) { console.error(e); }
 }
@@ -1583,7 +1654,7 @@ window.showPage = function(p) {
   document.getElementById('page-'+p).classList.add('active');
   const navEl=document.getElementById('nav-'+p); if(navEl) navEl.classList.add('active');
   const snav=document.getElementById('snav-'+p); if(snav) snav.classList.add('active');
-  const pageTitles = {home:'Início', bills:'Contas a Pagar', report:'Relatórios', config:'Configurações'};
+  const pageTitles = {home:'Início', bills:'Contas a Pagar', investments:'Investimentos', report:'Relatórios', config:'Configurações'};
   const titleEl = document.getElementById('header-page-title');
   if(titleEl) titleEl.textContent = pageTitles[p]||'';
   const exportBtns = document.getElementById('header-export-btns');
@@ -1592,10 +1663,11 @@ window.showPage = function(p) {
   const fab=document.getElementById('main-fab');
   if(fab){if(p==='home'&&!fab.classList.contains('fab-locked'))fab.classList.add('visible');else fab.classList.remove('visible');}
   const appEl=document.getElementById('app');
-  ['page-home','page-bills','page-report','page-config'].forEach(c=>appEl.classList.remove(c));
+  ['page-home','page-bills','page-investments','page-report','page-config'].forEach(c=>appEl.classList.remove(c));
   appEl.classList.add('page-'+p);
   if(p==='home') renderHome();
   if(p==='bills') { renderBills(); updateNotifBanner(); checkBillsDue(); }
+  if(p==='investments') renderInvestments();
   if(p==='report') renderReport();
   if(p==='config') renderConfig();
 };
@@ -2011,6 +2083,164 @@ window.deleteBill = async function() {
   if(!editBillId)return;
   try { await deleteDoc(doc(db,'users',currentUser.uid,'bills',editBillId)); bills=bills.filter(x=>x.id!==editBillId); closeBillModal(); renderBills(); showToast('✓ Conta excluída!',true); }
   catch(e){showToast('❌ Erro ao excluir.',false);}
+};
+
+// ══════════════ INVESTIMENTOS ══════════════
+let editInvestmentId = null;
+function investmentsColRef(){ return investmentsCol(); }
+
+function renderInvestments(){
+  const active = investments.filter(i=>(i.valueCurrent??i.valueInvested)>0.005);
+  const redeemed = investments.filter(i=>!((i.valueCurrent??i.valueInvested)>0.005));
+  const totalInvested = active.reduce((s,i)=>s+(i.valueInvested||0),0);
+  const totalCurrent = active.reduce((s,i)=>s+(i.valueCurrent??i.valueInvested??0),0);
+  const totalYield = totalCurrent - totalInvested;
+  document.getElementById('inv-total-invested').textContent = fmt(totalInvested);
+  document.getElementById('inv-total-current').textContent = fmt(totalCurrent);
+  const yieldEl = document.getElementById('inv-total-yield');
+  yieldEl.textContent = (totalYield>=0?'+':'')+fmt(totalYield);
+  yieldEl.style.color = totalYield>=0 ? 'var(--green)' : 'var(--red)';
+
+  const list = document.getElementById('investments-list');
+  if(!active.length){
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📈</div><div class="empty-label">Nenhum investimento ativo</div><div class="empty-sub">Toque em "+ Novo" para começar</div></div>';
+  } else {
+    list.innerHTML = active.map(i=>{
+      const cur = i.valueCurrent??i.valueInvested??0;
+      const rend = cur - (i.valueInvested||0);
+      const rendPct = i.valueInvested ? (rend/i.valueInvested*100) : 0;
+      return `<div class="config-row" style="cursor:pointer" onclick="openInvestmentModal('${i.id}')">
+        <div class="config-row-left"><div>📈</div><div>
+          <div class="config-row-label">${esc(i.name)}</div>
+          <div class="config-row-sub">${esc(i.bank)} · ${esc(i.type)} · Investido ${fmt(i.valueInvested||0)}</div>
+        </div></div>
+        <div style="text-align:right">
+          <div style="font-weight:700">${fmt(cur)}</div>
+          <div style="font-size:11px;color:${rend>=0?'var(--green)':'var(--red)'}">${rend>=0?'+':''}${fmt(rend)} (${rendPct.toFixed(1)}%)</div>
+          <div style="margin-top:4px"><span style="cursor:pointer;color:var(--accent);font-size:12px" onclick="event.stopPropagation();openRedeemModal('${i.id}')">Resgatar</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const redeemedList = document.getElementById('investments-redeemed-list');
+  if(!redeemed.length){
+    redeemedList.innerHTML = '<div style="font-size:12px;color:var(--text3)">Nenhum investimento resgatado ainda</div>';
+  } else {
+    redeemedList.innerHTML = redeemed.map(i=>`<div class="config-row"><div class="config-row-left"><div>✅</div><div>
+      <div class="config-row-label">${esc(i.name)}</div>
+      <div class="config-row-sub">${esc(i.bank)} · Totalmente resgatado</div>
+    </div></div></div>`).join('');
+  }
+
+  renderInvestmentEvolutionChart(active);
+}
+
+// Gráfico simples (mesmo padrão visual dos relatórios): barra "Investido" vs "Atual" por investimento
+function renderInvestmentEvolutionChart(active){
+  const el = document.getElementById('inv-evolution-chart');
+  if(!el) return;
+  if(!active.length){ el.innerHTML=''; return; }
+  const maxVal = Math.max(...active.map(i=>Math.max(i.valueInvested||0, i.valueCurrent??i.valueInvested??0)), 1);
+  el.innerHTML = `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Investido vs. Valor atual</div>` +
+    active.map(i=>{
+      const inv=i.valueInvested||0, cur=i.valueCurrent??inv;
+      const pctInv = Math.round(inv/maxVal*100), pctCur = Math.round(cur/maxVal*100);
+      return `<div style="margin-bottom:10px">
+        <div style="font-size:12px;margin-bottom:3px">${esc(i.name)}</div>
+        <div class="report-bar-wrap" style="margin-bottom:2px"><div class="report-bar" style="width:${pctInv}%;background:var(--text3)"></div></div>
+        <div class="report-bar-wrap"><div class="report-bar" style="width:${pctCur}%"></div></div>
+      </div>`;
+    }).join('');
+}
+
+window.openInvestmentModal = function(id){
+  editInvestmentId = id||null;
+  const inv = id ? investments.find(x=>x.id===id) : null;
+  document.getElementById('investment-modal-title').textContent = inv ? 'Editar investimento' : 'Novo investimento';
+  document.getElementById('inv-name').value = inv?inv.name:'';
+  document.getElementById('inv-bank').value = inv?inv.bank:'';
+  document.getElementById('inv-type').value = inv?inv.type:'CDB';
+  setMaskedValue(document.getElementById('inv-value-invested'), inv?inv.valueInvested||0:0);
+  setMaskedValue(document.getElementById('inv-value-current'), inv?(inv.valueCurrent??inv.valueInvested??0):0);
+  document.getElementById('inv-date').value = inv?inv.date||'':getLocalDateStr();
+  document.getElementById('inv-maturity').value = inv?inv.maturity||'':'';
+  document.getElementById('investment-delete-wrap').style.display = inv?'block':'none';
+  document.getElementById('modal-investment').classList.add('open');
+};
+window.closeInvestmentModal = function(){ document.getElementById('modal-investment').classList.remove('open'); };
+
+window.saveInvestment = async function(){
+  const name = document.getElementById('inv-name').value.trim();
+  const bank = document.getElementById('inv-bank').value.trim();
+  const type = document.getElementById('inv-type').value;
+  const valueInvested = parseBRLValue(document.getElementById('inv-value-invested').value)||0;
+  const valueCurrentRaw = parseBRLValue(document.getElementById('inv-value-current').value);
+  const valueCurrent = isNaN(valueCurrentRaw)||valueCurrentRaw<=0 ? valueInvested : valueCurrentRaw;
+  const date = document.getElementById('inv-date').value;
+  const maturity = document.getElementById('inv-maturity').value;
+  if(!name||!bank||!valueInvested||!date){ showToast('⚠️ Preencha nome, banco, valor investido e data',false); return; }
+  try{
+    if(editInvestmentId){
+      const inv = investments.find(x=>x.id===editInvestmentId);
+      const history = inv.history||[];
+      // Se o valor atual mudou, registra no histórico pra manter rastro da evolução
+      if(valueCurrent !== (inv.valueCurrent??inv.valueInvested)){
+        history.push({date:getLocalDateStr(), value:valueCurrent});
+      }
+      await updateDoc(doc(db,'users',currentUser.uid,'investments',editInvestmentId), {name,bank,type,valueInvested,valueCurrent,date,maturity,history});
+    } else {
+      await addDoc(investmentsColRef(), {name,bank,type,valueInvested,valueCurrent,date,maturity,history:[{date:getLocalDateStr(),value:valueCurrent}],redemptions:[],createdAt:new Date().toISOString()});
+    }
+    closeInvestmentModal();
+    showToast('✓ Investimento salvo!',true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao salvar investimento.',false); }
+};
+
+window.deleteInvestment = async function(){
+  if(!editInvestmentId) return;
+  try{
+    await deleteDoc(doc(db,'users',currentUser.uid,'investments',editInvestmentId));
+    investments = investments.filter(x=>x.id!==editInvestmentId);
+    closeInvestmentModal();
+    renderInvestments();
+    showToast('✓ Investimento excluído!',true);
+  }catch(e){ showToast('❌ Erro ao excluir.',false); }
+};
+
+let redeemInvestmentId = null;
+window.openRedeemModal = function(id){
+  redeemInvestmentId = id;
+  const inv = investments.find(x=>x.id===id);
+  if(!inv) return;
+  document.getElementById('redeem-inv-name').textContent = inv.name;
+  setMaskedValue(document.getElementById('redeem-value'), inv.valueCurrent??inv.valueInvested??0);
+  document.getElementById('redeem-date').value = getLocalDateStr();
+  const bankSel = document.getElementById('redeem-bank');
+  bankSel.innerHTML = (userConfig.banks||[]).map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  document.getElementById('modal-redeem-investment').classList.add('open');
+};
+window.closeRedeemModal = function(){ document.getElementById('modal-redeem-investment').classList.remove('open'); };
+
+window.confirmRedeemInvestment = async function(){
+  const inv = investments.find(x=>x.id===redeemInvestmentId);
+  if(!inv) return;
+  const value = parseBRLValue(document.getElementById('redeem-value').value);
+  const bank = document.getElementById('redeem-bank').value;
+  const date = document.getElementById('redeem-date').value;
+  const currentVal = inv.valueCurrent??inv.valueInvested??0;
+  if(!value||value<=0||!bank||!date){ showToast('⚠️ Preencha valor, banco e data',false); return; }
+  if(value>currentVal+0.01){ showToast(`⚠️ Valor maior que o disponível (${fmt(currentVal)})`,false); return; }
+  try{
+    // Cria a entrada de verdade nas transações, contando no saldo e relatórios normalmente
+    await saveTx({type:'transfer_in',date,competenceDate:date,amount:value,myAmount:value,category:'Investimentos',description:'Resgate: '+inv.name,title:'Resgate: '+inv.name,note:'',person:null,card:null,bank,splitWith:[],createdAt:new Date().toISOString()});
+    const newCurrent = Math.max(0, currentVal - value);
+    const redemptions = [...(inv.redemptions||[]), {date, value, bank}];
+    const history = [...(inv.history||[]), {date, value:newCurrent}];
+    await updateDoc(doc(db,'users',currentUser.uid,'investments',inv.id), {valueCurrent:newCurrent, redemptions, history});
+    closeRedeemModal();
+    showToast(newCurrent<=0.01 ? '✓ Investimento resgatado totalmente!' : '✓ Resgate parcial realizado!', true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao resgatar.',false); }
 };
 
 window.openModal = function() {
