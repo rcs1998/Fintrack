@@ -177,3 +177,76 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // Exportado só para os testes (não afeta o deploy nem o comportamento em produção).
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        exports._internal = { pad, billYm, fmtCurrency, isRecurringActiveForYm, daysBetween, buildNotificationForBill };
  
+// ── LEMBRETE DE ATUALIZAÇÃO DE INVESTIMENTOS ──
+// Roda todo dia às 08:00 (mesmo horário da de contas), mas só age nos dias 1 e 15 de cada mês,
+// e só para usuários que têm pelo menos um investimento ativo cadastrado.
+const INVESTMENT_REMINDER_DAYS = [1, 15];
+
+exports.checkInvestmentReminderDaily = onSchedule(
+  {
+    schedule: "0 8 * * *",
+    timeZone: "America/Sao_Paulo",
+    region: "southamerica-east1",
+  },
+  async () => {
+    ensureInit();
+
+    const now = new Date();
+    const todayDay = now.getDate();
+    if (!INVESTMENT_REMINDER_DAYS.includes(todayDay)) return; // não é dia de lembrete
+
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(todayDay)}`;
+    const notifKey = `invreminder_${todayStr}`;
+
+    const usersSnap = await db.collection("users").get();
+
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const tokens = userDoc.data().fcmTokens || [];
+      if (!tokens.length) continue; // usuário nunca ativou notificação nesse dispositivo
+
+      try {
+        const [investmentsSnap, notifiedDoc] = await Promise.all([
+          db.collection("users").doc(uid).collection("investments").get(),
+          db.collection("users").doc(uid).collection("notifiedBills").doc(notifKey).get(),
+        ]);
+        if (investmentsSnap.empty) continue; // só notifica quem tem investimento cadastrado
+        if (notifiedDoc.exists) continue; // já notificado hoje (evita duplicar)
+
+        // Só considera investimentos ainda ativos (valor atual > 0)
+        const hasActive = investmentsSnap.docs.some((d) => {
+          const v = d.data();
+          const cur = v.valueCurrent ?? v.valueInvested ?? 0;
+          return cur > 0.005;
+        });
+        if (!hasActive) continue;
+
+        const resp = await messaging.sendEachForMulticast({
+          tokens,
+          notification: {
+            title: "📈 Hora de atualizar seus investimentos!",
+            body: "Já faz um tempo — dá uma olhada nos seus investimentos e atualiza o valor atual de cada um.",
+          },
+          data: { tag: notifKey },
+        });
+
+        const invalidTokens = [];
+        resp.responses.forEach((r, i) => {
+          const code = r.error && r.error.code;
+          if (!r.success && (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-argument")) {
+            invalidTokens.push(tokens[i]);
+          }
+        });
+        if (invalidTokens.length) {
+          await db.collection("users").doc(uid).update({
+            fcmTokens: FieldValue.arrayRemove(...invalidTokens),
+          });
+        }
+
+        await db.collection("users").doc(uid).collection("notifiedBills").doc(notifKey).set({ sentAt: new Date().toISOString() });
+      } catch (e) {
+        console.error(`Erro ao notificar investimentos do usuário ${uid}:`, e);
+      }
+    }
+  }
+);
