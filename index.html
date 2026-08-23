@@ -3703,17 +3703,28 @@ function checkBillsDueOnPageLoad() {
 
 function setRealAppHeight(){
   const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
+  const offsetTop=(window.visualViewport&&window.visualViewport.offsetTop)||0;
   const vh=h/100;
   document.documentElement.style.setProperty('--real-vh', vh+'px');
   // Força o #app a ter a altura correta via style direto também (iOS PWA fix)
   const app=document.getElementById('app');
-  if(app&&app.style.display!=='none') app.style.height=h+'px';
+  if(app&&app.style.display!=='none'){
+    app.style.height=h+'px';
+    // ✅ Compensa o deslocamento que o iOS aplica ao rolar a página pra revelar o campo focado
+    // quando o teclado abre. Sem isso, o #app (position:fixed;top:0) fica desalinhado do
+    // viewport visual real, fazendo a barra inferior "flutuar" no meio da tela.
+    app.style.top=offsetTop+'px';
+  }
 }
 setRealAppHeight();
 window.addEventListener('resize',setRealAppHeight);
 window.addEventListener('orientationchange',()=>{setTimeout(setRealAppHeight,100);setTimeout(setRealAppHeight,300);setTimeout(setRealAppHeight,600);});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',setRealAppHeight);window.visualViewport.addEventListener('scroll',setRealAppHeight);}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)setRealAppHeight();});
+// Reforça a compensação também nos eventos de foco/blur de campos de texto, que é quando
+// o iOS costuma rolar a página e disparar o deslocamento do viewport visual
+document.addEventListener('focusin',(e)=>{if(e.target.matches('input,textarea,select')){[0,100,300,500].forEach(ms=>setTimeout(setRealAppHeight,ms));}});
+document.addEventListener('focusout',(e)=>{if(e.target.matches('input,textarea,select')){[0,100,300,500].forEach(ms=>setTimeout(setRealAppHeight,ms));}});
 [0,50,100,200,300,500,800,1200,2000].forEach(ms=>setTimeout(setRealAppHeight,ms));
 </script>
 </body>
