@@ -80,15 +80,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .icon-btn{width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .icon-btn:active{transform:scale(.94);background:var(--surface2)}
 .user-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'Sora',sans-serif;color:#fff;cursor:pointer;flex-shrink:0;border:2px solid var(--border)}
-.bottom-nav{display:flex;background:var(--surface);border-radius:24px;margin:0 12px calc(10px + env(safe-area-inset-bottom)) 12px;padding:10px 0;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.bottom-nav{display:flex;background:var(--surface);border-radius:24px;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));padding:10px 0;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:5}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:9px;font-family:'Sora',sans-serif;font-weight:500}
 .nav-item.active{color:var(--accent)}
 .nav-item .nav-icon{font-size:20px}
-.main-area{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.main-area{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
 .sidebar{display:none}
 .content{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .content::-webkit-scrollbar{display:none}
-.page{display:none;padding:20px;padding-bottom:90px}
+.page{display:none;padding:20px;padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 .page.active{display:block}
 @media (min-width:768px){
   body{overflow:auto}
@@ -341,9 +341,9 @@ select.field-input option{background:#03002A}
 .del-opt-sub{font-size:12px;color:var(--text3);margin-top:3px;font-weight:400}
 /* CONTAS A PAGAR */
 .bills-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
-.bill-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 12px;display:flex;flex-direction:column;gap:4px}
+.bill-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 8px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .bill-stat-label{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.8px;text-transform:uppercase}
-.bill-stat-value{font-family:'Sora',sans-serif;font-size:18px;font-weight:700}
+.bill-stat-value{font-family:'Sora',sans-serif;font-size:clamp(12px,4.2vw,18px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bill-stat-value.total{color:var(--text)}
 .bill-stat-value.paid{color:var(--green)}
 .bill-stat-value.open{color:var(--red)}
@@ -630,13 +630,28 @@ select.field-input option{background:#03002A}
           <div class="bill-stat-card"><div class="bill-stat-label">Valor atual</div><div class="bill-stat-value paid" id="inv-total-current">R$ 0,00</div></div>
           <div class="bill-stat-card"><div class="bill-stat-label">Rendimento</div><div class="bill-stat-value open" id="inv-total-yield">R$ 0,00</div></div>
         </div>
-        <div style="margin:20px 0" id="inv-evolution-chart"></div>
         <div id="investments-list">
           <div class="empty-state"><div class="empty-icon">📈</div><div class="empty-label">Nenhum investimento</div><div class="empty-sub">Toque em "+ Novo" para começar</div></div>
         </div>
         <div style="margin-top:28px">
           <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text3)">✅ Resgatados</div>
           <div id="investments-redeemed-list"></div>
+        </div>
+        <div style="margin-top:28px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700">📊 Evolução mensal</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:14px" id="inv-period-btns">
+            <div class="report-type-btn active" onclick="setInvEvoPeriod(3,this)">3m</div>
+            <div class="report-type-btn" onclick="setInvEvoPeriod(6,this)">6m</div>
+            <div class="report-type-btn" onclick="setInvEvoPeriod(12,this)">12m</div>
+          </div>
+          <div style="display:flex;gap:14px;margin-bottom:14px;font-size:12px">
+            <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent);display:inline-block"></span>Aportes</div>
+            <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:var(--orange);display:inline-block"></span>Resgates</div>
+            <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:var(--green);display:inline-block"></span>Rendimento</div>
+          </div>
+          <div id="inv-evolution-chart"></div>
         </div>
       </div>
 
@@ -1050,6 +1065,10 @@ select.field-input option{background:#03002A}
         <label class="field-label">Repetir até <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(opcional — deixe em branco para repetir sempre)</span></label>
         <input class="field-input" type="month" id="bill-recurring-end">
       </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">💰 É empréstimo?</div><div class="toggle-sub">Só pra diferenciar em relatórios e na lista</div></div>
+        <button class="toggle" id="bill-loan-toggle" onclick="toggleBillLoan()"></button>
+      </div>
       <!-- Botão excluir aparece só na edição -->
       <div id="bill-delete-wrap" style="display:none;margin-top:16px">
         <button class="delete-btn" onclick="deleteBill()" style="width:100%">🗑 Excluir esta conta</button>
@@ -1345,6 +1364,7 @@ let recurringActive = false;
 let faturaJaFechou = false;
 let editCardIdx = null;
 let billRecurringActive = false;
+let billLoanActive = false;
 let editBillId = null;
 let payBillId = null;
 
@@ -1412,7 +1432,7 @@ window.dismissNovidades = async function() {
   userConfig.novidadesVistas = Array.from(new Set([...(userConfig.novidadesVistas||[]), ...ids]));
   try { await saveConfig(); } catch(e) {}
 };
-const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️'};
+const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️','Investimentos':'⬆️'};
 
 // ✅ Função compartilhada que finaliza o login: carrega os dados e mostra o app.
 // É chamada tanto pelo listener onAuthStateChanged (login novo / sessão restaurada)
@@ -1822,10 +1842,11 @@ function renderBills() {
     const paidStr=b.paid?` · Pago em ${fmtDate(b.paidDate||'')} — ${fmt(b.paidValue||b.value)}`:'';
     const recurEndLabel = b.recurringEnd ? (() => { const [ey,em]=b.recurringEnd.split('-').map(Number); return ` até ${MONTHS[em-1].slice(0,3)}/${ey}`; })() : '';
     const recurTag=b.isRecurring?`<span class="bill-badge pending" style="background:var(--orange-soft);color:var(--orange)">🔄 Fixa${esc(recurEndLabel)}</span>`:'';
+    const loanTag=b.isLoan?`<span class="bill-badge pending" style="background:var(--accent-soft);color:var(--accent)">💰 Empréstimo</span>`:'';
     return `<div class="bill-item ${b.paid?'paid-item':''}" onclick="openBillDetail('${b.id}','${b._payKey||''}')">
       <div class="bill-status-dot ${st}"></div>
       <div class="bill-info"><div class="bill-name">${esc(b.name)}</div>
-        <div class="bill-meta"><span class="bill-badge ${st}">${statusLabel[st]}</span>${recurTag}<span>${dueStr}${paidStr}</span></div>
+        <div class="bill-meta"><span class="bill-badge ${st}">${statusLabel[st]}</span>${recurTag}${loanTag}<span>${dueStr}${paidStr}</span></div>
       </div>
       <div class="bill-amount-wrap">
         <div class="bill-amount ${b.paid?'paid':'open'}">${fmt(b.value)}</div>
@@ -1955,11 +1976,12 @@ window.toggleFaturaPaga = function(cardName, y, m, isPago) {
 };
 
 window.openBillModal = function(billId=null) {
-  editBillId=billId; billRecurringActive=false;
+  editBillId=billId; billRecurringActive=false; billLoanActive=false;
   document.getElementById('bill-modal-title').textContent=billId?'Editar conta':'Nova conta';
   document.getElementById('bill-recurring-toggle').classList.remove('on');
   document.getElementById('bill-recurring-end-wrap').style.display='none';
   document.getElementById('bill-recurring-end').value='';
+  document.getElementById('bill-loan-toggle').classList.remove('on');
   document.getElementById('bill-delete-wrap').style.display=billId?'block':'none';
   const now=new Date();
   document.getElementById('bill-month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -1976,6 +1998,8 @@ window.openBillModal = function(billId=null) {
       document.getElementById('bill-recurring-toggle').classList.toggle('on',billRecurringActive);
       document.getElementById('bill-recurring-end-wrap').style.display = billRecurringActive ? '' : 'none';
       document.getElementById('bill-recurring-end').value = b.recurringEnd || '';
+      billLoanActive=!!b.isLoan;
+      document.getElementById('bill-loan-toggle').classList.toggle('on',billLoanActive);
     }
   } else {
     document.getElementById('bill-name').value='';
@@ -1991,6 +2015,10 @@ window.toggleBillRecurring = function() {
   document.getElementById('bill-recurring-toggle').classList.toggle('on',billRecurringActive);
   document.getElementById('bill-recurring-end-wrap').style.display = billRecurringActive ? '' : 'none';
   if (!billRecurringActive) document.getElementById('bill-recurring-end').value = '';
+};
+window.toggleBillLoan = function() {
+  billLoanActive=!billLoanActive;
+  document.getElementById('bill-loan-toggle').classList.toggle('on',billLoanActive);
 };
 
 window.saveBill = async function() {
@@ -2018,6 +2046,7 @@ window.saveBill = async function() {
     refMonth, refYear, category,
     isRecurring: billRecurringActive,
     recurringEnd,
+    isLoan: billLoanActive,
     paid: false, payments: {},
     createdAt: new Date().toISOString(),
   };
@@ -2027,7 +2056,7 @@ window.saveBill = async function() {
   try {
     if (editBillId) {
       const ref = doc(db, 'users', currentUser.uid, 'bills', editBillId);
-      await updateDoc(ref, { name, value, dueDay, category, isRecurring: billRecurringActive, recurringEnd, refMonth, refYear });
+      await updateDoc(ref, { name, value, dueDay, category, isRecurring: billRecurringActive, recurringEnd, isLoan: billLoanActive, refMonth, refYear });
       const idx = bills.findIndex(x => x.id === editBillId);
       if (idx >= 0) bills[idx] = { ...bills[idx], ...billData };
     } else {
@@ -2133,25 +2162,54 @@ function renderInvestments(){
     </div></div></div>`).join('');
   }
 
-  renderInvestmentEvolutionChart(active);
+  renderInvestmentEvolutionChart();
 }
 
-// Gráfico simples (mesmo padrão visual dos relatórios): barra "Investido" vs "Atual" por investimento
-function renderInvestmentEvolutionChart(active){
+// ── Gráfico mensal: Aportes / Resgates / Rendimento (mesmo espírito do gráfico de Relatórios) ──
+let invEvoMonths = 3;
+window.setInvEvoPeriod = function(months, el){
+  invEvoMonths = months;
+  document.querySelectorAll('#inv-period-btns .report-type-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderInvestmentEvolutionChart();
+};
+// Retorna o valor da posição de um investimento numa data específica, usando o histórico salvo
+function getInvestmentValueAt(inv, dateStr){
+  const hist=[{date:inv.date,value:inv.valueInvested||0},...(inv.history||[])].filter(h=>h.date&&h.date<=dateStr).sort((a,b)=>a.date.localeCompare(b.date));
+  return hist.length ? hist[hist.length-1].value : 0;
+}
+function renderInvestmentEvolutionChart(){
   const el = document.getElementById('inv-evolution-chart');
   if(!el) return;
-  if(!active.length){ el.innerHTML=''; return; }
-  const maxVal = Math.max(...active.map(i=>Math.max(i.valueInvested||0, i.valueCurrent??i.valueInvested??0)), 1);
-  el.innerHTML = `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Investido vs. Valor atual</div>` +
-    active.map(i=>{
-      const inv=i.valueInvested||0, cur=i.valueCurrent??inv;
-      const pctInv = Math.round(inv/maxVal*100), pctCur = Math.round(cur/maxVal*100);
-      return `<div style="margin-bottom:10px">
-        <div style="font-size:12px;margin-bottom:3px">${esc(i.name)}</div>
-        <div class="report-bar-wrap" style="margin-bottom:2px"><div class="report-bar" style="width:${pctInv}%;background:var(--text3)"></div></div>
-        <div class="report-bar-wrap"><div class="report-bar" style="width:${pctCur}%"></div></div>
-      </div>`;
-    }).join('');
+  if(!investments.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3)">Cadastre um investimento para ver a evolução mensal</div>'; return; }
+  const MLABELS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const now=new Date();
+  const months=[];
+  for(let i=invEvoMonths-1;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const y=d.getFullYear(), m=d.getMonth();
+    const monthStart=`${y}-${String(m+1).padStart(2,'0')}-01`;
+    const lastDay=new Date(y,m+1,0).getDate();
+    const monthEnd=`${y}-${String(m+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    const prevLastDay=new Date(y,m,0);
+    const prevEnd=`${prevLastDay.getFullYear()}-${String(prevLastDay.getMonth()+1).padStart(2,'0')}-${String(prevLastDay.getDate()).padStart(2,'0')}`;
+    const aportes=investments.filter(inv=>(inv.date||'').slice(0,7)===`${y}-${String(m+1).padStart(2,'0')}`).reduce((s,inv)=>s+(inv.valueInvested||0),0);
+    const resgates=investments.reduce((s,inv)=>s+((inv.redemptions||[]).filter(r=>(r.date||'').slice(0,7)===`${y}-${String(m+1).padStart(2,'0')}`).reduce((s2,r)=>s2+r.value,0)),0);
+    const valStart=investments.reduce((s,inv)=>s+getInvestmentValueAt(inv,prevEnd),0);
+    const valEnd=investments.reduce((s,inv)=>s+getInvestmentValueAt(inv,monthEnd),0);
+    const rendimento=valEnd-valStart-aportes+resgates;
+    months.push({label:MLABELS[m]+'/'+String(y).slice(2), aportes, resgates, rendimento});
+  }
+  const maxVal=Math.max(...months.flatMap(m=>[m.aportes,m.resgates,Math.abs(m.rendimento)]),1);
+  el.innerHTML = months.map(m=>{
+    const pA=Math.round(m.aportes/maxVal*100), pR=Math.round(m.resgates/maxVal*100), pY=Math.round(Math.abs(m.rendimento)/maxVal*100);
+    return `<div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px">${m.label}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><span style="width:60px;font-size:10px;color:var(--text3)">Aportes</span><div class="report-bar-wrap" style="flex:1"><div class="report-bar" style="width:${pA}%;background:var(--accent)"></div></div><span style="width:70px;font-size:11px;text-align:right">${fmt(m.aportes)}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><span style="width:60px;font-size:10px;color:var(--text3)">Resgates</span><div class="report-bar-wrap" style="flex:1"><div class="report-bar" style="width:${pR}%;background:var(--orange)"></div></div><span style="width:70px;font-size:11px;text-align:right">${fmt(m.resgates)}</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;color:var(--text3)">Rendim.</span><div class="report-bar-wrap" style="flex:1"><div class="report-bar" style="width:${pY}%;background:${m.rendimento>=0?'var(--green)':'var(--red)'}"></div></div><span style="width:70px;font-size:11px;text-align:right;color:${m.rendimento>=0?'var(--green)':'var(--red)'}">${m.rendimento>=0?'+':''}${fmt(m.rendimento)}</span></div>
+    </div>`;
+  }).join('');
 }
 
 window.openInvestmentModal = function(id){
@@ -3418,7 +3476,7 @@ window.exportCSV=function(){
 
 function showToast(msg,ok=true){const t=document.getElementById('toast');t.textContent=msg;t.style.background=ok?'var(--green)':'var(--red)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 window.showToast=showToast;
-function fmt(v){return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmt(v){return 'R$\u00A0'+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtDate(d){if(!d)return'';const p=d.split('-');return `${p[2]}/${p[1]}/${p[0]}`;}
 
 let personModalData={name:'',txs:[],total:0};let personMonth=new Date().getMonth();let personYear=new Date().getFullYear();let personName='';
@@ -3859,7 +3917,11 @@ function updateNotifBadge() {
     const dueStr = `${y}-${pad(m+1)}-${pad(b.dueDay)}`;
     return dueStr <= in3Str;
   });
-  badge.style.display = hasAlerts ? 'block' : 'none';
+  // Lembrete de atualizar investimentos, nos dias 1 e 15, só se houver investimento ativo
+  const investmentReminderDay = [1,15].includes(now.getDate());
+  const hasActiveInvestment = (investments||[]).some(i => (i.valueCurrent??i.valueInvested??0) > 0.005);
+  const hasInvestmentAlert = investmentReminderDay && hasActiveInvestment;
+  badge.style.display = (hasAlerts || hasInvestmentAlert) ? 'block' : 'none';
 }
 
 // ── TECLADO FÍSICO: permite digitar no numpad pelo teclado do computador ──
