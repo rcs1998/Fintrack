@@ -80,7 +80,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .icon-btn{width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .icon-btn:active{transform:scale(.94);background:var(--surface2)}
 .user-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'Sora',sans-serif;color:#fff;cursor:pointer;flex-shrink:0;border:2px solid var(--border)}
-.bottom-nav{display:flex;background:var(--surface);border-radius:24px;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));padding:10px 0;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:5}
+.bottom-nav{display:flex;background:var(--surface2);border-radius:24px;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));padding:10px 0;box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:5;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:9px;font-family:'Sora',sans-serif;font-weight:500}
 .nav-item.active{color:var(--accent)}
 .nav-item .nav-icon{font-size:20px}
@@ -343,7 +343,7 @@ select.field-input option{background:#03002A}
 .bills-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
 .bill-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 8px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .bill-stat-label{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.8px;text-transform:uppercase}
-.bill-stat-value{font-family:'Sora',sans-serif;font-size:clamp(12px,4.2vw,18px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bill-stat-value{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;white-space:nowrap;display:block}
 .bill-stat-value.total{color:var(--text)}
 .bill-stat-value.paid{color:var(--green)}
 .bill-stat-value.open{color:var(--red)}
@@ -431,7 +431,7 @@ select.field-input option{background:#03002A}
     <div class="ob-slide"><div class="ob-emoji">💸</div><div class="ob-title">Bem-vindo ao FinTrack</div><div class="ob-desc">Seu controle financeiro pessoal. Registre gastos, divida despesas e acompanhe tudo em um só lugar.</div></div>
     <div class="ob-slide"><div class="ob-emoji">⚡</div><div class="ob-title">Lançamentos rápidos</div><div class="ob-desc">Registre um gasto em segundos. Escolha o tipo, digite o valor no teclado numérico e confirme.</div></div>
     <div class="ob-slide"><div class="ob-emoji">📋</div><div class="ob-title">Contas a pagar</div><div class="ob-desc">Cadastre suas contas fixas e variáveis, acompanhe vencimentos e marque como paga. Sem mais esquecer boletos.</div></div>
-    <div class="ob-slide"><div class="ob-emoji">📊</div><div class="ob-title">Relatórios completos</div><div class="ob-desc">Veja seus gastos por categoria, titular e cartão. Filtre por crédito, débito ou Pix e exporte em CSV.</div></div>
+    <div class="ob-slide"><div class="ob-emoji">📊</div><div class="ob-title">Relatórios completos</div><div class="ob-desc">Veja seus gastos por categoria, titular e cartão, acompanhe seus investimentos e o rendimento deles. Filtre por crédito, débito ou Pix e exporte em CSV.</div></div>
   </div>
   <div class="ob-footer">
     <div class="ob-dots">
@@ -641,10 +641,17 @@ select.field-input option{background:#03002A}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700">📊 Evolução mensal</div>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:14px" id="inv-period-btns">
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="inv-period-btns">
             <div class="report-type-btn active" onclick="setInvEvoPeriod(3,this)">3m</div>
             <div class="report-type-btn" onclick="setInvEvoPeriod(6,this)">6m</div>
             <div class="report-type-btn" onclick="setInvEvoPeriod(12,this)">12m</div>
+            <div class="report-type-btn" onclick="setInvEvoPeriod('inicio',this)">Este ano</div>
+            <div class="report-type-btn" onclick="setInvEvoPeriod('custom',this)">Período</div>
+          </div>
+          <div id="inv-custom-dates-wrap" style="display:none;gap:8px;margin-bottom:14px">
+            <div style="flex:1"><label class="field-label">De</label><input class="field-input" type="month" id="inv-custom-start"></div>
+            <div style="flex:1"><label class="field-label">Até</label><input class="field-input" type="month" id="inv-custom-end"></div>
+            <button class="add-btn" style="align-self:flex-end" onclick="applyInvCustomPeriod()">✓</button>
           </div>
           <div style="display:flex;gap:14px;margin-bottom:14px;font-size:12px">
             <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent);display:inline-block"></span>Aportes</div>
@@ -806,6 +813,18 @@ select.field-input option{background:#03002A}
                 <div style="flex:1"><label class="field-label">Fim (opcional)</label><input class="field-input" type="date" id="nov-end"></div>
               </div>
               <button class="cta-btn" onclick="saveNovidade()" style="font-size:14px;padding:13px">Publicar novidade</button>
+            </div>
+          </div>
+        </div>
+        <div style="height:8px"></div>
+        <div id="dev-icons-section" style="display:none">
+          <div class="section-title">🔧 Dicionário de ícones (dev)</div>
+          <div class="config-card" style="padding:16px">
+            <div id="cat-icons-list-dev" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px">
+              <input class="field-input" id="cat-icon-key" placeholder="Categoria (ex: Investimentos)" style="flex:1">
+              <input class="field-input" id="cat-icon-emoji" placeholder="🔥" style="width:70px;text-align:center">
+              <button class="add-btn" onclick="saveCatIconDev()">+</button>
             </div>
           </div>
         </div>
@@ -1302,7 +1321,7 @@ select.field-input option{background:#03002A}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, writeBatch, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteField, collection, addDoc, getDocs, deleteDoc, query, orderBy, writeBatch, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
 const firebaseConfig = {
@@ -1432,7 +1451,14 @@ window.dismissNovidades = async function() {
   userConfig.novidadesVistas = Array.from(new Set([...(userConfig.novidadesVistas||[]), ...ids]));
   try { await saveConfig(); } catch(e) {}
 };
-const CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️','Investimentos':'⬆️'};
+let CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️','Investimentos':'⬆️'};
+// Carrega overrides/adições do dicionário de ícones salvos no Firestore (compartilhado entre todos os usuários)
+async function loadCatIcons(){
+  try{
+    const snap = await getDoc(doc(db,'config','catIcons'));
+    if(snap.exists() && snap.data().icons) CAT_ICONS = {...CAT_ICONS, ...snap.data().icons};
+  }catch(e){ console.error('Erro ao carregar dicionário de ícones:', e); }
+}
 
 // ✅ Função compartilhada que finaliza o login: carrega os dados e mostra o app.
 // É chamada tanto pelo listener onAuthStateChanged (login novo / sessão restaurada)
@@ -1542,7 +1568,8 @@ async function loadUserData() {
       getDocs(query(txCol(),orderBy('createdAt','desc'))),
       getDocs(query(billsCol(),orderBy('createdAt','desc'))).catch(()=>null),
       getDocs(query(investmentsCol(),orderBy('createdAt','desc'))).catch(()=>null),
-      loadNovidades()
+      loadNovidades(),
+      loadCatIcons()
     ]);
     if (snap.exists()) { const d=snap.data(); if(d.config) userConfig={...defaultUserConfig(),...d.config}; }
     else { await setDoc(userRef(),{config:userConfig,createdAt:new Date().toISOString()}); }
@@ -1832,6 +1859,7 @@ function renderBills() {
   document.getElementById('bill-total').textContent=fmt(total);
   document.getElementById('bill-paid-total').textContent=fmt(paid);
   document.getElementById('bill-open-total').textContent=fmt(open);
+  setTimeout(()=>fitAllStatValues('.page#page-bills'),0);
   const container=document.getElementById('bills-list');
   if(!displayed.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-label">Nenhuma conta</div><div class="empty-sub">Toque em "+ Nova conta" para começar</div></div>`;return;}
   const sorted=[...displayed].sort((a,b)=>{if(a.paid!==b.paid)return a.paid?1:-1;return(a.dueDay||0)-(b.dueDay||0);});
@@ -2129,6 +2157,7 @@ function renderInvestments(){
   const yieldEl = document.getElementById('inv-total-yield');
   yieldEl.textContent = (totalYield>=0?'+':'')+fmt(totalYield);
   yieldEl.style.color = totalYield>=0 ? 'var(--green)' : 'var(--red)';
+  setTimeout(()=>fitAllStatValues('#page-investments'),0);
 
   const list = document.getElementById('investments-list');
   if(!active.length){
@@ -2166,11 +2195,33 @@ function renderInvestments(){
 }
 
 // ── Gráfico mensal: Aportes / Resgates / Rendimento (mesmo espírito do gráfico de Relatórios) ──
-let invEvoMonths = 3;
-window.setInvEvoPeriod = function(months, el){
-  invEvoMonths = months;
+let invEvoMonths = 3; // número de meses pra trás, ou {start:'YYYY-MM', end:'YYYY-MM'} pra período customizado
+window.setInvEvoPeriod = function(val, el){
   document.querySelectorAll('#inv-period-btns .report-type-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+  const customWrap = document.getElementById('inv-custom-dates-wrap');
+  if(val==='custom'){
+    customWrap.style.display='flex';
+    const now=new Date();
+    if(!document.getElementById('inv-custom-end').value) document.getElementById('inv-custom-end').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    if(!document.getElementById('inv-custom-start').value) document.getElementById('inv-custom-start').value=`${now.getFullYear()}-01`;
+    return; // espera o usuário confirmar em "✓"
+  }
+  customWrap.style.display='none';
+  if(val==='inicio'){
+    const now=new Date();
+    invEvoMonths = now.getMonth()+1; // do mês 0 (janeiro) até o mês atual
+  } else {
+    invEvoMonths = val;
+  }
+  renderInvestmentEvolutionChart();
+};
+window.applyInvCustomPeriod = function(){
+  const start = document.getElementById('inv-custom-start').value;
+  const end = document.getElementById('inv-custom-end').value;
+  if(!start || !end){ showToast('⚠️ Preencha as duas datas',false); return; }
+  if(start>end){ showToast('⚠️ Data inicial depois da final',false); return; }
+  invEvoMonths = {start, end};
   renderInvestmentEvolutionChart();
 };
 // Retorna o valor da posição de um investimento numa data específica, usando o histórico salvo
@@ -2185,23 +2236,36 @@ function renderInvestmentEvolutionChart(){
   const MLABELS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const now=new Date();
   const months=[];
-  for(let i=invEvoMonths-1;i>=0;i--){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    const y=d.getFullYear(), m=d.getMonth();
-    const monthStart=`${y}-${String(m+1).padStart(2,'0')}-01`;
+  if(typeof invEvoMonths==='object' && invEvoMonths.start){
+    // Período customizado: itera mês a mês entre start e end
+    const [sy,sm]=invEvoMonths.start.split('-').map(Number);
+    const [ey,em]=invEvoMonths.end.split('-').map(Number);
+    let y=sy, m=sm-1;
+    while(y<ey || (y===ey && m<=em-1)){
+      months.push({y,m});
+      m++; if(m>11){m=0;y++;}
+    }
+  } else {
+    for(let i=invEvoMonths-1;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      months.push({y:d.getFullYear(), m:d.getMonth()});
+    }
+  }
+  const monthsData = months.map(({y,m})=>{
     const lastDay=new Date(y,m+1,0).getDate();
     const monthEnd=`${y}-${String(m+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     const prevLastDay=new Date(y,m,0);
     const prevEnd=`${prevLastDay.getFullYear()}-${String(prevLastDay.getMonth()+1).padStart(2,'0')}-${String(prevLastDay.getDate()).padStart(2,'0')}`;
-    const aportes=investments.filter(inv=>(inv.date||'').slice(0,7)===`${y}-${String(m+1).padStart(2,'0')}`).reduce((s,inv)=>s+(inv.valueInvested||0),0);
-    const resgates=investments.reduce((s,inv)=>s+((inv.redemptions||[]).filter(r=>(r.date||'').slice(0,7)===`${y}-${String(m+1).padStart(2,'0')}`).reduce((s2,r)=>s2+r.value,0)),0);
+    const ym=`${y}-${String(m+1).padStart(2,'0')}`;
+    const aportes=investments.filter(inv=>(inv.date||'').slice(0,7)===ym).reduce((s,inv)=>s+(inv.valueInvested||0),0);
+    const resgates=investments.reduce((s,inv)=>s+((inv.redemptions||[]).filter(r=>(r.date||'').slice(0,7)===ym).reduce((s2,r)=>s2+r.value,0)),0);
     const valStart=investments.reduce((s,inv)=>s+getInvestmentValueAt(inv,prevEnd),0);
     const valEnd=investments.reduce((s,inv)=>s+getInvestmentValueAt(inv,monthEnd),0);
     const rendimento=valEnd-valStart-aportes+resgates;
-    months.push({label:MLABELS[m]+'/'+String(y).slice(2), aportes, resgates, rendimento});
-  }
-  const maxVal=Math.max(...months.flatMap(m=>[m.aportes,m.resgates,Math.abs(m.rendimento)]),1);
-  el.innerHTML = months.map(m=>{
+    return {label:MLABELS[m]+'/'+String(y).slice(2), aportes, resgates, rendimento};
+  });
+  const maxVal=Math.max(...monthsData.flatMap(m=>[m.aportes,m.resgates,Math.abs(m.rendimento)]),1);
+  el.innerHTML = monthsData.map(m=>{
     const pA=Math.round(m.aportes/maxVal*100), pR=Math.round(m.resgates/maxVal*100), pY=Math.round(Math.abs(m.rendimento)/maxVal*100);
     return `<div style="margin-bottom:16px">
       <div style="font-size:12px;font-weight:600;margin-bottom:6px">${m.label}</div>
@@ -3289,6 +3353,7 @@ function renderConfig(){
   safe(()=>renderChips('bank-chips',userConfig.banks,'removeBank'),'renderChips bancos');
   safe(()=>renderNovidadesDev(),'renderNovidadesDev');
   safe(()=>renderDebitCatLimits(),'renderDebitCatLimits');
+  safe(()=>renderCatIconsDev(),'renderCatIconsDev');
 }
 // ── Painel de novidades (visível só para DEV_UID) ──
 function renderNovidadesDev() {
@@ -3336,6 +3401,43 @@ window.deleteNovidade = async function(id) {
     renderNovidadesDev();
     showToast('✓ Novidade excluída!', true);
   } catch(e) { console.error(e); showToast('❌ Erro ao excluir.', false); }
+};
+
+// ── Dicionário de ícones por categoria (dev only — CAT_ICONS é compartilhado entre todos os usuários) ──
+function renderCatIconsDev(){
+  const section = document.getElementById('dev-icons-section');
+  if (!section) return;
+  if (!currentUser || currentUser.uid !== DEV_UID) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  const list = document.getElementById('cat-icons-list-dev');
+  const entries = Object.entries(CAT_ICONS).sort((a,b)=>a[0].localeCompare(b[0]));
+  list.innerHTML = entries.map(([cat,emoji])=>`<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+    <span>${emoji} ${esc(cat)}</span>
+    <span style="cursor:pointer;color:var(--red)" onclick="deleteCatIconDev('${esc(cat).replace(/'/g,"\\'")}')">Remover</span>
+  </div>`).join('');
+}
+window.saveCatIconDev = async function(){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const cat = document.getElementById('cat-icon-key').value.trim();
+  const emoji = document.getElementById('cat-icon-emoji').value.trim();
+  if (!cat || !emoji) { showToast('⚠️ Preencha categoria e emoji', false); return; }
+  try {
+    await setDoc(doc(db,'config','catIcons'), { icons: { [cat]: emoji } }, { merge: true });
+    CAT_ICONS[cat] = emoji;
+    document.getElementById('cat-icon-key').value='';
+    document.getElementById('cat-icon-emoji').value='';
+    renderCatIconsDev();
+    showToast('✓ Ícone salvo!', true);
+  } catch(e) { console.error(e); showToast('❌ Erro ao salvar ícone.', false); }
+};
+window.deleteCatIconDev = async function(cat){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  try {
+    await updateDoc(doc(db,'config','catIcons'), { [`icons.${cat}`]: deleteField() });
+    delete CAT_ICONS[cat];
+    renderCatIconsDev();
+    showToast('✓ Ícone removido!', true);
+  } catch(e) { console.error(e); showToast('❌ Erro ao remover.', false); }
 };
 function renderChips(id,arr,fn){document.getElementById(id).innerHTML=arr.map((item,i)=>`<div class="config-chip">${esc(item)} <span class="remove" onclick="window['${fn}'](${i})">✕</span></div>`).join('');}
 window.addCategory=function(){const v=document.getElementById('cat-input').value.trim();if(v&&!userConfig.categories.includes(v)){userConfig.categories.push(v);saveConfig();renderConfig();}document.getElementById('cat-input').value='';};
@@ -3477,6 +3579,19 @@ window.exportCSV=function(){
 function showToast(msg,ok=true){const t=document.getElementById('toast');t.textContent=msg;t.style.background=ok?'var(--green)':'var(--red)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 window.showToast=showToast;
 function fmt(v){return 'R$\u00A0'+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+// Encolhe a fonte de um elemento até o texto caber inteiro na largura disponível (sem cortar/reticências)
+function fitStatValue(el){
+  if(!el) return;
+  let size=18;
+  el.style.fontSize=size+'px';
+  while(el.scrollWidth>el.clientWidth && size>10){
+    size--;
+    el.style.fontSize=size+'px';
+  }
+}
+function fitAllStatValues(containerSelector){
+  document.querySelectorAll((containerSelector||'')+' .bill-stat-value').forEach(fitStatValue);
+}
 function fmtDate(d){if(!d)return'';const p=d.split('-');return `${p[2]}/${p[1]}/${p[0]}`;}
 
 let personModalData={name:'',txs:[],total:0};let personMonth=new Date().getMonth();let personYear=new Date().getFullYear();let personName='';
@@ -3702,6 +3817,7 @@ const TOUR_STEPS=[
   {selector:'#main-fab',title:'➕ Novo lançamento',desc:'Toque aqui para registrar um gasto — Crédito, Débito, Pix, Dinheiro ou Entrada. Suporta parcelamento, divisão entre titulares e assinaturas recorrentes.',page:'home'},
   {selector:'.cat-grid',title:'🗂️ Categorias clicáveis',desc:'Toque em uma categoria para filtrar os lançamentos do mês por ela. Toque de novo para desmarcar.',page:'home'},
   {selector:'.bills-summary',title:'📋 Contas a Pagar',desc:'Gerencie contas fixas e variáveis. Contas fixas se repetem todo mês automaticamente. Abaixo das contas você encontra as Faturas dos cartões com status de aberta/fechada.',page:'bills'},
+  {selector:'#page-investments .bills-summary',title:'📈 Investimentos',desc:'Cadastre seus investimentos (CDB, Tesouro, Fundos...) com valor investido e atual. Ao resgatar, escolha o valor e o banco — o app já lança a entrada automaticamente no seu saldo.',page:'investments'},
   {selector:'#report-evolution-card',title:'📈 Evolução de gastos',desc:'Veja seus gastos mês a mês. Use os filtros de tipo (Crédito, Déb/Pix, Dinheiro) e o botão Contas para mostrar/ocultar as barras de contas pagas.',page:'report'},
   {selector:'#report-saldo-card',title:'⚖️ Balanço mensal',desc:'Acompanhe entradas (verde), saídas (vermelho) e a linha de saldo acumulado (roxo) que passa de um mês para o outro.',page:'report'},
   {selector:'#report-cat',title:'🔍 Análise detalhada',desc:'Filtre lançamentos por período e tipo, e veja o detalhamento por categoria, titular e cartão/banco. Clique em qualquer item para ver os lançamentos daquele grupo.',page:'report'},
