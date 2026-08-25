@@ -1137,6 +1137,7 @@ select.field-input option{background:#03002A}
 
       <div id="loan-delete-wrap" style="display:none;margin-top:16px">
         <button class="delete-btn" onclick="deleteLoan()" style="width:100%">🗑 Excluir este empréstimo</button>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center">Isso também remove os lançamentos de pagamento/recebimento já registrados</div>
       </div>
     </div>
     <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="saveLoan()">✓ Salvar empréstimo</button></div>
@@ -2608,10 +2609,13 @@ function renderLoans(){
   if(!settled.length){
     settledList.innerHTML = '<div style="font-size:12px;color:var(--text3)">Nenhum empréstimo quitado ainda</div>';
   } else {
-    settledList.innerHTML = settled.map(l=>`<div class="config-row"><div class="config-row-left"><div>✅</div><div>
+    settledList.innerHTML = settled.map(l=>`<div class="config-row" style="cursor:pointer" onclick="openLoanModal('${l.id}')"><div class="config-row-left"><div>✅</div><div>
       <div class="config-row-label">${esc(l.name)}</div>
       <div class="config-row-sub">${esc(l.counterparty)} · Totalmente quitado</div>
-    </div></div></div>`).join('');
+    </div></div>
+    <div style="text-align:right;font-size:12px">
+      ${l.paymentModel==='fixed'?`<span style="cursor:pointer;color:var(--accent)" onclick="event.stopPropagation();openLoanInstallmentsModal('${l.id}')">Ver parcelas</span>`:`<span style="color:var(--text3)">Toque para ver/excluir</span>`}
+    </div></div>`).join('');
   }
   setTimeout(()=>fitAllStatValues('#page-loans'),0);
 }
@@ -2663,7 +2667,15 @@ window.saveLoan = async function(){
   if(!name||!counterparty||!principal||!date){ showToast('⚠️ Preencha nome, banco/pessoa, valor e data',false); return; }
   try{
     if(editLoanId){
-      await updateDoc(doc(db,'users',currentUser.uid,'loans',editLoanId), {name,counterparty,principal,date});
+      const existing = loans.find(x=>x.id===editLoanId);
+      const updateData = {name,counterparty,principal,date};
+      // ✅ Antes só salvava nome/pessoa/valor/data — os campos de juros (modelo livre) nunca
+      // eram atualizados na edição, mesmo aparecendo "salvo com sucesso".
+      if(existing && existing.paymentModel==='free'){
+        updateData.hasInterest = loanHasInterest;
+        updateData.interestValue = loanHasInterest ? (parseBRLValue(document.getElementById('loan-interest-value').value)||0) : 0;
+      }
+      await updateDoc(doc(db,'users',currentUser.uid,'loans',editLoanId), updateData);
     } else {
       const loanData = {name,counterparty,principal,date,direction,paymentModel:loanPaymentModel,createdAt:new Date().toISOString()};
       if(loanPaymentModel==='fixed'){
@@ -2694,12 +2706,18 @@ window.saveLoan = async function(){
 window.deleteLoan = async function(){
   if(!editLoanId) return;
   try{
+    // ✅ Também apaga as transações de pagamento/recebimento vinculadas a este empréstimo
+    // (senão elas ficavam "soltas" na tela inicial mesmo depois de excluir o empréstimo).
+    const linkedTxs = transactions.filter(t=>t.loanId===editLoanId);
+    await Promise.all(linkedTxs.map(t=>deleteDoc(doc(db,'users',currentUser.uid,'transactions',t.id))));
     await deleteDoc(doc(db,'users',currentUser.uid,'loans',editLoanId));
     loans = loans.filter(x=>x.id!==editLoanId);
+    transactions = transactions.filter(t=>t.loanId!==editLoanId);
     closeLoanModal();
     renderLoans();
-    showToast('✓ Empréstimo excluído!',true);
-  }catch(e){ showToast('❌ Erro ao excluir.',false); }
+    renderHome();
+    showToast(`✓ Empréstimo excluído${linkedTxs.length?` (${linkedTxs.length} lançamento${linkedTxs.length>1?'s':''} removido${linkedTxs.length>1?'s':''})`:''}!`,true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao excluir.',false); }
 };
 
 // ── Parcelas (modelo fixo) ──
@@ -2761,7 +2779,7 @@ window.confirmPayInstallment = async function(){
       category:'Empréstimos',
       description:(isTaken?'Parcela empréstimo: ':'Recebimento empréstimo: ')+l.name+' ('+num+')',
       title:(isTaken?'Parcela: ':'Recebimento: ')+l.name,
-      note:'', person:null, card:null, bank, splitWith:[], createdAt:new Date().toISOString()
+      note:'', person:null, card:null, bank, splitWith:[], loanId:l.id, createdAt:new Date().toISOString()
     });
     const installments = (l.installments||[]).map(i=>i.num===num?{...i,baseValue:base,interestValue:interest,paid:true,paidDate:date,paidValue:total}:i);
     await updateDoc(doc(db,'users',currentUser.uid,'loans',loanId), {installments});
@@ -2807,7 +2825,7 @@ window.confirmLoanFreePayment = async function(){
       category:'Empréstimos',
       description:(isTaken?'Pagamento empréstimo: ':'Recebimento empréstimo: ')+l.name,
       title:(isTaken?'Pagamento: ':'Recebimento: ')+l.name,
-      note:'', person:null, card:null, bank, splitWith:[], createdAt:new Date().toISOString()
+      note:'', person:null, card:null, bank, splitWith:[], loanId:l.id, createdAt:new Date().toISOString()
     });
     const payments = [...(l.payments||[]), {date,value,bank}];
     await updateDoc(doc(db,'users',currentUser.uid,'loans',l.id), {payments});
