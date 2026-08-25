@@ -81,7 +81,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .icon-btn:active{transform:scale(.94);background:var(--surface2)}
 .user-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'Sora',sans-serif;color:#fff;cursor:pointer;flex-shrink:0;border:2px solid var(--border)}
 .bottom-nav{display:flex;background:var(--surface2);border-radius:24px;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));padding:10px 0;box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:5;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:9px;font-family:'Sora',sans-serif;font-weight:500}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:8.5px;font-family:'Sora',sans-serif;font-weight:500}
 .nav-item.active{color:var(--accent)}
 .nav-item .nav-icon{font-size:20px}
 .main-area{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
@@ -662,6 +662,31 @@ select.field-input option{background:#03002A}
         </div>
       </div>
 
+      <!-- EMPRÉSTIMOS -->
+      <div class="page" id="page-loans">
+        <div style="height:16px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Empréstimos</div>
+          <button class="cta-btn" onclick="openLoanModal()" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:13px">+ Novo</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <div class="report-type-btn active" id="loan-tab-taken" onclick="setLoanDirection('taken')" style="flex:1;text-align:center">💸 Peguei</div>
+          <div class="report-type-btn" id="loan-tab-given" onclick="setLoanDirection('given')" style="flex:1;text-align:center">🤲 Emprestei</div>
+        </div>
+        <div class="bills-summary">
+          <div class="bill-stat-card"><div class="bill-stat-label" id="loan-lbl-principal">Peguei</div><div class="bill-stat-value" id="loan-total-principal">R$ 0,00</div></div>
+          <div class="bill-stat-card"><div class="bill-stat-label">Já pago</div><div class="bill-stat-value paid" id="loan-total-paid">R$ 0,00</div></div>
+          <div class="bill-stat-card"><div class="bill-stat-label">Restante</div><div class="bill-stat-value open" id="loan-total-remaining">R$ 0,00</div></div>
+        </div>
+        <div id="loans-list">
+          <div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-label">Nenhum empréstimo</div><div class="empty-sub">Toque em "+ Novo" para começar</div></div>
+        </div>
+        <div style="margin-top:28px">
+          <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text3)">✅ Quitados</div>
+          <div id="loans-settled-list"></div>
+        </div>
+      </div>
+
       <!-- RELATÓRIOS -->
       <div class="page" id="page-report">
         <div style="height:16px"></div>
@@ -804,8 +829,7 @@ select.field-input option{background:#03002A}
         <div id="dev-novidades-section" style="display:none">
           <div class="section-title">🔧 Novidades (dev)</div>
           <div class="config-card" style="padding:16px">
-            <div id="novidades-list-dev"></div>
-            <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:10px">
               <input class="field-input" id="nov-title" placeholder="Título da novidade">
               <textarea class="field-input" id="nov-desc" placeholder="Descrição" style="min-height:70px;resize:vertical;font-family:'Inter',sans-serif"></textarea>
               <div style="display:flex;gap:8px">
@@ -814,6 +838,9 @@ select.field-input option{background:#03002A}
               </div>
               <button class="cta-btn" onclick="saveNovidade()" style="font-size:14px;padding:13px">Publicar novidade</button>
             </div>
+            <div style="height:1px;background:var(--border);margin:16px 0"></div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">HISTÓRICO PUBLICADO</div>
+            <div id="novidades-list-dev" style="max-height:260px;overflow-y:auto"></div>
           </div>
         </div>
         <div style="height:8px"></div>
@@ -838,6 +865,7 @@ select.field-input option{background:#03002A}
       <div class="nav-item active" id="nav-home" onclick="showPage('home')"><div class="nav-icon">🏠</div><div>Início</div></div>
       <div class="nav-item" id="nav-bills" onclick="showPage('bills')"><div class="nav-icon">📋</div><div>Contas</div></div>
       <div class="nav-item" id="nav-investments" onclick="showPage('investments')"><div class="nav-icon">📈</div><div>Invest.</div></div>
+      <div class="nav-item" id="nav-loans" onclick="showPage('loans')"><div class="nav-icon">🤝</div><div>Empr.</div></div>
       <div class="nav-item" id="nav-report" onclick="showPage('report')"><div class="nav-icon">📊</div><div>Relatórios</div></div>
       <div class="nav-item" id="nav-config" onclick="showPage('config')"><div class="nav-icon">⚙️</div><div>Config.</div></div>
     </div>
@@ -1052,6 +1080,104 @@ select.field-input option{background:#03002A}
       <div class="field-group" style="margin-top:12px"><label class="field-label">Data do resgate</label><input class="field-input" type="date" id="redeem-date"></div>
     </div>
     <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="confirmRedeemInvestment()">✓ Confirmar resgate</button></div>
+  </div>
+</div>
+
+<!-- MODAL ADICIONAR VALOR AO INVESTIMENTO -->
+<div class="modal-overlay" id="modal-invest-add-value">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Adicionar valor</div><button class="modal-close" onclick="closeInvestAddValueModal()">✕</button></div>
+    <div class="form-body" style="padding-top:16px">
+      <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:600;margin-bottom:16px" id="invest-add-value-name">—</div>
+      <div class="field-group"><label class="field-label">Valor a mais</label><input class="field-input" type="text" inputmode="decimal" id="invest-add-value" placeholder="Ex: 500,00" oninput="applyCurrencyMask(this)"></div>
+      <div class="field-group"><label class="field-label">Data</label><input class="field-input" type="date" id="invest-add-value-date"></div>
+    </div>
+    <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="confirmInvestAddValue()">✓ Adicionar</button></div>
+  </div>
+</div>
+
+<!-- MODAL EMPRÉSTIMO -->
+<div class="modal-overlay" id="modal-loan">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title" id="loan-modal-title">Novo empréstimo</div><button class="modal-close" onclick="closeLoanModal()">✕</button></div>
+    <div class="form-body" style="padding-top:16px">
+      <div class="field-group"><label class="field-label">Direção</label>
+        <select class="field-input" id="loan-direction">
+          <option value="taken">💸 Peguei emprestado</option>
+          <option value="given">🤲 Emprestei</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Apelido</label><input class="field-input" id="loan-name" placeholder="Ex: Empréstimo carro, Ajuda Ciclano..."></div>
+      <div class="field-group"><label class="field-label">Banco ou pessoa</label><input class="field-input" id="loan-counterparty" placeholder="Ex: Santander, Ciclano..."></div>
+      <div class="field-group"><label class="field-label">Valor</label><input class="field-input" type="text" inputmode="decimal" id="loan-principal" placeholder="Ex: 1.000,00" oninput="applyCurrencyMask(this)"></div>
+      <div class="field-group"><label class="field-label">Data</label><input class="field-input" type="date" id="loan-date"></div>
+
+      <div class="field-group"><label class="field-label">Modelo de pagamento</label>
+        <div style="display:flex;gap:8px">
+          <div class="report-type-btn active" id="loan-model-fixed-btn" onclick="setLoanPaymentModel('fixed')" style="flex:1;text-align:center">📅 Parcelas fixas</div>
+          <div class="report-type-btn" id="loan-model-free-btn" onclick="setLoanPaymentModel('free')" style="flex:1;text-align:center">🔓 Livre (abatendo)</div>
+        </div>
+      </div>
+
+      <div id="loan-fixed-fields">
+        <div class="field-group"><label class="field-label">Número de parcelas</label><input class="field-input" type="number" id="loan-installments-count" min="1" max="360" value="12"></div>
+        <div class="field-group"><label class="field-label">Dia de vencimento</label><input class="field-input" type="number" id="loan-due-day" min="1" max="31" placeholder="Ex: 10"></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:-4px">Depois de salvar, você pode ajustar o valor de cada parcela individualmente (ex: incluir juros).</div>
+      </div>
+
+      <div id="loan-free-fields" style="display:none">
+        <div class="toggle-row">
+          <div><div class="toggle-label">💹 Tem juros?</div><div class="toggle-sub">Informe o valor total de juros, se souber</div></div>
+          <button class="toggle" id="loan-has-interest-toggle" onclick="toggleLoanHasInterest()"></button>
+        </div>
+        <div class="field-group" id="loan-interest-wrap" style="display:none"><label class="field-label">Valor dos juros</label><input class="field-input" type="text" inputmode="decimal" id="loan-interest-value" placeholder="Ex: 50,00" oninput="applyCurrencyMask(this)"></div>
+      </div>
+
+      <div id="loan-delete-wrap" style="display:none;margin-top:16px">
+        <button class="delete-btn" onclick="deleteLoan()" style="width:100%">🗑 Excluir este empréstimo</button>
+      </div>
+    </div>
+    <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="saveLoan()">✓ Salvar empréstimo</button></div>
+  </div>
+</div>
+
+<!-- MODAL PARCELAS (fixo) -->
+<div class="modal-overlay" id="modal-loan-installments">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title" id="loan-installments-title">Parcelas</div><button class="modal-close" onclick="closeLoanInstallmentsModal()">✕</button></div>
+    <div class="form-body" style="padding-top:8px;max-height:60vh;overflow-y:auto" id="loan-installments-body"></div>
+  </div>
+</div>
+
+<!-- MODAL PAGAR PARCELA -->
+<div class="modal-overlay" id="modal-pay-installment">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title" id="pay-inst-title">Registrar parcela</div><button class="modal-close" onclick="closePayInstallmentModal()">✕</button></div>
+    <div class="form-body" style="padding-top:16px">
+      <div class="field-group"><label class="field-label">Valor base</label><input class="field-input" type="text" inputmode="decimal" id="pay-inst-base" oninput="applyCurrencyMask(this)"></div>
+      <div class="field-group"><label class="field-label">Juros nesta parcela <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(opcional)</span></label><input class="field-input" type="text" inputmode="decimal" id="pay-inst-interest" placeholder="Ex: 15,00" oninput="applyCurrencyMask(this)"></div>
+      <div class="field-group"><label class="field-label" id="pay-inst-bank-label">Banco</label><select class="field-input" id="pay-inst-bank"></select></div>
+      <div class="field-group"><label class="field-label">Data</label><input class="field-input" type="date" id="pay-inst-date"></div>
+    </div>
+    <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="confirmPayInstallment()">✓ Confirmar</button></div>
+  </div>
+</div>
+
+<!-- MODAL PAGAMENTO LIVRE (abatendo) -->
+<div class="modal-overlay" id="modal-loan-free-payment">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title" id="loan-free-pay-title">Registrar pagamento</div><button class="modal-close" onclick="closeLoanFreePaymentModal()">✕</button></div>
+    <div class="form-body" style="padding-top:16px">
+      <div class="field-group"><label class="field-label" id="loan-free-pay-value-label">Valor</label><input class="field-input" type="text" inputmode="decimal" id="loan-free-pay-value" oninput="applyCurrencyMask(this)"></div>
+      <div class="field-group"><label class="field-label" id="loan-free-pay-bank-label">Banco</label><select class="field-input" id="loan-free-pay-bank"></select></div>
+      <div class="field-group"><label class="field-label">Data</label><input class="field-input" type="date" id="loan-free-pay-date"></div>
+    </div>
+    <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="confirmLoanFreePayment()">✓ Confirmar</button></div>
   </div>
 </div>
 
@@ -1358,6 +1484,7 @@ let userConfig = { cards:[], categories:['Alimentação','Transporte','Moradia',
 let transactions = [];
 let bills = [];
 let investments = [];
+let loans = [];
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let showAllTx = false;
@@ -1451,7 +1578,7 @@ window.dismissNovidades = async function() {
   userConfig.novidadesVistas = Array.from(new Set([...(userConfig.novidadesVistas||[]), ...ids]));
   try { await saveConfig(); } catch(e) {}
 };
-let CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️','Investimentos':'⬆️'};
+let CAT_ICONS = {'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚','Vestuário':'👕','Supermercado':'🛒','Restaurante':'🍽️','Combustível':'⛽','Streaming':'📺','Outros':'📦','Viagem':'✈️','Beleza':'💅','Pets':'🐾','Academia':'💪','Saldo anterior':'↩️','Entrada':'⬆️','Investimentos':'⬆️','Empréstimos':'🤝'};
 // Carrega overrides/adições do dicionário de ícones salvos no Firestore (compartilhado entre todos os usuários)
 async function loadCatIcons(){
   try{
@@ -1554,6 +1681,7 @@ function userRef() { return doc(db,'users',currentUser.uid); }
 function txCol() { return collection(db,'users',currentUser.uid,'transactions'); }
 function billsCol() { return collection(db,'users',currentUser.uid,'bills'); }
 function investmentsCol() { return collection(db,'users',currentUser.uid,'investments'); }
+function loansCol() { return collection(db,'users',currentUser.uid,'loans'); }
 
 function defaultUserConfig() { return { cards:[], categories:['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Vestuário','Supermercado','Restaurante','Combustível','Streaming','Outros'], persons:['Eu'], banks:['Sicoob','Santander','Nubank','Itaú','Bradesco','Inter','C6 Bank'] }; }
 
@@ -1563,11 +1691,12 @@ async function loadUserData() {
     // ✅ Antes essas 4 leituras rodavam uma de cada vez (sequencial), somando o tempo de
     // cada ida-e-volta ao Firestore. Como são independentes entre si, rodar em paralelo
     // (Promise.all) reduz bastante o tempo total de carregamento, principalmente em rede lenta.
-    const [snap, txSnap, bSnapResult, invSnapResult] = await Promise.all([
+    const [snap, txSnap, bSnapResult, invSnapResult, loanSnapResult] = await Promise.all([
       getDoc(userRef()),
       getDocs(query(txCol(),orderBy('createdAt','desc'))),
       getDocs(query(billsCol(),orderBy('createdAt','desc'))).catch(()=>null),
       getDocs(query(investmentsCol(),orderBy('createdAt','desc'))).catch(()=>null),
+      getDocs(query(loansCol(),orderBy('createdAt','desc'))).catch(()=>null),
       loadNovidades(),
       loadCatIcons()
     ]);
@@ -1576,6 +1705,7 @@ async function loadUserData() {
     transactions = txSnap.docs.map(d=>({id:d.id,...d.data()}));
     bills = bSnapResult ? bSnapResult.docs.map(d=>({id:d.id,...d.data()})) : [];
     investments = invSnapResult ? invSnapResult.docs.map(d=>({id:d.id,...d.data()})) : [];
+    loans = loanSnapResult ? loanSnapResult.docs.map(d=>({id:d.id,...d.data()})) : [];
     await checkFaturaAuto();
     await checkSaldoAnteriorAuto();
     // Listeners em tempo real — atualiza automaticamente quando outro dispositivo lança
@@ -1593,6 +1723,11 @@ async function loadUserData() {
       investments = snap.docs.map(d=>({id:d.id,...d.data()}));
       const active=document.querySelector('.page.active');
       if(active&&active.id==='page-investments')renderInvestments();
+    });
+    onSnapshot(query(loansCol(),orderBy('createdAt','desc')), snap=>{
+      loans = snap.docs.map(d=>({id:d.id,...d.data()}));
+      const active=document.querySelector('.page.active');
+      if(active&&active.id==='page-loans')renderLoans();
     });
   } catch(e) { console.error(e); }
 }
@@ -1701,7 +1836,7 @@ window.showPage = function(p) {
   document.getElementById('page-'+p).classList.add('active');
   const navEl=document.getElementById('nav-'+p); if(navEl) navEl.classList.add('active');
   const snav=document.getElementById('snav-'+p); if(snav) snav.classList.add('active');
-  const pageTitles = {home:'Início', bills:'Contas a Pagar', investments:'Investimentos', report:'Relatórios', config:'Configurações'};
+  const pageTitles = {home:'Início', bills:'Contas a Pagar', investments:'Investimentos', loans:'Empréstimos', report:'Relatórios', config:'Configurações'};
   const titleEl = document.getElementById('header-page-title');
   if(titleEl) titleEl.textContent = pageTitles[p]||'';
   const exportBtns = document.getElementById('header-export-btns');
@@ -1710,11 +1845,12 @@ window.showPage = function(p) {
   const fab=document.getElementById('main-fab');
   if(fab){if(p==='home'&&!fab.classList.contains('fab-locked'))fab.classList.add('visible');else fab.classList.remove('visible');}
   const appEl=document.getElementById('app');
-  ['page-home','page-bills','page-investments','page-report','page-config'].forEach(c=>appEl.classList.remove(c));
+  ['page-home','page-bills','page-investments','page-loans','page-report','page-config'].forEach(c=>appEl.classList.remove(c));
   appEl.classList.add('page-'+p);
   if(p==='home') renderHome();
   if(p==='bills') { renderBills(); updateNotifBanner(); checkBillsDue(); }
   if(p==='investments') renderInvestments();
+  if(p==='loans') renderLoans();
   if(p==='report') renderReport();
   if(p==='config') renderConfig();
 };
@@ -2175,7 +2311,10 @@ function renderInvestments(){
         <div style="text-align:right">
           <div style="font-weight:700">${fmt(cur)}</div>
           <div style="font-size:11px;color:${rend>=0?'var(--green)':'var(--red)'}">${rend>=0?'+':''}${fmt(rend)} (${rendPct.toFixed(1)}%)</div>
-          <div style="margin-top:4px"><span style="cursor:pointer;color:var(--accent);font-size:12px" onclick="event.stopPropagation();openRedeemModal('${i.id}')">Resgatar</span></div>
+          <div style="margin-top:4px;display:flex;gap:10px;justify-content:flex-end;font-size:12px">
+            <span style="cursor:pointer;color:var(--green)" onclick="event.stopPropagation();openInvestAddValueModal('${i.id}')">+ Valor</span>
+            <span style="cursor:pointer;color:var(--accent)" onclick="event.stopPropagation();openRedeemModal('${i.id}')">Resgatar</span>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -2226,7 +2365,10 @@ window.applyInvCustomPeriod = function(){
 };
 // Retorna o valor da posição de um investimento numa data específica, usando o histórico salvo
 function getInvestmentValueAt(inv, dateStr){
-  const hist=[{date:inv.date,value:inv.valueInvested||0},...(inv.history||[])].filter(h=>h.date&&h.date<=dateStr).sort((a,b)=>a.date.localeCompare(b.date));
+  // ✅ Usa só o histórico real (sempre existe desde a criação). O "valueInvested" não serve mais
+  // de âncora aqui porque ele pode crescer depois (quando o usuário adiciona valor), o que
+  // distorceria o valor da posição em datas passadas se fosse usado como referência do início.
+  const hist=(inv.history&&inv.history.length ? inv.history : [{date:inv.date,value:inv.valueInvested||0}]).filter(h=>h.date&&h.date<=dateStr).sort((a,b)=>a.date.localeCompare(b.date));
   return hist.length ? hist[hist.length-1].value : 0;
 }
 function renderInvestmentEvolutionChart(){
@@ -2257,7 +2399,7 @@ function renderInvestmentEvolutionChart(){
     const prevLastDay=new Date(y,m,0);
     const prevEnd=`${prevLastDay.getFullYear()}-${String(prevLastDay.getMonth()+1).padStart(2,'0')}-${String(prevLastDay.getDate()).padStart(2,'0')}`;
     const ym=`${y}-${String(m+1).padStart(2,'0')}`;
-    const aportes=investments.filter(inv=>(inv.date||'').slice(0,7)===ym).reduce((s,inv)=>s+(inv.valueInvested||0),0);
+    const aportes=investments.reduce((s,inv)=>s+(inv.contributions||[{date:inv.date,value:inv.valueInvested||0}]).filter(c=>(c.date||'').slice(0,7)===ym).reduce((s2,c)=>s2+c.value,0),0);
     const resgates=investments.reduce((s,inv)=>s+((inv.redemptions||[]).filter(r=>(r.date||'').slice(0,7)===ym).reduce((s2,r)=>s2+r.value,0)),0);
     const valStart=investments.reduce((s,inv)=>s+getInvestmentValueAt(inv,prevEnd),0);
     const valEnd=investments.reduce((s,inv)=>s+getInvestmentValueAt(inv,monthEnd),0);
@@ -2363,6 +2505,315 @@ window.confirmRedeemInvestment = async function(){
     closeRedeemModal();
     showToast(newCurrent<=0.01 ? '✓ Investimento resgatado totalmente!' : '✓ Resgate parcial realizado!', true);
   }catch(e){ console.error(e); showToast('❌ Erro ao resgatar.',false); }
+};
+
+// ── Adicionar valor a um investimento existente (não é resgate, não mexe no saldo) ──
+let investAddValueId = null;
+window.openInvestAddValueModal = function(id){
+  investAddValueId = id;
+  const inv = investments.find(x=>x.id===id);
+  if(!inv) return;
+  document.getElementById('invest-add-value-name').textContent = inv.name;
+  document.getElementById('invest-add-value').value = '';
+  document.getElementById('invest-add-value-date').value = getLocalDateStr();
+  document.getElementById('modal-invest-add-value').classList.add('open');
+};
+window.closeInvestAddValueModal = function(){ document.getElementById('modal-invest-add-value').classList.remove('open'); };
+
+window.confirmInvestAddValue = async function(){
+  const inv = investments.find(x=>x.id===investAddValueId);
+  if(!inv) return;
+  const value = parseBRLValue(document.getElementById('invest-add-value').value);
+  const date = document.getElementById('invest-add-value-date').value;
+  if(!value||value<=0||!date){ showToast('⚠️ Preencha o valor e a data',false); return; }
+  try{
+    // ✅ Soma o valor tanto no investido quanto no atual — assim o rendimento acumulado
+    // não é afetado (valorAtual-valorInvestido continua correto automaticamente).
+    const newInvested = (inv.valueInvested||0) + value;
+    const newCurrent = (inv.valueCurrent??inv.valueInvested??0) + value;
+    const contributions = [...(inv.contributions||[{date:inv.date,value:inv.valueInvested||0}]), {date, value}];
+    const history = [...(inv.history||[]), {date, value:newCurrent}];
+    await updateDoc(doc(db,'users',currentUser.uid,'investments',inv.id), {valueInvested:newInvested, valueCurrent:newCurrent, contributions, history});
+    closeInvestAddValueModal();
+    showToast('✓ Valor adicionado!',true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao adicionar valor.',false); }
+};
+
+// ══════════════ EMPRÉSTIMOS (peguei / emprestei) ══════════════
+let loanDirection = 'taken'; // 'taken' = peguei | 'given' = emprestei
+let loanPaymentModel = 'fixed';
+let loanHasInterest = false;
+let editLoanId = null;
+
+function loanRemaining(l){
+  if(l.paymentModel==='fixed'){
+    return (l.installments||[]).filter(i=>!i.paid).reduce((s,i)=>s+(i.baseValue||0)+(i.interestValue||0),0);
+  }
+  const total = (l.principal||0) + (l.hasInterest ? (l.interestValue||0) : 0);
+  const paid = (l.payments||[]).reduce((s,p)=>s+p.value,0);
+  return Math.max(0, total-paid);
+}
+function loanPaid(l){
+  if(l.paymentModel==='fixed'){
+    return (l.installments||[]).filter(i=>i.paid).reduce((s,i)=>s+(i.paidValue??((i.baseValue||0)+(i.interestValue||0))),0);
+  }
+  return (l.payments||[]).reduce((s,p)=>s+p.value,0);
+}
+
+window.setLoanDirection = function(dir){
+  loanDirection = dir;
+  document.getElementById('loan-tab-taken').classList.toggle('active', dir==='taken');
+  document.getElementById('loan-tab-given').classList.toggle('active', dir==='given');
+  renderLoans();
+};
+
+function renderLoans(){
+  const filtered = loans.filter(l=>l.direction===loanDirection);
+  const active = filtered.filter(l=>loanRemaining(l)>0.005);
+  const settled = filtered.filter(l=>!(loanRemaining(l)>0.005));
+  document.getElementById('loan-lbl-principal').textContent = loanDirection==='taken' ? 'Peguei' : 'Emprestei';
+  const totalPrincipal = active.reduce((s,l)=>s+(l.principal||0),0);
+  const totalPaid = active.reduce((s,l)=>s+loanPaid(l),0);
+  const totalRemaining = active.reduce((s,l)=>s+loanRemaining(l),0);
+  document.getElementById('loan-total-principal').textContent = fmt(totalPrincipal);
+  document.getElementById('loan-total-paid').textContent = fmt(totalPaid);
+  document.getElementById('loan-total-remaining').textContent = fmt(totalRemaining);
+
+  const list = document.getElementById('loans-list');
+  if(!active.length){
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-label">Nenhum empréstimo ${loanDirection==='taken'?'tomado':'concedido'}</div><div class="empty-sub">Toque em "+ Novo" para começar</div></div>`;
+  } else {
+    list.innerHTML = active.map(l=>{
+      const remaining = loanRemaining(l), paid = loanPaid(l);
+      const pct = (paid+remaining)>0 ? Math.round(paid/(paid+remaining)*100) : 0;
+      const modelLabel = l.paymentModel==='fixed' ? `${(l.installments||[]).filter(i=>i.paid).length}/${(l.installments||[]).length} parcelas` : 'Pagamento livre';
+      const actionBtn = l.paymentModel==='fixed'
+        ? `<span style="cursor:pointer;color:var(--accent);font-size:12px" onclick="event.stopPropagation();openLoanInstallmentsModal('${l.id}')">Ver parcelas</span>`
+        : `<span style="cursor:pointer;color:var(--accent);font-size:12px" onclick="event.stopPropagation();openLoanFreePaymentModal('${l.id}')">${loanDirection==='taken'?'Pagar':'Registrar recebimento'}</span>`;
+      return `<div class="config-row" style="cursor:pointer" onclick="openLoanModal('${l.id}')">
+        <div class="config-row-left"><div>🤝</div><div>
+          <div class="config-row-label">${esc(l.name)}</div>
+          <div class="config-row-sub">${esc(l.counterparty)} · ${modelLabel}</div>
+        </div></div>
+        <div style="text-align:right">
+          <div style="font-weight:700">${fmt(remaining)}</div>
+          <div style="font-size:11px;color:var(--text3)">de ${fmt(l.principal||0)} (${pct}% pago)</div>
+          <div style="margin-top:4px">${actionBtn}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const settledList = document.getElementById('loans-settled-list');
+  if(!settled.length){
+    settledList.innerHTML = '<div style="font-size:12px;color:var(--text3)">Nenhum empréstimo quitado ainda</div>';
+  } else {
+    settledList.innerHTML = settled.map(l=>`<div class="config-row"><div class="config-row-left"><div>✅</div><div>
+      <div class="config-row-label">${esc(l.name)}</div>
+      <div class="config-row-sub">${esc(l.counterparty)} · Totalmente quitado</div>
+    </div></div></div>`).join('');
+  }
+  setTimeout(()=>fitAllStatValues('#page-loans'),0);
+}
+
+window.setLoanPaymentModel = function(model){
+  loanPaymentModel = model;
+  document.getElementById('loan-model-fixed-btn').classList.toggle('active', model==='fixed');
+  document.getElementById('loan-model-free-btn').classList.toggle('active', model==='free');
+  document.getElementById('loan-fixed-fields').style.display = model==='fixed' ? '' : 'none';
+  document.getElementById('loan-free-fields').style.display = model==='free' ? '' : 'none';
+};
+window.toggleLoanHasInterest = function(){
+  loanHasInterest = !loanHasInterest;
+  document.getElementById('loan-has-interest-toggle').classList.toggle('on', loanHasInterest);
+  document.getElementById('loan-interest-wrap').style.display = loanHasInterest ? '' : 'none';
+};
+
+window.openLoanModal = function(id){
+  editLoanId = id||null;
+  const l = id ? loans.find(x=>x.id===id) : null;
+  document.getElementById('loan-modal-title').textContent = l ? 'Editar empréstimo' : 'Novo empréstimo';
+  document.getElementById('loan-direction').value = l ? l.direction : loanDirection;
+  document.getElementById('loan-direction').disabled = !!l;
+  document.getElementById('loan-name').value = l?l.name:'';
+  document.getElementById('loan-counterparty').value = l?l.counterparty:'';
+  setMaskedValue(document.getElementById('loan-principal'), l?l.principal||0:0);
+  document.getElementById('loan-date').value = l?l.date||'':getLocalDateStr();
+  loanPaymentModel = l?l.paymentModel:'fixed';
+  setLoanPaymentModel(loanPaymentModel);
+  document.getElementById('loan-installments-count').value = l&&l.installments ? l.installments.length : 12;
+  document.getElementById('loan-installments-count').disabled = !!l;
+  document.getElementById('loan-due-day').value = l?l.dueDay||'':'';
+  document.getElementById('loan-due-day').disabled = !!l;
+  loanHasInterest = l?!!l.hasInterest:false;
+  document.getElementById('loan-has-interest-toggle').classList.toggle('on', loanHasInterest);
+  document.getElementById('loan-interest-wrap').style.display = loanHasInterest ? '' : 'none';
+  setMaskedValue(document.getElementById('loan-interest-value'), l?l.interestValue||0:0);
+  document.getElementById('loan-delete-wrap').style.display = l?'block':'none';
+  document.getElementById('modal-loan').classList.add('open');
+};
+window.closeLoanModal = function(){ document.getElementById('modal-loan').classList.remove('open'); };
+
+window.saveLoan = async function(){
+  const direction = document.getElementById('loan-direction').value;
+  const name = document.getElementById('loan-name').value.trim();
+  const counterparty = document.getElementById('loan-counterparty').value.trim();
+  const principal = parseBRLValue(document.getElementById('loan-principal').value)||0;
+  const date = document.getElementById('loan-date').value;
+  if(!name||!counterparty||!principal||!date){ showToast('⚠️ Preencha nome, banco/pessoa, valor e data',false); return; }
+  try{
+    if(editLoanId){
+      await updateDoc(doc(db,'users',currentUser.uid,'loans',editLoanId), {name,counterparty,principal,date});
+    } else {
+      const loanData = {name,counterparty,principal,date,direction,paymentModel:loanPaymentModel,createdAt:new Date().toISOString()};
+      if(loanPaymentModel==='fixed'){
+        const count = Math.max(1, parseInt(document.getElementById('loan-installments-count').value)||1);
+        const dueDay = parseInt(document.getElementById('loan-due-day').value)||1;
+        const base = Math.round((principal/count)*100)/100;
+        const [y,m] = date.split('-').map(Number);
+        const installments = [];
+        for(let i=0;i<count;i++){
+          let mo=m-1+1+i, yr=y; while(mo>11){mo-=12;yr++;}
+          const dueDate = `${yr}-${String(mo+1).padStart(2,'0')}-${String(dueDay).padStart(2,'0')}`;
+          installments.push({num:i+1, dueDate, baseValue:base, interestValue:0, paid:false, paidDate:null, paidValue:null});
+        }
+        loanData.installments = installments;
+        loanData.dueDay = dueDay;
+      } else {
+        loanData.hasInterest = loanHasInterest;
+        loanData.interestValue = loanHasInterest ? (parseBRLValue(document.getElementById('loan-interest-value').value)||0) : 0;
+        loanData.payments = [];
+      }
+      await addDoc(loansCol(), loanData);
+    }
+    closeLoanModal();
+    showToast('✓ Empréstimo salvo!',true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao salvar empréstimo.',false); }
+};
+
+window.deleteLoan = async function(){
+  if(!editLoanId) return;
+  try{
+    await deleteDoc(doc(db,'users',currentUser.uid,'loans',editLoanId));
+    loans = loans.filter(x=>x.id!==editLoanId);
+    closeLoanModal();
+    renderLoans();
+    showToast('✓ Empréstimo excluído!',true);
+  }catch(e){ showToast('❌ Erro ao excluir.',false); }
+};
+
+// ── Parcelas (modelo fixo) ──
+window.openLoanInstallmentsModal = function(loanId){
+  const l = loans.find(x=>x.id===loanId);
+  if(!l) return;
+  document.getElementById('loan-installments-title').textContent = l.name;
+  const body = document.getElementById('loan-installments-body');
+  body.innerHTML = (l.installments||[]).map(inst=>{
+    const total = (inst.baseValue||0)+(inst.interestValue||0);
+    return `<div class="config-row">
+      <div class="config-row-left"><div>${inst.paid?'✅':'⬜'}</div><div>
+        <div class="config-row-label">Parcela ${inst.num}</div>
+        <div class="config-row-sub">${esc(inst.dueDate||'')}${inst.paid?` · Paga em ${esc(inst.paidDate||'')}`:''}</div>
+      </div></div>
+      <div style="text-align:right">
+        <div style="font-weight:700">${fmt(inst.paid?(inst.paidValue??total):total)}</div>
+        ${!inst.paid?`<span style="cursor:pointer;color:var(--accent);font-size:12px" onclick="openPayInstallmentModal('${loanId}',${inst.num})">Registrar</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('modal-loan-installments').classList.add('open');
+};
+window.closeLoanInstallmentsModal = function(){ document.getElementById('modal-loan-installments').classList.remove('open'); };
+
+let payInstallmentCtx = null;
+window.openPayInstallmentModal = function(loanId, num){
+  const l = loans.find(x=>x.id===loanId);
+  const inst = l && (l.installments||[]).find(i=>i.num===num);
+  if(!l||!inst) return;
+  payInstallmentCtx = {loanId, num};
+  document.getElementById('pay-inst-title').textContent = `${l.name} · Parcela ${num}`;
+  setMaskedValue(document.getElementById('pay-inst-base'), inst.baseValue||0);
+  setMaskedValue(document.getElementById('pay-inst-interest'), inst.interestValue||0);
+  document.getElementById('pay-inst-date').value = getLocalDateStr();
+  const bankSel = document.getElementById('pay-inst-bank');
+  bankSel.innerHTML = (userConfig.banks||[]).map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  document.getElementById('pay-inst-bank-label').textContent = l.direction==='taken' ? 'Pagar pelo banco' : 'Creditar no banco';
+  document.getElementById('modal-pay-installment').classList.add('open');
+};
+window.closePayInstallmentModal = function(){ document.getElementById('modal-pay-installment').classList.remove('open'); };
+
+window.confirmPayInstallment = async function(){
+  if(!payInstallmentCtx) return;
+  const {loanId, num} = payInstallmentCtx;
+  const l = loans.find(x=>x.id===loanId);
+  if(!l) return;
+  const base = parseBRLValue(document.getElementById('pay-inst-base').value)||0;
+  const interest = parseBRLValue(document.getElementById('pay-inst-interest').value)||0;
+  const bank = document.getElementById('pay-inst-bank').value;
+  const date = document.getElementById('pay-inst-date').value;
+  if(!base||!bank||!date){ showToast('⚠️ Preencha valor base, banco e data',false); return; }
+  const total = base+interest;
+  const isTaken = l.direction==='taken';
+  try{
+    await saveTx({
+      type: isTaken ? 'debit' : 'transfer_in',
+      date, competenceDate:date, amount:total, myAmount:total,
+      category:'Empréstimos',
+      description:(isTaken?'Parcela empréstimo: ':'Recebimento empréstimo: ')+l.name+' ('+num+')',
+      title:(isTaken?'Parcela: ':'Recebimento: ')+l.name,
+      note:'', person:null, card:null, bank, splitWith:[], createdAt:new Date().toISOString()
+    });
+    const installments = (l.installments||[]).map(i=>i.num===num?{...i,baseValue:base,interestValue:interest,paid:true,paidDate:date,paidValue:total}:i);
+    await updateDoc(doc(db,'users',currentUser.uid,'loans',loanId), {installments});
+    closePayInstallmentModal();
+    openLoanInstallmentsModal(loanId);
+    showToast('✓ Parcela registrada!',true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao registrar parcela.',false); }
+};
+
+// ── Pagamento livre (abatendo) ──
+let loanFreePaymentId = null;
+window.openLoanFreePaymentModal = function(loanId){
+  const l = loans.find(x=>x.id===loanId);
+  if(!l) return;
+  loanFreePaymentId = loanId;
+  const remaining = loanRemaining(l);
+  document.getElementById('loan-free-pay-title').textContent = l.name;
+  setMaskedValue(document.getElementById('loan-free-pay-value'), remaining);
+  document.getElementById('loan-free-pay-value-label').textContent = `Valor (restam ${fmt(remaining)})`;
+  document.getElementById('loan-free-pay-date').value = getLocalDateStr();
+  document.getElementById('loan-free-pay-bank-label').textContent = l.direction==='taken' ? 'Pagar pelo banco' : 'Creditar no banco';
+  const bankSel = document.getElementById('loan-free-pay-bank');
+  bankSel.innerHTML = (userConfig.banks||[]).map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  document.getElementById('modal-loan-free-payment').classList.add('open');
+};
+window.closeLoanFreePaymentModal = function(){ document.getElementById('modal-loan-free-payment').classList.remove('open'); };
+
+window.confirmLoanFreePayment = async function(){
+  if(!loanFreePaymentId) return;
+  const l = loans.find(x=>x.id===loanFreePaymentId);
+  if(!l) return;
+  const value = parseBRLValue(document.getElementById('loan-free-pay-value').value)||0;
+  const bank = document.getElementById('loan-free-pay-bank').value;
+  const date = document.getElementById('loan-free-pay-date').value;
+  const remaining = loanRemaining(l);
+  if(!value||value<=0||!bank||!date){ showToast('⚠️ Preencha valor, banco e data',false); return; }
+  if(value>remaining+0.01){ showToast(`⚠️ Valor maior que o restante (${fmt(remaining)})`,false); return; }
+  const isTaken = l.direction==='taken';
+  try{
+    await saveTx({
+      type: isTaken ? 'debit' : 'transfer_in',
+      date, competenceDate:date, amount:value, myAmount:value,
+      category:'Empréstimos',
+      description:(isTaken?'Pagamento empréstimo: ':'Recebimento empréstimo: ')+l.name,
+      title:(isTaken?'Pagamento: ':'Recebimento: ')+l.name,
+      note:'', person:null, card:null, bank, splitWith:[], createdAt:new Date().toISOString()
+    });
+    const payments = [...(l.payments||[]), {date,value,bank}];
+    await updateDoc(doc(db,'users',currentUser.uid,'loans',l.id), {payments});
+    closeLoanFreePaymentModal();
+    showToast(remaining-value<=0.01 ? '✓ Empréstimo quitado!' : '✓ Pagamento registrado!', true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao registrar pagamento.',false); }
 };
 
 window.openModal = function() {
