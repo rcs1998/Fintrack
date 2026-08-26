@@ -100,13 +100,33 @@
                                                                                                                          return { notifKey, title, body };
                                                                                                                          }
 
-                                                                                                                         exports.checkBillsDueDaily = onSchedule(
+                                                                                                                         
+async function recordHealth(name, ok, errorMsg) {
+  try {
+    await db.collection("system").doc("health").set({
+      [name]: { lastRun: new Date().toISOString(), ok, error: errorMsg || null },
+    }, { merge: true });
+  } catch (e) { console.error("Erro ao registrar health:", e); }
+}
+function withHealthTracking(name, handler) {
+  return async (...args) => {
+    try {
+      await handler(...args);
+      await recordHealth(name, true, null);
+    } catch (e) {
+      await recordHealth(name, false, String((e && e.message) || e));
+      throw e;
+    }
+  };
+}
+
+exports.checkBillsDueDaily = onSchedule(
                                                                                                                            {
                                                                                                                                schedule: "0 8 * * *",
                                                                                                                                    timeZone: "America/Sao_Paulo",
                                                                                                                                        region: "southamerica-east1",
                                                                                                                                          },
-                                                                                                                                           async () => {
+                                                                                                                                           withHealthTracking("checkBillsDueDaily", async () => {
                                                                                                                                                ensureInit();
 
                                                                                                                                                    const now = new Date();
@@ -171,7 +191,7 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       })
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        );
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // Exportado só para os testes (não afeta o deploy nem o comportamento em produção).
@@ -188,7 +208,7 @@ exports.checkInvestmentReminderDaily = onSchedule(
     timeZone: "America/Sao_Paulo",
     region: "southamerica-east1",
   },
-  async () => {
+  withHealthTracking("checkInvestmentReminderDaily", async () => {
     ensureInit();
 
     const now = new Date();
@@ -248,7 +268,7 @@ exports.checkInvestmentReminderDaily = onSchedule(
         console.error(`Erro ao notificar investimentos do usuário ${uid}:`, e);
       }
     }
-  }
+  })
 );
 
 // ── ESTATÍSTICAS DE USO (só o dev pode chamar) ──
@@ -270,32 +290,85 @@ exports.getDevStats = onCall(
     const usersSnap = await db.collection("users").get();
     const totalUsers = usersSnap.size;
 
+    const now = new Date();
+    const daysAgo = (n) => new Date(now.getTime() - n * 24 * 60 * 60 * 1000).toISOString();
+    const cutoff7 = daysAgo(7), cutoff30 = daysAgo(30), cutoff90 = daysAgo(90);
+
     const themeCount = { light: 0, dark: 0, indefinido: 0 };
     let usersWithPushEnabled = 0;
+    let newUsers7d = 0, newUsers30d = 0;
+    let active7d = 0, active30d = 0, inactive90d = 0;
+
     usersSnap.forEach((d) => {
-      const cfg = d.data().config || {};
+      const data = d.data();
+      const cfg = data.config || {};
       const theme = cfg.theme === "light" ? "light" : cfg.theme === "dark" ? "dark" : "indefinido";
       themeCount[theme]++;
-      if ((d.data().fcmTokens || []).length) usersWithPushEnabled++;
+      if ((data.fcmTokens || []).length) usersWithPushEnabled++;
+
+      const createdAt = data.createdAt || "";
+      if (createdAt >= cutoff7) newUsers7d++;
+      if (createdAt >= cutoff30) newUsers30d++;
+
+      // "Atividade" = login/carregamento do app (lastActiveAt), que é atualizado a cada
+      // vez que o usuário abre o app. Sem esse campo (usuários antigos que ainda não
+      // logaram desde essa atualização), considera como não visto recentemente.
+      const lastActive = data.lastActiveAt || createdAt || "";
+      if (lastActive >= cutoff7) active7d++;
+      if (lastActive >= cutoff30) active30d++;
+      if (lastActive && lastActive < cutoff90) inactive90d++;
     });
 
+    // ✅ Alcance das novidades: quantos usuários já marcaram cada id como visto
+    // (o próprio userConfig.novidadesVistas já guarda isso, só agregamos aqui).
+    const novidadeReach = {};
+    usersSnap.forEach((d) => {
+      const seen = (d.data().config && d.data().config.novidadesVistas) || [];
+      seen.forEach((id) => { novidadeReach[id] = (novidadeReach[id] || 0) + 1; });
+    });
+
+    // ✅ Categorias mais usadas — só a categoria + contagem sai do servidor, nunca o
+    // lançamento em si (nome, valor, banco etc.), por isso não fere a privacidade de ninguém.
+    const catSnap = await db.collectionGroup("transactions").select("category").get();
+    const categoryTally = {};
+    catSnap.forEach((d) => {
+      const cat = d.data().category || "Sem categoria";
+      categoryTally[cat] = (categoryTally[cat] || 0) + 1;
+    });
+    const topCategories = Object.entries(categoryTally)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
     // count() é uma agregação eficiente do Firestore — não baixa os documentos, só conta.
-    const [txCount, billsCount, invCount, loansCount] = await Promise.all([
+    const [txCount, billsCount, invCount] = await Promise.all([
       db.collectionGroup("transactions").count().get(),
       db.collectionGroup("bills").count().get(),
       db.collectionGroup("investments").count().get(),
-      db.collectionGroup("loans").count().get(),
     ]);
 
     return {
       totalUsers,
+      newUsers7d,
+      newUsers30d,
+      active7d,
+      active30d,
+      inactive90d,
       usersWithPushEnabled,
       themeCount,
       totalTransactions: txCount.data().count,
       totalBills: billsCount.data().count,
       totalInvestments: invCount.data().count,
-      totalLoans: loansCount.data().count,
+      novidadeReach,
+      topCategories,
       generatedAt: new Date().toISOString(),
     };
   }
 );
+
+/* NOTA sobre "leituras/gravações por dia": esses números o Firestore já calcula
+ * automaticamente e mostra de graça no Console do Firebase, em:
+ * Firebase Console > Firestore Database > Uso (aba "Usage").
+ * Reproduzir isso aqui exigiria integrar com a API do Google Cloud Monitoring,
+ * que é mais complexa, tem custo próprio de consulta, e no fim mostraria os
+ * mesmos números que já estão prontos e gratuitos naquela aba. Recomendo usar
+ * o painel nativo pra isso em vez de duplicar aqui. */
