@@ -81,7 +81,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .icon-btn:active{transform:scale(.94);background:var(--surface2)}
 .user-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'Sora',sans-serif;color:#fff;cursor:pointer;flex-shrink:0;border:2px solid var(--border)}
 .bottom-nav{display:flex;background:var(--surface2);border-radius:24px;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));padding:10px 0;box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:5;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:8.5px;font-family:'Sora',sans-serif;font-weight:500}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:11px;font-family:'Sora',sans-serif;font-weight:500}
 .nav-item.active{color:var(--accent)}
 .nav-item .nav-icon{font-size:20px}
 .main-area{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
@@ -531,6 +531,7 @@ select.field-input option{background:#03002A}
           🔔
           <span id="notif-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--red);border-radius:50%;border:1.5px solid var(--bg)"></span>
         </button>
+        <button class="icon-btn" onclick="showPage('config')" title="Configurações">⚙️</button>
         <div class="user-avatar" id="user-avatar" onclick="openProfile()">?</div>
       </div>
     </div>
@@ -621,6 +622,7 @@ select.field-input option{background:#03002A}
       <!-- INVESTIMENTOS -->
       <div class="page" id="page-investments">
         <div style="height:16px"></div>
+        <div style="cursor:pointer;color:var(--text3);font-size:13px;margin-bottom:8px" onclick="showPage('more')">‹ Mais</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Investimentos</div>
           <button class="cta-btn" onclick="openInvestmentModal()" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:13px">+ Novo</button>
@@ -665,6 +667,7 @@ select.field-input option{background:#03002A}
       <!-- EMPRÉSTIMOS -->
       <div class="page" id="page-loans">
         <div style="height:16px"></div>
+        <div style="cursor:pointer;color:var(--text3);font-size:13px;margin-bottom:8px" onclick="showPage('more')">‹ Mais</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Empréstimos</div>
           <button class="cta-btn" onclick="openLoanModal()" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:13px">+ Novo</button>
@@ -684,6 +687,80 @@ select.field-input option{background:#03002A}
         <div style="margin-top:28px">
           <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text3)">✅ Quitados</div>
           <div id="loans-settled-list"></div>
+        </div>
+      </div>
+
+      <!-- MAIS (hub) -->
+      <div class="page" id="page-more">
+        <div style="height:16px"></div>
+        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:20px">Mais</div>
+        <div class="config-row" style="cursor:pointer" onclick="showPage('investments')">
+          <div class="config-row-left"><div style="font-size:22px">📈</div><div>
+            <div class="config-row-label">Investimentos</div>
+            <div class="config-row-sub">Acompanhe seus investimentos e rendimentos</div>
+          </div></div>
+          <div style="color:var(--text3)">›</div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="config-row" style="cursor:pointer" onclick="showPage('loans')">
+          <div class="config-row-left"><div style="font-size:22px">🤝</div><div>
+            <div class="config-row-label">Empréstimos</div>
+            <div class="config-row-sub">O que você pegou e o que você emprestou</div>
+          </div></div>
+          <div style="color:var(--text3)">›</div>
+        </div>
+      </div>
+
+      <!-- DEV (só visível pro DEV_UID) -->
+      <div class="page" id="page-dev">
+        <div style="height:16px"></div>
+        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:16px">🛠️ Painel Dev</div>
+
+        <div class="section-title">📊 Estatísticas de uso</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div id="dev-stats-body" style="font-size:13px;line-height:1.8">Carregando...</div>
+          <button class="add-btn" style="width:100%;margin-top:10px" onclick="loadDevStats()">🔄 Atualizar</button>
+        </div>
+
+        <div class="section-title">🚩 Feature flags</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div id="feature-flags-list-dev" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px"></div>
+          <div style="display:flex;gap:8px">
+            <input class="field-input" id="feature-flag-key" placeholder="Nome da flag (ex: novoGrafico)" style="flex:1">
+            <button class="add-btn" onclick="addFeatureFlagDev()">+</button>
+          </div>
+        </div>
+
+        <div class="section-title">🐞 Log de erros</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div id="error-log-list-dev" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;font-size:12px">Carregando...</div>
+          <button class="add-btn" style="width:100%;margin-top:10px" onclick="loadErrorLogsDev()">🔄 Atualizar</button>
+        </div>
+
+        <div class="section-title">🔔 Novidades</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <input class="field-input" id="nov-title" placeholder="Título da novidade">
+            <textarea class="field-input" id="nov-desc" placeholder="Descrição" style="min-height:70px;resize:vertical;font-family:'Inter',sans-serif"></textarea>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1"><label class="field-label">Início (opcional)</label><input class="field-input" type="date" id="nov-start"></div>
+              <div style="flex:1"><label class="field-label">Fim (opcional)</label><input class="field-input" type="date" id="nov-end"></div>
+            </div>
+            <button class="cta-btn" onclick="saveNovidade()" style="font-size:14px;padding:13px">Publicar novidade</button>
+          </div>
+          <div style="height:1px;background:var(--border);margin:16px 0"></div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">HISTÓRICO PUBLICADO</div>
+          <div id="novidades-list-dev" style="max-height:260px;overflow-y:auto"></div>
+        </div>
+
+        <div class="section-title">🎨 Dicionário de ícones</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div id="cat-icons-list-dev" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+          <div style="display:flex;gap:8px">
+            <input class="field-input" id="cat-icon-key" placeholder="Categoria (ex: Investimentos)" style="flex:1">
+            <input class="field-input" id="cat-icon-emoji" placeholder="🔥" style="width:70px;text-align:center">
+            <button class="add-btn" onclick="saveCatIconDev()">+</button>
+          </div>
         </div>
       </div>
 
@@ -826,36 +903,6 @@ select.field-input option{background:#03002A}
         </div>
           </div>
         <div style="height:8px"></div>
-        <div id="dev-novidades-section" style="display:none">
-          <div class="section-title">🔧 Novidades (dev)</div>
-          <div class="config-card" style="padding:16px">
-            <div style="display:flex;flex-direction:column;gap:10px">
-              <input class="field-input" id="nov-title" placeholder="Título da novidade">
-              <textarea class="field-input" id="nov-desc" placeholder="Descrição" style="min-height:70px;resize:vertical;font-family:'Inter',sans-serif"></textarea>
-              <div style="display:flex;gap:8px">
-                <div style="flex:1"><label class="field-label">Início (opcional)</label><input class="field-input" type="date" id="nov-start"></div>
-                <div style="flex:1"><label class="field-label">Fim (opcional)</label><input class="field-input" type="date" id="nov-end"></div>
-              </div>
-              <button class="cta-btn" onclick="saveNovidade()" style="font-size:14px;padding:13px">Publicar novidade</button>
-            </div>
-            <div style="height:1px;background:var(--border);margin:16px 0"></div>
-            <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">HISTÓRICO PUBLICADO</div>
-            <div id="novidades-list-dev" style="max-height:260px;overflow-y:auto"></div>
-          </div>
-        </div>
-        <div style="height:8px"></div>
-        <div id="dev-icons-section" style="display:none">
-          <div class="section-title">🔧 Dicionário de ícones (dev)</div>
-          <div class="config-card" style="padding:16px">
-            <div id="cat-icons-list-dev" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
-            <div style="display:flex;gap:8px">
-              <input class="field-input" id="cat-icon-key" placeholder="Categoria (ex: Investimentos)" style="flex:1">
-              <input class="field-input" id="cat-icon-emoji" placeholder="🔥" style="width:70px;text-align:center">
-              <button class="add-btn" onclick="saveCatIconDev()">+</button>
-            </div>
-          </div>
-        </div>
-        <div style="height:8px"></div>
         <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.4 · Dados salvos na nuvem ☁️</div>
       <div class="install-tour-anchor" style="height:1px"></div>
       </div>
@@ -864,10 +911,9 @@ select.field-input option{background:#03002A}
     <div class="bottom-nav">
       <div class="nav-item active" id="nav-home" onclick="showPage('home')"><div class="nav-icon">🏠</div><div>Início</div></div>
       <div class="nav-item" id="nav-bills" onclick="showPage('bills')"><div class="nav-icon">📋</div><div>Contas</div></div>
-      <div class="nav-item" id="nav-investments" onclick="showPage('investments')"><div class="nav-icon">📈</div><div>Invest.</div></div>
-      <div class="nav-item" id="nav-loans" onclick="showPage('loans')"><div class="nav-icon">🤝</div><div>Empr.</div></div>
       <div class="nav-item" id="nav-report" onclick="showPage('report')"><div class="nav-icon">📊</div><div>Relatórios</div></div>
-      <div class="nav-item" id="nav-config" onclick="showPage('config')"><div class="nav-icon">⚙️</div><div>Config.</div></div>
+      <div class="nav-item" id="nav-more" onclick="showPage('more')"><div class="nav-icon">➕</div><div>Mais</div></div>
+      <div class="nav-item" id="nav-dev" onclick="showPage('dev')" style="display:none"><div class="nav-icon">🛠️</div><div>Dev</div></div>
     </div>
   </div>
 
@@ -1448,8 +1494,9 @@ select.field-input option{background:#03002A}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteField, collection, addDoc, getDocs, deleteDoc, query, orderBy, writeBatch, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteField, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit, writeBatch, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyByoauTX_Pap5cSzTpP43yjJspE5uBx2-c",
@@ -1463,7 +1510,32 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
+const functionsInstance = getFunctions(firebaseApp, 'southamerica-east1');
 const googleProvider = new GoogleAuthProvider();
+
+// ── Log de erros: manda console.error() pro Firestore (só o dev consegue ler) ──
+// Best-effort: nunca trava o app se o envio falhar, e evita loop caso o próprio envio erre.
+const _origConsoleError = console.error.bind(console);
+let _sendingErrorLog = false;
+console.error = function(...args){
+  _origConsoleError(...args);
+  try{
+    if(!currentUser || _sendingErrorLog) return;
+    _sendingErrorLog = true;
+    const message = args.map(a=>{
+      if(a instanceof Error) return a.message+(a.stack?('\n'+a.stack):'');
+      if(typeof a==='object') { try{return JSON.stringify(a);}catch{return String(a);} }
+      return String(a);
+    }).join(' | ').slice(0,2000);
+    addDoc(collection(db,'errorLogs'), {
+      uid: currentUser.uid,
+      message,
+      userAgent: navigator.userAgent,
+      url: location.href,
+      timestamp: new Date().toISOString()
+    }).catch(()=>{}).finally(()=>{ _sendingErrorLog=false; });
+  }catch(e){ _sendingErrorLog=false; }
+};
 
 // ✅ FIX 10: Push notification real (funciona com o app fechado) — ver functions/index.js
 // COLE AQUI a chave VAPID gerada em: Console Firebase > Configurações do projeto >
@@ -1588,6 +1660,104 @@ async function loadCatIcons(){
   }catch(e){ console.error('Erro ao carregar dicionário de ícones:', e); }
 }
 
+// ── Feature flags (compartilhadas entre todos os usuários, controladas só pelo dev) ──
+let FEATURE_FLAGS = {};
+async function loadFeatureFlags(){
+  try{
+    const snap = await getDoc(doc(db,'config','featureFlags'));
+    if(snap.exists() && snap.data().flags) FEATURE_FLAGS = snap.data().flags;
+  }catch(e){ console.error('Erro ao carregar feature flags:', e); }
+}
+function renderFeatureFlagsDev(){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const list = document.getElementById('feature-flags-list-dev');
+  if (!list) return;
+  const entries = Object.entries(FEATURE_FLAGS).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(!entries.length){ list.innerHTML='<div style="font-size:12px;color:var(--text3)">Nenhuma flag cadastrada</div>'; return; }
+  list.innerHTML = entries.map(([key,val])=>`<div style="display:flex;align-items:center;justify-content:space-between">
+    <div><div style="font-size:13px">${esc(key)}</div></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="toggle ${val?'on':''}" onclick="toggleFeatureFlagDev('${esc(key).replace(/'/g,"\\'")}')"></button>
+      <span style="cursor:pointer;color:var(--red);font-size:12px" onclick="deleteFeatureFlagDev('${esc(key).replace(/'/g,"\\'")}')">Remover</span>
+    </div>
+  </div>`).join('');
+}
+window.addFeatureFlagDev = async function(){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const key = document.getElementById('feature-flag-key').value.trim();
+  if(!key){ showToast('⚠️ Dê um nome pra flag', false); return; }
+  try{
+    await setDoc(doc(db,'config','featureFlags'), { flags: { [key]: false } }, { merge: true });
+    FEATURE_FLAGS[key] = false;
+    document.getElementById('feature-flag-key').value = '';
+    renderFeatureFlagsDev();
+    showToast('✓ Flag criada (desligada)', true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao criar flag.', false); }
+};
+window.toggleFeatureFlagDev = async function(key){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  try{
+    const newVal = !FEATURE_FLAGS[key];
+    await setDoc(doc(db,'config','featureFlags'), { flags: { [key]: newVal } }, { merge: true });
+    FEATURE_FLAGS[key] = newVal;
+    renderFeatureFlagsDev();
+  }catch(e){ console.error(e); showToast('❌ Erro ao atualizar flag.', false); }
+};
+window.deleteFeatureFlagDev = async function(key){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  try{
+    await updateDoc(doc(db,'config','featureFlags'), { [`flags.${key}`]: deleteField() });
+    delete FEATURE_FLAGS[key];
+    renderFeatureFlagsDev();
+    showToast('✓ Flag removida', true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao remover flag.', false); }
+};
+
+// ── Log de erros (só o dev consegue ler, por regra do Firestore) ──
+// ── Estatísticas de uso (via Cloud Function — só o dev consegue chamar) ──
+window.loadDevStats = async function(){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const el = document.getElementById('dev-stats-body');
+  if (!el) return;
+  el.textContent = 'Carregando...';
+  try{
+    const call = httpsCallable(functionsInstance, 'getDevStats');
+    const res = await call();
+    const d = res.data;
+    el.innerHTML = `
+      <div>👥 Usuários cadastrados: <b>${d.totalUsers}</b></div>
+      <div>🔔 Com push ativado: <b>${d.usersWithPushEnabled}</b></div>
+      <div>🌙 Tema escuro: <b>${d.themeCount.dark}</b> · ☀️ Tema claro: <b>${d.themeCount.light}</b> · Indefinido: <b>${d.themeCount.indefinido}</b></div>
+      <div style="margin-top:8px">💳 Lançamentos totais: <b>${d.totalTransactions}</b></div>
+      <div>📋 Contas cadastradas: <b>${d.totalBills}</b></div>
+      <div>📈 Investimentos cadastrados: <b>${d.totalInvestments}</b></div>
+      <div>🤝 Empréstimos cadastrados: <b>${d.totalLoans}</b></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">Atualizado em ${esc(d.generatedAt)}</div>
+    `;
+  }catch(e){
+    console.error(e);
+    el.innerHTML = '<span style="color:var(--red)">Erro ao carregar estatísticas.</span>';
+  }
+};
+
+window.loadErrorLogsDev = async function(){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const list = document.getElementById('error-log-list-dev');
+  if (!list) return;
+  list.innerHTML = 'Carregando...';
+  try{
+    const snap = await getDocs(query(collection(db,'errorLogs'), orderBy('timestamp','desc'), limit(50)));
+    if(snap.empty){ list.innerHTML = '<div style="color:var(--text3)">Nenhum erro registrado 🎉</div>'; return; }
+    list.innerHTML = snap.docs.map(d=>{
+      const e = d.data();
+      return `<div style="border-bottom:1px solid var(--border);padding-bottom:8px">
+        <div style="color:var(--red);word-break:break-word">${esc((e.message||'').slice(0,300))}</div>
+        <div style="color:var(--text3);margin-top:2px">${esc(e.timestamp||'')} · uid: ${esc((e.uid||'').slice(0,8))}...</div>
+      </div>`;
+    }).join('');
+  }catch(err){ console.error(err); list.innerHTML = '<div style="color:var(--red)">Erro ao carregar logs.</div>'; }
+};
+
 // ✅ Função compartilhada que finaliza o login: carrega os dados e mostra o app.
 // É chamada tanto pelo listener onAuthStateChanged (login novo / sessão restaurada)
 // quanto diretamente pelo botão de login (submitAuth) — porque o Firebase só dispara
@@ -1637,6 +1807,8 @@ function showApp() {
   setTimeout(setRealAppHeight, 100);
   setTimeout(setRealAppHeight, 300);
   updateAvatar(); renderConfig(); updateSetupLock();
+  const devNav = document.getElementById('nav-dev');
+  if (devNav) devNav.style.display = (currentUser && currentUser.uid===DEV_UID) ? 'flex' : 'none';
   if (isSetupIncomplete()) { showPage('config'); }
   else {
     document.getElementById('app').classList.add('page-home');
@@ -1699,7 +1871,8 @@ async function loadUserData() {
       getDocs(query(investmentsCol(),orderBy('createdAt','desc'))).catch(()=>null),
       getDocs(query(loansCol(),orderBy('createdAt','desc'))).catch(()=>null),
       loadNovidades(),
-      loadCatIcons()
+      loadCatIcons(),
+      loadFeatureFlags()
     ]);
     if (snap.exists()) { const d=snap.data(); if(d.config) userConfig={...defaultUserConfig(),...d.config}; }
     else { await setDoc(userRef(),{config:userConfig,createdAt:new Date().toISOString()}); }
@@ -1835,9 +2008,11 @@ window.showPage = function(p) {
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
-  const navEl=document.getElementById('nav-'+p); if(navEl) navEl.classList.add('active');
-  const snav=document.getElementById('snav-'+p); if(snav) snav.classList.add('active');
-  const pageTitles = {home:'Início', bills:'Contas a Pagar', investments:'Investimentos', loans:'Empréstimos', report:'Relatórios', config:'Configurações'};
+  // "Investimentos" e "Empréstimos" moraram dentro de "Mais" — destaca o ícone Mais pra elas
+  const navKey = (p==='investments'||p==='loans') ? 'more' : p;
+  const navEl=document.getElementById('nav-'+navKey); if(navEl) navEl.classList.add('active');
+  const snav=document.getElementById('snav-'+navKey); if(snav) snav.classList.add('active');
+  const pageTitles = {home:'Início', bills:'Contas a Pagar', investments:'Investimentos', loans:'Empréstimos', more:'Mais', report:'Relatórios', config:'Configurações', dev:'Dev'};
   const titleEl = document.getElementById('header-page-title');
   if(titleEl) titleEl.textContent = pageTitles[p]||'';
   const exportBtns = document.getElementById('header-export-btns');
@@ -1846,7 +2021,7 @@ window.showPage = function(p) {
   const fab=document.getElementById('main-fab');
   if(fab){if(p==='home'&&!fab.classList.contains('fab-locked'))fab.classList.add('visible');else fab.classList.remove('visible');}
   const appEl=document.getElementById('app');
-  ['page-home','page-bills','page-investments','page-loans','page-report','page-config'].forEach(c=>appEl.classList.remove(c));
+  ['page-home','page-bills','page-investments','page-loans','page-more','page-report','page-config','page-dev'].forEach(c=>appEl.classList.remove(c));
   appEl.classList.add('page-'+p);
   if(p==='home') renderHome();
   if(p==='bills') { renderBills(); updateNotifBanner(); checkBillsDue(); }
@@ -1854,6 +2029,7 @@ window.showPage = function(p) {
   if(p==='loans') renderLoans();
   if(p==='report') renderReport();
   if(p==='config') renderConfig();
+  if(p==='dev') renderDevPage();
 };
 
 window.changeMonth = function(dir) { currentMonth+=dir; if(currentMonth>11){currentMonth=0;currentYear++;} if(currentMonth<0){currentMonth=11;currentYear--;} homeCatFilter=null; showAllTx=false; renderHome(); };
@@ -3820,17 +3996,22 @@ function renderConfig(){
   safe(()=>renderChips('cat-chips',userConfig.categories,'removeCategory'),'renderChips categorias');
   safe(()=>renderChips('person-chips',userConfig.persons,'removePerson'),'renderChips pessoas');
   safe(()=>renderChips('bank-chips',userConfig.banks,'removeBank'),'renderChips bancos');
-  safe(()=>renderNovidadesDev(),'renderNovidadesDev');
   safe(()=>renderDebitCatLimits(),'renderDebitCatLimits');
+}
+function renderDevPage(){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const safe=(fn,label)=>{try{fn();}catch(e){console.error('Erro em '+label+':',e);}};
+  safe(()=>renderNovidadesDev(),'renderNovidadesDev');
   safe(()=>renderCatIconsDev(),'renderCatIconsDev');
+  safe(()=>loadDevStats(),'loadDevStats');
+  safe(()=>renderFeatureFlagsDev(),'renderFeatureFlagsDev');
+  safe(()=>loadErrorLogsDev(),'loadErrorLogsDev');
 }
 // ── Painel de novidades (visível só para DEV_UID) ──
 function renderNovidadesDev() {
-  const section = document.getElementById('dev-novidades-section');
-  if (!section) return;
-  if (!currentUser || currentUser.uid !== DEV_UID) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
   const list = document.getElementById('novidades-list-dev');
+  if (!list) return;
   if (!novidadesCache.length) { list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">Nenhuma novidade publicada ainda.</div>'; return; }
   const sorted = [...novidadesCache].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   list.innerHTML = sorted.map(n => `
@@ -3874,11 +4055,9 @@ window.deleteNovidade = async function(id) {
 
 // ── Dicionário de ícones por categoria (dev only — CAT_ICONS é compartilhado entre todos os usuários) ──
 function renderCatIconsDev(){
-  const section = document.getElementById('dev-icons-section');
-  if (!section) return;
-  if (!currentUser || currentUser.uid !== DEV_UID) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
   const list = document.getElementById('cat-icons-list-dev');
+  if (!list) return;
   const entries = Object.entries(CAT_ICONS).sort((a,b)=>a[0].localeCompare(b[0]));
   list.innerHTML = entries.map(([cat,emoji])=>`<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
     <span>${emoji} ${esc(cat)}</span>
