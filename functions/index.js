@@ -250,3 +250,52 @@ exports.checkInvestmentReminderDaily = onSchedule(
     }
   }
 );
+
+// ── ESTATÍSTICAS DE USO (só o dev pode chamar) ──
+// Callable function: roda no servidor com Admin SDK (ignora as regras do Firestore),
+// mas SÓ retorna números agregados — nunca dados individuais de usuários (nome, email,
+// lançamentos específicos etc). A checagem de quem é o dev acontece aqui no servidor,
+// nunca confiando no que o cliente diz que é.
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const DEV_UID = "EUgFCLnrh3YAWpjV6d1j1uzvl7M2";
+
+exports.getDevStats = onCall(
+  { region: "southamerica-east1" },
+  async (request) => {
+    ensureInit();
+    if (!request.auth || request.auth.uid !== DEV_UID) {
+      throw new HttpsError("permission-denied", "Só o dev pode acessar essas estatísticas.");
+    }
+
+    const usersSnap = await db.collection("users").get();
+    const totalUsers = usersSnap.size;
+
+    const themeCount = { light: 0, dark: 0, indefinido: 0 };
+    let usersWithPushEnabled = 0;
+    usersSnap.forEach((d) => {
+      const cfg = d.data().config || {};
+      const theme = cfg.theme === "light" ? "light" : cfg.theme === "dark" ? "dark" : "indefinido";
+      themeCount[theme]++;
+      if ((d.data().fcmTokens || []).length) usersWithPushEnabled++;
+    });
+
+    // count() é uma agregação eficiente do Firestore — não baixa os documentos, só conta.
+    const [txCount, billsCount, invCount, loansCount] = await Promise.all([
+      db.collectionGroup("transactions").count().get(),
+      db.collectionGroup("bills").count().get(),
+      db.collectionGroup("investments").count().get(),
+      db.collectionGroup("loans").count().get(),
+    ]);
+
+    return {
+      totalUsers,
+      usersWithPushEnabled,
+      themeCount,
+      totalTransactions: txCount.data().count,
+      totalBills: billsCount.data().count,
+      totalInvestments: invCount.data().count,
+      totalLoans: loansCount.data().count,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+);
