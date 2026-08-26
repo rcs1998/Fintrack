@@ -81,6 +81,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .icon-btn:active{transform:scale(.94);background:var(--surface2)}
 .user-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'Sora',sans-serif;color:#fff;cursor:pointer;flex-shrink:0;border:2px solid var(--border)}
 .bottom-nav{display:flex;background:var(--surface2);border-radius:24px;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));padding:10px 0;box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:5;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.more-menu-popup{display:none;flex-direction:column;position:absolute;right:12px;left:12px;bottom:calc(76px + env(safe-area-inset-bottom));background:var(--surface2);border-radius:18px;box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:6;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden;animation:popupFade .18s ease}
+@keyframes popupFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.more-menu-popup.open{display:flex}
+.more-menu-item{display:flex;align-items:center;gap:10px;padding:14px 18px;font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border)}
+.more-menu-item:last-child{border-bottom:none}
+.more-menu-item:active{background:var(--surface)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text3);transition:color .2s;font-size:11px;font-family:'Sora',sans-serif;font-weight:500}
 .nav-item.active{color:var(--accent)}
 .nav-item .nav-icon{font-size:20px}
@@ -622,7 +628,7 @@ select.field-input option{background:#03002A}
       <!-- INVESTIMENTOS -->
       <div class="page" id="page-investments">
         <div style="height:16px"></div>
-        <div style="cursor:pointer;color:var(--text3);font-size:13px;margin-bottom:8px" onclick="showPage('more')">‹ Mais</div>
+        <div style="cursor:pointer;color:var(--text3);font-size:13px;margin-bottom:8px" onclick="showPage('home')">‹ Início</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Investimentos</div>
           <button class="cta-btn" onclick="openInvestmentModal()" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:13px">+ Novo</button>
@@ -667,7 +673,7 @@ select.field-input option{background:#03002A}
       <!-- EMPRÉSTIMOS -->
       <div class="page" id="page-loans">
         <div style="height:16px"></div>
-        <div style="cursor:pointer;color:var(--text3);font-size:13px;margin-bottom:8px" onclick="showPage('more')">‹ Mais</div>
+        <div style="cursor:pointer;color:var(--text3);font-size:13px;margin-bottom:8px" onclick="showPage('home')">‹ Início</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700">Empréstimos</div>
           <button class="cta-btn" onclick="openLoanModal()" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:13px">+ Novo</button>
@@ -690,26 +696,6 @@ select.field-input option{background:#03002A}
         </div>
       </div>
 
-      <!-- MAIS (hub) -->
-      <div class="page" id="page-more">
-        <div style="height:16px"></div>
-        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:20px">Mais</div>
-        <div class="config-row" style="cursor:pointer" onclick="showPage('investments')">
-          <div class="config-row-left"><div style="font-size:22px">📈</div><div>
-            <div class="config-row-label">Investimentos</div>
-            <div class="config-row-sub">Acompanhe seus investimentos e rendimentos</div>
-          </div></div>
-          <div style="color:var(--text3)">›</div>
-        </div>
-        <div style="height:10px"></div>
-        <div class="config-row" style="cursor:pointer" onclick="showPage('loans')">
-          <div class="config-row-left"><div style="font-size:22px">🤝</div><div>
-            <div class="config-row-label">Empréstimos</div>
-            <div class="config-row-sub">O que você pegou e o que você emprestou</div>
-          </div></div>
-          <div style="color:var(--text3)">›</div>
-        </div>
-      </div>
 
       <!-- DEV (só visível pro DEV_UID) -->
       <div class="page" id="page-dev">
@@ -908,11 +894,15 @@ select.field-input option{background:#03002A}
       </div>
     </div>
 
+    <div class="more-menu-popup" id="more-menu-popup">
+      <div class="more-menu-item" onclick="showPage('investments');closeMoreMenu()"><span style="font-size:18px">📈</span> Investimentos</div>
+      <div class="more-menu-item" onclick="showPage('loans');closeMoreMenu()"><span style="font-size:18px">🤝</span> Empréstimos</div>
+    </div>
     <div class="bottom-nav">
       <div class="nav-item active" id="nav-home" onclick="showPage('home')"><div class="nav-icon">🏠</div><div>Início</div></div>
       <div class="nav-item" id="nav-bills" onclick="showPage('bills')"><div class="nav-icon">📋</div><div>Contas</div></div>
       <div class="nav-item" id="nav-report" onclick="showPage('report')"><div class="nav-icon">📊</div><div>Relatórios</div></div>
-      <div class="nav-item" id="nav-more" onclick="showPage('more')"><div class="nav-icon">➕</div><div>Mais</div></div>
+      <div class="nav-item" id="nav-more" onclick="toggleMoreMenu(event)"><div class="nav-icon" id="nav-more-icon">➕</div><div>Mais</div></div>
       <div class="nav-item" id="nav-dev" onclick="showPage('dev')" style="display:none"><div class="nav-icon">🛠️</div><div>Dev</div></div>
     </div>
   </div>
@@ -2002,7 +1992,25 @@ window.smartOpen = function() {
   else { openModal(); }
 };
 
+// ── Menu suspenso do "Mais" (Investimentos/Empréstimos) ──
+window.toggleMoreMenu = function(e){
+  if(e) e.stopPropagation();
+  document.getElementById('more-menu-popup').classList.toggle('open');
+};
+window.closeMoreMenu = function(){
+  const el=document.getElementById('more-menu-popup');
+  if(el) el.classList.remove('open');
+};
+document.addEventListener('click', (e)=>{
+  const popup=document.getElementById('more-menu-popup');
+  const navMore=document.getElementById('nav-more');
+  if(popup && popup.classList.contains('open') && !popup.contains(e.target) && !(navMore&&navMore.contains(e.target))){
+    closeMoreMenu();
+  }
+});
+
 window.showPage = function(p) {
+  closeMoreMenu();
   if (isSetupIncomplete()&&p!=='config') { showToast('⚠️ Cadastre ao menos 1 cartão e 1 banco para liberar o app',false); p='config'; }
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
@@ -2012,7 +2020,7 @@ window.showPage = function(p) {
   const navKey = (p==='investments'||p==='loans') ? 'more' : p;
   const navEl=document.getElementById('nav-'+navKey); if(navEl) navEl.classList.add('active');
   const snav=document.getElementById('snav-'+navKey); if(snav) snav.classList.add('active');
-  const pageTitles = {home:'Início', bills:'Contas a Pagar', investments:'Investimentos', loans:'Empréstimos', more:'Mais', report:'Relatórios', config:'Configurações', dev:'Dev'};
+  const pageTitles = {home:'Início', bills:'Contas a Pagar', investments:'Investimentos', loans:'Empréstimos', report:'Relatórios', config:'Configurações', dev:'Dev'};
   const titleEl = document.getElementById('header-page-title');
   if(titleEl) titleEl.textContent = pageTitles[p]||'';
   const exportBtns = document.getElementById('header-export-btns');
@@ -2021,7 +2029,7 @@ window.showPage = function(p) {
   const fab=document.getElementById('main-fab');
   if(fab){if(p==='home'&&!fab.classList.contains('fab-locked'))fab.classList.add('visible');else fab.classList.remove('visible');}
   const appEl=document.getElementById('app');
-  ['page-home','page-bills','page-investments','page-loans','page-more','page-report','page-config','page-dev'].forEach(c=>appEl.classList.remove(c));
+  ['page-home','page-bills','page-investments','page-loans','page-report','page-config','page-dev'].forEach(c=>appEl.classList.remove(c));
   appEl.classList.add('page-'+p);
   if(p==='home') renderHome();
   if(p==='bills') { renderBills(); updateNotifBanner(); checkBillsDue(); }
