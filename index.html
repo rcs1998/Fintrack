@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FinTrack">
 <meta name="theme-color" content="#03002A">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net wss://*.firebaseio.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
@@ -700,12 +702,35 @@ select.field-input option{background:#03002A}
       <!-- DEV (só visível pro DEV_UID) -->
       <div class="page" id="page-dev">
         <div style="height:16px"></div>
-        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:16px">🛠️ Painel Dev</div>
+        <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:700;margin-bottom:2px">🛠️ Painel Dev</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:16px" id="dev-version-label"></div>
+
+        <div class="section-title">💓 Saúde das rotinas automáticas</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div id="dev-health-body" style="font-size:13px;line-height:1.8">Carregando...</div>
+          <button class="add-btn" style="width:100%;margin-top:10px" onclick="loadSystemHealthDev()">🔄 Atualizar</button>
+        </div>
 
         <div class="section-title">📊 Estatísticas de uso</div>
         <div class="config-card" style="padding:16px;margin-bottom:20px">
           <div id="dev-stats-body" style="font-size:13px;line-height:1.8">Carregando...</div>
           <button class="add-btn" style="width:100%;margin-top:10px" onclick="loadDevStats()">🔄 Atualizar</button>
+        </div>
+
+        <div class="section-title">🏷️ Categorias mais usadas</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div id="dev-top-categories-body" style="font-size:13px;line-height:1.8">Carregando...</div>
+        </div>
+
+        <div class="section-title">📣 Alcance das novidades</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div id="dev-novidade-reach-body" style="font-size:13px;line-height:1.8">Carregando...</div>
+        </div>
+
+        <div class="section-title">💬 Feedback dos usuários</div>
+        <div class="config-card" style="padding:16px;margin-bottom:20px">
+          <div id="feedback-list-dev" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;font-size:12px">Carregando...</div>
+          <button class="add-btn" style="width:100%;margin-top:10px" onclick="loadFeedbackDev()">🔄 Atualizar</button>
         </div>
 
         <div class="section-title">🚩 Feature flags</div>
@@ -889,7 +914,15 @@ select.field-input option{background:#03002A}
         </div>
           </div>
         <div style="height:8px"></div>
-        <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px">FinTrack v2.4 · Dados salvos na nuvem ☁️</div>
+        <div class="config-row" style="cursor:pointer" onclick="openFeedbackModal()">
+          <div class="config-row-left"><div>💬</div><div>
+            <div class="config-row-label">Enviar sugestão ou relatar um bug</div>
+            <div class="config-row-sub">Vai direto pro desenvolvedor</div>
+          </div></div>
+          <div style="color:var(--text3)">›</div>
+        </div>
+        <div style="height:16px"></div>
+        <div style="text-align:center;font-size:12px;color:var(--text3);padding:8px 0 16px" id="app-version-footer">FinTrack · Dados salvos na nuvem ☁️</div>
       <div class="install-tour-anchor" style="height:1px"></div>
       </div>
     </div>
@@ -1218,6 +1251,25 @@ select.field-input option{background:#03002A}
   </div>
 </div>
 
+<!-- MODAL FEEDBACK/BUG -->
+<div class="modal-overlay" id="modal-feedback">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Sugestão ou bug</div><button class="modal-close" onclick="closeFeedbackModal()">✕</button></div>
+    <div class="form-body" style="padding-top:16px">
+      <div class="field-group"><label class="field-label">Tipo</label>
+        <select class="field-input" id="feedback-type">
+          <option value="sugestao">💡 Sugestão</option>
+          <option value="bug">🐞 Bug / algo quebrado</option>
+        </select>
+      </div>
+      <div class="field-group"><label class="field-label">Sua mensagem</label><textarea class="field-input" id="feedback-message" placeholder="Conta com detalhes o que você quer sugerir ou o que deu errado..." style="min-height:120px;resize:vertical;font-family:'Inter',sans-serif"></textarea></div>
+      <div style="font-size:12px;color:var(--text3)">Isso vai direto pro desenvolvedor, junto com a versão do app que você está usando.</div>
+    </div>
+    <div class="cta-wrap" style="margin-top:6px"><button class="cta-btn success" onclick="sendFeedback()">✓ Enviar</button></div>
+  </div>
+</div>
+
 <!-- MODAL AVISO DE LIMITE -->
 <div class="modal-overlay" id="modal-limit-warning">
   <div class="modal-sheet" style="max-width:400px;margin:auto">
@@ -1516,7 +1568,7 @@ console.error = function(...args){
       if(a instanceof Error) return a.message+(a.stack?('\n'+a.stack):'');
       if(typeof a==='object') { try{return JSON.stringify(a);}catch{return String(a);} }
       return String(a);
-    }).join(' | ').slice(0,2000);
+    }).join(' | ').slice(0,500);
     addDoc(collection(db,'errorLogs'), {
       uid: currentUser.uid,
       message,
@@ -1543,6 +1595,11 @@ isMessagingSupported().then(supported => {
 });
 
 let currentUser = null;
+// ✅ Versão do app — atualizar aqui a cada entrega. Aparece no rodapé (Config) e no painel
+// Dev, pra confirmar rapidamente se o que está no ar é a versão mais recente ou uma antiga
+// presa em cache (do navegador ou do GitHub Pages/CDN).
+const APP_VERSION = 'v2.5';
+const APP_BUILD_DATE = '2026-08-26';
 let userConfig = { cards:[], categories:['Alimentação','Transporte','Moradia','Saúde','Lazer','Educação','Vestuário','Supermercado','Restaurante','Combustível','Streaming','Outros'], persons:['Eu'], banks:['Sicoob','Santander','Nubank','Itaú','Bradesco','Inter','C6 Bank'] };
 let transactions = [];
 let bills = [];
@@ -1705,6 +1762,29 @@ window.deleteFeatureFlagDev = async function(key){
 
 // ── Log de erros (só o dev consegue ler, por regra do Firestore) ──
 // ── Estatísticas de uso (via Cloud Function — só o dev consegue chamar) ──
+window.loadSystemHealthDev = async function(){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const el = document.getElementById('dev-health-body');
+  if (!el) return;
+  el.textContent = 'Carregando...';
+  try{
+    const snap = await getDoc(doc(db,'system','health'));
+    if(!snap.exists()){ el.innerHTML = '<span style="color:var(--text3)">Ainda sem registro (as rotinas rodam 1x por dia — dá tempo de aparecer)</span>'; return; }
+    const data = snap.data();
+    const names = {checkBillsDueDaily:'📋 Aviso de conta vencendo', checkInvestmentReminderDaily:'📈 Lembrete de investimento'};
+    const now = new Date();
+    el.innerHTML = Object.entries(names).map(([key,label])=>{
+      const info = data[key];
+      if(!info) return `<div>${label}: <span style="color:var(--text3)">nunca rodou ainda</span></div>`;
+      const hoursAgo = (now - new Date(info.lastRun)) / 3600000;
+      const stale = hoursAgo > 26; // deveria rodar 1x/dia — mais de 26h sem rodar é sinal de alerta
+      const statusIcon = info.ok && !stale ? '🟢' : (info.ok && stale ? '🟡' : '🔴');
+      const statusText = !info.ok ? `erro: ${esc(info.error||'')}` : (stale ? 'atrasada' : 'em dia');
+      return `<div>${statusIcon} ${label}: <b>${statusText}</b><br><span style="font-size:11px;color:var(--text3)">Última vez: ${esc(info.lastRun||'—')}</span></div>`;
+    }).join('<div style="height:8px"></div>');
+  }catch(e){ console.error(e); el.innerHTML = '<span style="color:var(--red)">Erro ao carregar saúde das rotinas.</span>'; }
+};
+
 window.loadDevStats = async function(){
   if (!currentUser || currentUser.uid !== DEV_UID) return;
   const el = document.getElementById('dev-stats-body');
@@ -1716,14 +1796,41 @@ window.loadDevStats = async function(){
     const d = res.data;
     el.innerHTML = `
       <div>👥 Usuários cadastrados: <b>${d.totalUsers}</b></div>
+      <div>🆕 Novos: <b>${d.newUsers7d}</b> (7d) · <b>${d.newUsers30d}</b> (30d)</div>
+      <div>✅ Ativos: <b>${d.active7d}</b> (7d) · <b>${d.active30d}</b> (30d)</div>
+      <div>💤 Sem usar há +90d: <b>${d.inactive90d}</b></div>
       <div>🔔 Com push ativado: <b>${d.usersWithPushEnabled}</b></div>
       <div>🌙 Tema escuro: <b>${d.themeCount.dark}</b> · ☀️ Tema claro: <b>${d.themeCount.light}</b> · Indefinido: <b>${d.themeCount.indefinido}</b></div>
       <div style="margin-top:8px">💳 Lançamentos totais: <b>${d.totalTransactions}</b></div>
       <div>📋 Contas cadastradas: <b>${d.totalBills}</b></div>
       <div>📈 Investimentos cadastrados: <b>${d.totalInvestments}</b></div>
-      <div>🤝 Empréstimos cadastrados: <b>${d.totalLoans}</b></div>
-      <div style="font-size:11px;color:var(--text3);margin-top:8px">Atualizado em ${esc(d.generatedAt)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px">Atualizado em ${esc(d.generatedAt)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">📊 Leituras/gravações por dia: veja em <a href="https://console.firebase.google.com/project/fintrack-7183d/firestore/usage" target="_blank" style="color:var(--accent)">Firebase Console → Firestore → Uso</a> (já vem pronto e de graça por lá)</div>
     `;
+    // Categorias mais usadas
+    const catEl = document.getElementById('dev-top-categories-body');
+    if(catEl){
+      if(!d.topCategories || !d.topCategories.length){ catEl.innerHTML = '<span style="color:var(--text3)">Sem lançamentos suficientes ainda</span>'; }
+      else {
+        const maxCount = d.topCategories[0][1];
+        catEl.innerHTML = d.topCategories.map(([cat,count])=>{
+          const pct = Math.round(count/maxCount*100);
+          return `<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${CAT_ICONS[cat]||'📦'} ${esc(cat)}</span><span>${count}</span></div><div class="report-bar-wrap"><div class="report-bar" style="width:${pct}%"></div></div></div>`;
+        }).join('');
+      }
+    }
+    // Alcance das novidades
+    const reachEl = document.getElementById('dev-novidade-reach-body');
+    if(reachEl){
+      if(!novidadesCache.length){ reachEl.innerHTML = '<span style="color:var(--text3)">Nenhuma novidade publicada ainda</span>'; }
+      else {
+        const sorted = [...novidadesCache].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+        reachEl.innerHTML = sorted.map(n=>{
+          const count = (d.novidadeReach && d.novidadeReach[n.id]) || 0;
+          return `<div style="margin-bottom:4px;font-size:13px">${esc(n.title||'')}: <b>${count}</b> usuário${count!==1?'s':''} viu${count!==1?'ram':''}</div>`;
+        }).join('');
+      }
+    }
   }catch(e){
     console.error(e);
     el.innerHTML = '<span style="color:var(--red)">Erro ao carregar estatísticas.</span>';
@@ -1736,16 +1843,72 @@ window.loadErrorLogsDev = async function(){
   if (!list) return;
   list.innerHTML = 'Carregando...';
   try{
-    const snap = await getDocs(query(collection(db,'errorLogs'), orderBy('timestamp','desc'), limit(50)));
+    const snap = await getDocs(query(collection(db,'errorLogs'), orderBy('timestamp','desc'), limit(200)));
     if(snap.empty){ list.innerHTML = '<div style="color:var(--text3)">Nenhum erro registrado 🎉</div>'; return; }
-    list.innerHTML = snap.docs.map(d=>{
+    // ✅ Agrupa por mensagem igual (mesmo erro repetindo várias vezes vira uma linha só, com contagem)
+    const groups = {};
+    snap.docs.forEach(d=>{
       const e = d.data();
+      const key = (e.message||'').slice(0,150); // usa o início da mensagem como chave de agrupamento
+      if(!groups[key]) groups[key] = {message:e.message||'', count:0, lastTimestamp:e.timestamp, uids:new Set()};
+      groups[key].count++;
+      groups[key].uids.add(e.uid);
+      if(e.timestamp > groups[key].lastTimestamp) groups[key].lastTimestamp = e.timestamp;
+    });
+    const sorted = Object.values(groups).sort((a,b)=>b.count-a.count); // mais frequentes primeiro
+    list.innerHTML = sorted.map(g=>{
+      const countBadge = g.count>1 ? `<span style="background:var(--red-soft);color:var(--red);padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700;margin-left:6px">${g.count}x</span>` : '';
       return `<div style="border-bottom:1px solid var(--border);padding-bottom:8px">
-        <div style="color:var(--red);word-break:break-word">${esc((e.message||'').slice(0,300))}</div>
-        <div style="color:var(--text3);margin-top:2px">${esc(e.timestamp||'')} · uid: ${esc((e.uid||'').slice(0,8))}...</div>
+        <div style="color:var(--red);word-break:break-word">${esc(g.message.slice(0,300))}${countBadge}</div>
+        <div style="color:var(--text3);margin-top:2px">Última vez: ${esc(g.lastTimestamp||'')} · ${g.uids.size} usuário${g.uids.size>1?'s':''} afetado${g.uids.size>1?'s':''}</div>
       </div>`;
     }).join('');
   }catch(err){ console.error(err); list.innerHTML = '<div style="color:var(--red)">Erro ao carregar logs.</div>'; }
+};
+
+window.testErrorLogDev = function(){
+  console.error('🧪 Erro de teste — se aparecer aqui na lista, o log tá funcionando certinho.');
+  showToast('Erro de teste disparado — atualiza a lista em ~2s', true);
+};
+
+// ── Feedback / relatar bug (qualquer usuário pode enviar; só o dev lê) ──
+window.openFeedbackModal = function(){
+  document.getElementById('feedback-type').value = 'sugestao';
+  document.getElementById('feedback-message').value = '';
+  document.getElementById('modal-feedback').classList.add('open');
+};
+window.closeFeedbackModal = function(){ document.getElementById('modal-feedback').classList.remove('open'); };
+window.sendFeedback = async function(){
+  const type = document.getElementById('feedback-type').value;
+  const message = document.getElementById('feedback-message').value.trim();
+  if(!message){ showToast('⚠️ Escreve sua mensagem antes de enviar', false); return; }
+  try{
+    await addDoc(collection(db,'feedback'), {
+      uid: currentUser.uid, type, message,
+      appVersion: APP_VERSION,
+      createdAt: new Date().toISOString()
+    });
+    closeFeedbackModal();
+    showToast('✓ Enviado, obrigado!', true);
+  }catch(e){ console.error(e); showToast('❌ Erro ao enviar. Tenta de novo.', false); }
+};
+window.loadFeedbackDev = async function(){
+  if (!currentUser || currentUser.uid !== DEV_UID) return;
+  const list = document.getElementById('feedback-list-dev');
+  if (!list) return;
+  list.innerHTML = 'Carregando...';
+  try{
+    const snap = await getDocs(query(collection(db,'feedback'), orderBy('createdAt','desc'), limit(100)));
+    if(snap.empty){ list.innerHTML = '<div style="color:var(--text3)">Nenhum feedback recebido ainda</div>'; return; }
+    list.innerHTML = snap.docs.map(d=>{
+      const f = d.data();
+      const icon = f.type==='bug' ? '🐞' : '💡';
+      return `<div style="border-bottom:1px solid var(--border);padding-bottom:8px">
+        <div>${icon} ${esc(f.message)}</div>
+        <div style="color:var(--text3);margin-top:2px">${esc(f.createdAt||'')} · v${esc(f.appVersion||'?')} · uid: ${esc((f.uid||'').slice(0,8))}...</div>
+      </div>`;
+    }).join('');
+  }catch(err){ console.error(err); list.innerHTML = '<div style="color:var(--red)">Erro ao carregar feedback.</div>'; }
 };
 
 // ✅ Função compartilhada que finaliza o login: carrega os dados e mostra o app.
@@ -1797,6 +1960,8 @@ function showApp() {
   setTimeout(setRealAppHeight, 100);
   setTimeout(setRealAppHeight, 300);
   updateAvatar(); renderConfig(); updateSetupLock();
+  const versionFooter = document.getElementById('app-version-footer');
+  if (versionFooter) versionFooter.textContent = `FinTrack ${APP_VERSION} (${APP_BUILD_DATE}) · Dados salvos na nuvem ☁️`;
   const devNav = document.getElementById('nav-dev');
   if (devNav) devNav.style.display = (currentUser && currentUser.uid===DEV_UID) ? 'flex' : 'none';
   if (isSetupIncomplete()) { showPage('config'); }
@@ -1866,6 +2031,8 @@ async function loadUserData() {
     ]);
     if (snap.exists()) { const d=snap.data(); if(d.config) userConfig={...defaultUserConfig(),...d.config}; }
     else { await setDoc(userRef(),{config:userConfig,createdAt:new Date().toISOString()}); }
+    // Registro leve de atividade — só pra estatística gerencial (não bloqueia o carregamento)
+    updateDoc(userRef(), {lastActiveAt: new Date().toISOString()}).catch(()=>{});
     transactions = txSnap.docs.map(d=>({id:d.id,...d.data()}));
     bills = bSnapResult ? bSnapResult.docs.map(d=>({id:d.id,...d.data()})) : [];
     investments = invSnapResult ? invSnapResult.docs.map(d=>({id:d.id,...d.data()})) : [];
@@ -2113,8 +2280,8 @@ function renderHome() {
     const isOut=t.type!=='transfer_in';const amt=t.myAmount??t.amount;
     const inst=t.installmentOf?` (${t.installmentNum}/${t.installmentOf}x)`:'';
     const recTag=t.isRecurring?`<span class="tag tag-recurring">🔄</span>`:'';
-    const person=t.person&&t.person!=='Eu'?` · ${t.person}`:'';
-    const bankInfo=(t.type!=='credit'&&t.bank)?` · ${t.bank}`:'';
+    const person=t.person&&t.person!=='Eu'?` · ${esc(t.person)}`:'';
+    const bankInfo=(t.type!=='credit'&&t.bank)?` · ${esc(t.bank)}`:'';
     const noteStr=t.note?`<div class="tx-note">${esc(t.note)}</div>`:'';
     return `<div class="transaction-item" onclick="openDetailModal('${t.id}')">
       <div class="tx-icon" style="background:${isOut?'var(--red-soft)':'var(--green-soft)'}">${CAT_ICONS[t.category]||'📦'}</div>
@@ -4009,11 +4176,15 @@ function renderConfig(){
 function renderDevPage(){
   if (!currentUser || currentUser.uid !== DEV_UID) return;
   const safe=(fn,label)=>{try{fn();}catch(e){console.error('Erro em '+label+':',e);}};
+  const versionLabel = document.getElementById('dev-version-label');
+  if(versionLabel) versionLabel.textContent = `Versão ${APP_VERSION} · build ${APP_BUILD_DATE}`;
+  safe(()=>loadSystemHealthDev(),'loadSystemHealthDev');
   safe(()=>renderNovidadesDev(),'renderNovidadesDev');
   safe(()=>renderCatIconsDev(),'renderCatIconsDev');
   safe(()=>loadDevStats(),'loadDevStats');
   safe(()=>renderFeatureFlagsDev(),'renderFeatureFlagsDev');
   safe(()=>loadErrorLogsDev(),'loadErrorLogsDev');
+  safe(()=>loadFeedbackDev(),'loadFeedbackDev');
 }
 // ── Painel de novidades (visível só para DEV_UID) ──
 function renderNovidadesDev() {
@@ -4201,7 +4372,16 @@ window.saveCard=function(){
   if(was&&!isSetupIncomplete())showToast('🎉 Configuração concluída! App liberado.',true);
 };
 
-function csvField(val){const s=String(val??'');if(/[;"\n]/.test(s))return '"'+s.replace(/"/g,'""')+'"';return s;}
+function csvField(val){
+  let s=String(val??'');
+  // ✅ Proteção contra "CSV/Formula Injection": células que começam com =, +, -, @ (ou
+  // tab/retorno de carro) podem ser interpretadas como fórmula ao abrir em Excel/LibreOffice/
+  // Google Sheets. Prefixamos com aspa simples (convenção padrão da OWASP) pra forçar texto puro.
+  let prefixed=false;
+  if(/^[=+\-@\t\r]/.test(s)){ s="'"+s; prefixed=true; }
+  if(prefixed || /[;"\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
 window.exportXLSX=function(){
   const txs=getFilteredTxs();
   if(!txs.length){showToast('⚠️ Nenhum dado para exportar',false);return;}
