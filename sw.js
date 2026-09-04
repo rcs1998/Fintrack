@@ -1,4 +1,4 @@
-const CACHE = 'fintrack-v5';
+const CACHE = 'fintrack-v6';
 
 // Só cacheia fontes — nunca o app em si
 const STATIC_ASSETS = [
@@ -7,7 +7,12 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  self.skipWaiting(); // assume controle imediatamente
+  // ✅ Removido o self.skipWaiting() automático daqui — ele fazia o SW assumir o controle
+  // sozinho assim que instalava, sem esperar o usuário confirmar a atualização (isso já
+  // causou loop de recarregamento antes, e depois travava o botão "Atualizar" porque o SW
+  // já tinha assumido o controle sozinho e o clique não tinha mais efeito nenhum).
+  // Agora ele só ativa quando o listener de 'message' abaixo mandar (SKIP_WAITING),
+  // disparado pelo clique no aviso "Nova versão disponível" no app.
   e.waitUntil(
     caches.open(CACHE).then(c =>
       Promise.allSettled(STATIC_ASSETS.map(url => c.add(url).catch(() => {})))
