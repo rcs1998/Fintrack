@@ -516,8 +516,11 @@ select.field-input option{background:#03002A}
     <div class="sidebar-nav">
       <div class="sidebar-item active" id="snav-home" onclick="showPage('home')"><span class="s-icon">🏠</span><span class="sidebar-item-label"> Início</span></div>
       <div class="sidebar-item" id="snav-bills" onclick="showPage('bills')"><span class="s-icon">📋</span><span class="sidebar-item-label"> Contas</span></div>
+      <div class="sidebar-item" id="snav-investments" onclick="showPage('investments')"><span class="s-icon">📈</span><span class="sidebar-item-label"> Investimentos</span></div>
+      <div class="sidebar-item" id="snav-loans" onclick="showPage('loans')"><span class="s-icon">🤝</span><span class="sidebar-item-label"> Empréstimos</span></div>
       <div class="sidebar-item" id="snav-report" onclick="showPage('report')"><span class="s-icon">📊</span><span class="sidebar-item-label"> Relatórios</span></div>
       <div class="sidebar-item" id="snav-config" onclick="showPage('config')"><span class="s-icon">⚙️</span><span class="sidebar-item-label"> Configurações</span></div>
+      <div class="sidebar-item" id="snav-dev" onclick="showPage('dev')" style="display:none"><span class="s-icon">🛠️</span><span class="sidebar-item-label"> Dev</span></div>
     </div>
     <div class="sidebar-footer">
       <div class="sidebar-user" onclick="openProfile()">
@@ -1967,6 +1970,8 @@ function showApp() {
   if (versionFooter) versionFooter.textContent = `FinTrack ${APP_VERSION} (${APP_BUILD_DATE}) · Dados salvos na nuvem ☁️`;
   const devNav = document.getElementById('nav-dev');
   if (devNav) devNav.style.display = (currentUser && currentUser.uid===DEV_UID) ? 'flex' : 'none';
+  const devSnav = document.getElementById('snav-dev');
+  if (devSnav) devSnav.style.display = (currentUser && currentUser.uid===DEV_UID) ? 'flex' : 'none';
   if (isSetupIncomplete()) { showPage('config'); }
   else {
     document.getElementById('app').classList.add('page-home');
@@ -2186,10 +2191,12 @@ window.showPage = function(p) {
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
-  // "Investimentos" e "Empréstimos" moraram dentro de "Mais" — destaca o ícone Mais pra elas
-  const navKey = (p==='investments'||p==='loans') ? 'more' : p;
-  const navEl=document.getElementById('nav-'+navKey); if(navEl) navEl.classList.add('active');
-  const snav=document.getElementById('snav-'+navKey); if(snav) snav.classList.add('active');
+  // No celular, "Investimentos"/"Empréstimos" moram dentro do popup "Mais" (sem itens
+  // diretos na barra), então o destaque cai no ícone "Mais". No desktop, a sidebar tem
+  // espaço de sobra e ganhou itens diretos pra cada um, então destaca o item certo ali.
+  const mobileNavKey = (p==='investments'||p==='loans') ? 'more' : p;
+  const navEl=document.getElementById('nav-'+mobileNavKey); if(navEl) navEl.classList.add('active');
+  const snav=document.getElementById('snav-'+p); if(snav) snav.classList.add('active');
   const pageTitles = {home:'Início', bills:'Contas a Pagar', investments:'Investimentos', loans:'Empréstimos', report:'Relatórios', config:'Configurações', dev:'Dev'};
   const titleEl = document.getElementById('header-page-title');
   if(titleEl) titleEl.textContent = pageTitles[p]||'';
@@ -4756,25 +4763,41 @@ const modalEl=document.getElementById('modal');if(modalEl)modalEl.addEventListen
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
-      // Força verificação de atualização imediata
-      reg.update();
-      // Se há um SW novo instalado aguardando, manda ele assumir agora
-      const awaitingSW = reg.waiting || reg.installing;
-      if(awaitingSW) awaitingSW.postMessage({type:'SKIP_WAITING'});
+      // ✅ Antes: assim que detectava QUALQUER atualização, mandava o novo SW assumir e
+      // recarregava a página sozinho. Se o navegador considerasse o SW "novo" outra vez logo
+      // em seguida (ex: por causa das novas tags de no-cache), isso virava um loop infinito
+      // de recarregamento. Agora só avisa o usuário com um aviso clicável — a atualização
+      // (e o reload) só acontece se a pessoa realmente tocar nele.
+      if(reg.waiting) showSwUpdateBanner(reg.waiting);
       reg.addEventListener('updatefound',()=>{
         const newSW=reg.installing;
         if(!newSW)return;
         newSW.addEventListener('statechange',()=>{
-          if(newSW.state==='installed') newSW.postMessage({type:'SKIP_WAITING'});
+          if(newSW.state==='installed' && navigator.serviceWorker.controller){
+            showSwUpdateBanner(newSW);
+          }
         });
       });
     }).catch(err=>console.error('SW erro:',err));
-    // Quando SW novo assume controle, recarrega uma vez
-    let reloading=false;
+    let reloadedOnce=false;
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
-      if(!reloading){reloading=true;window.location.reload();}
+      // Só recarrega se foi o próprio usuário que pediu a atualização (clicando no aviso)
+      if(window._ftUserRequestedUpdate && !reloadedOnce){ reloadedOnce=true; window.location.reload(); }
     });
   });
+}
+function showSwUpdateBanner(newSW){
+  if(document.getElementById('sw-update-banner')) return; // já mostrando, evita duplicar
+  const banner=document.createElement('div');
+  banner.id='sw-update-banner';
+  banner.style.cssText='position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom));background:var(--accent);color:#fff;padding:13px 18px;border-radius:14px;font-size:13px;font-family:"Sora",sans-serif;font-weight:600;z-index:999;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.35);text-align:center';
+  banner.textContent='🔄 Nova versão disponível — toque para atualizar';
+  banner.onclick=()=>{
+    window._ftUserRequestedUpdate=true;
+    banner.textContent='Atualizando...';
+    newSW.postMessage({type:'SKIP_WAITING'});
+  };
+  document.body.appendChild(banner);
 }
 
 // ── CENTRAL DE NOTIFICAÇÕES ──
