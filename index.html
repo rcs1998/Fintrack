@@ -4768,41 +4768,34 @@ const modalEl=document.getElementById('modal');if(modalEl)modalEl.addEventListen
 if('serviceWorker'in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
-      // ✅ Antes: assim que detectava QUALQUER atualização, mandava o novo SW assumir e
-      // recarregava a página sozinho. Se o navegador considerasse o SW "novo" outra vez logo
-      // em seguida (ex: por causa das novas tags de no-cache), isso virava um loop infinito
-      // de recarregamento. Agora só avisa o usuário com um aviso clicável — a atualização
-      // (e o reload) só acontece se a pessoa realmente tocar nele.
-      if(reg.waiting) showSwUpdateBanner(reg.waiting);
+      // ✅ Volta a ser automático (como era antes), mas agora com uma trava de tempo:
+      // só recarrega se já não tiver recarregado por causa de atualização nos últimos 15s.
+      // Isso é o que realmente evita o loop — não é o fato de ser automático ou manual.
+      if(reg.waiting) autoActivateNewSW(reg.waiting);
       reg.addEventListener('updatefound',()=>{
         const newSW=reg.installing;
         if(!newSW)return;
         newSW.addEventListener('statechange',()=>{
           if(newSW.state==='installed' && navigator.serviceWorker.controller){
-            showSwUpdateBanner(newSW);
+            autoActivateNewSW(newSW);
           }
         });
       });
     }).catch(err=>console.error('SW erro:',err));
-    let reloadedOnce=false;
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
-      // Só recarrega se foi o próprio usuário que pediu a atualização (clicando no aviso)
-      if(window._ftUserRequestedUpdate && !reloadedOnce){ reloadedOnce=true; window.location.reload(); }
+      const lastReload = Number(sessionStorage.getItem('ft_sw_last_reload')||0);
+      const now = Date.now();
+      if(now - lastReload > 15000){ // trava: nada de recarregar de novo antes de 15s
+        sessionStorage.setItem('ft_sw_last_reload', String(now));
+        window.location.reload();
+      } else {
+        console.error('SW: controllerchange ignorado (reload recente demais, evitando loop)');
+      }
     });
   });
 }
-function showSwUpdateBanner(newSW){
-  if(document.getElementById('sw-update-banner')) return; // já mostrando, evita duplicar
-  const banner=document.createElement('div');
-  banner.id='sw-update-banner';
-  banner.style.cssText='position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom));background:var(--accent);color:#fff;padding:13px 18px;border-radius:14px;font-size:13px;font-family:"Sora",sans-serif;font-weight:600;z-index:999;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.35);text-align:center';
-  banner.textContent='🔄 Nova versão disponível — toque para atualizar';
-  banner.onclick=()=>{
-    window._ftUserRequestedUpdate=true;
-    banner.textContent='Atualizando...';
-    newSW.postMessage({type:'SKIP_WAITING'});
-  };
-  document.body.appendChild(banner);
+function autoActivateNewSW(newSW){
+  newSW.postMessage({type:'SKIP_WAITING'});
 }
 
 // ── CENTRAL DE NOTIFICAÇÕES ──
