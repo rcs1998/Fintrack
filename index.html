@@ -2860,10 +2860,15 @@ window.confirmRedeemInvestment = async function(){
   try{
     // Cria a entrada de verdade nas transações, contando no saldo e relatórios normalmente
     await saveTx({type:'transfer_in',date,competenceDate:date,amount:value,myAmount:value,category:'Investimentos',description:'Resgate: '+inv.name,title:'Resgate: '+inv.name,note:'',person:null,card:null,bank,splitWith:[],createdAt:new Date().toISOString()});
+    // ✅ Reduz o investido e o atual pelo MESMO valor resgatado — preserva o rendimento já
+    // conquistado (senão o rendimento virava negativo, já que só o "atual" encolhia).
+    // Exemplo: investido 100, atual 120 (rendeu 20). Resgata 50 → investido 50, atual 70,
+    // rendimento continua 20. Faz sentido: você só tirou dinheiro, não perdeu rendimento.
+    const newInvested = Math.max(0, (inv.valueInvested||0) - value);
     const newCurrent = Math.max(0, currentVal - value);
     const redemptions = [...(inv.redemptions||[]), {date, value, bank}];
     const history = [...(inv.history||[]), {date, value:newCurrent}];
-    await updateDoc(doc(db,'users',currentUser.uid,'investments',inv.id), {valueCurrent:newCurrent, redemptions, history});
+    await updateDoc(doc(db,'users',currentUser.uid,'investments',inv.id), {valueInvested:newInvested, valueCurrent:newCurrent, redemptions, history});
     closeRedeemModal();
     showToast(newCurrent<=0.01 ? '✓ Investimento resgatado totalmente!' : '✓ Resgate parcial realizado!', true);
   }catch(e){ console.error(e); showToast('❌ Erro ao resgatar.',false); }
